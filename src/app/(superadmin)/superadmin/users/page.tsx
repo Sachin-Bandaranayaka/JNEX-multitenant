@@ -1,5 +1,3 @@
-// src/app/(superadmin)/superadmin/users/page.tsx
-
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import { toggleTenantStatus } from '../actions'; 
@@ -73,16 +71,23 @@ export default async function SuperAdminUsersPage() {
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-400">{tenant.referredBy?.name ?? 'Direct'}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-400">{new Date(tenant.createdAt).toLocaleDateString()}</td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <div className="flex items-center justify-end gap-x-4">
-                          <Link href={`/superadmin/tenants/${tenant.id}/edit`} className="text-indigo-400 hover:text-indigo-300">Edit</Link>
-                          <form action={toggleTenantStatus}>
-                            <input type="hidden" name="tenantId" value={tenant.id} />
-                            <input type="hidden" name="isActive" value={String(tenant.isActive)} />
-                            <button type="submit" className={tenant.isActive ? "text-red-400 hover:text-red-300" : "text-green-400 hover:text-green-300"}>
-                              {tenant.isActive ? 'Deactivate' : 'Activate'}
-                            </button>
-                          </form>
-                        </div>
+                        
+                        {/* --- FIX STARTS HERE --- */}
+                        {/* We check the tenant name. If it's not the master tenant, we show the action buttons. */}
+                        {tenant.name !== 'Master Tenant' && (
+                          <div className="flex items-center justify-end gap-x-4">
+                            <Link href={`/superadmin/tenants/${tenant.id}/edit`} className="text-indigo-400 hover:text-indigo-300">Edit</Link>
+                            <form action={toggleTenantStatus}>
+                              <input type="hidden" name="tenantId" value={tenant.id} />
+                              <input type="hidden" name="isActive" value={String(tenant.isActive)} />
+                              <button type="submit" className={tenant.isActive ? "text-red-400 hover:text-red-300" : "text-green-400 hover:text-green-300"}>
+                                {tenant.isActive ? 'Deactivate' : 'Activate'}
+                              </button>
+                            </form>
+                          </div>
+                        )}
+                        {/* --- FIX ENDS HERE --- */}
+
                       </td>
                     </tr>
                   ))}

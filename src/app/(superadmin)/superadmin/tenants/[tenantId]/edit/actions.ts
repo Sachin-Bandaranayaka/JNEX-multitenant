@@ -7,48 +7,93 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
+// --- UPDATED AND MORE ROBUST SCHEMA ---
 const UpdateTenantSchema = z.object({
-  name: z.string().min(3, 'Tenant name must be at least 3 characters.'),
-  email: z.string().email('Please enter a valid email.'),
+  // FIX: Made name and email optional to prevent validation failure if they are not submitted.
+  name: z.string().min(3, 'Tenant name must be at least 3 characters.').optional(),
+  email: z.string().email('Please enter a valid email.').optional(),
   businessName: z.string().optional(),
-  logoUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
-  // Add new color fields to validation
-  backgroundColor: z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, { message: "Must be a valid hex color code."}).optional().or(z.literal('')),
-  cardColor: z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, { message: "Must be a valid hex color code."}).optional().or(z.literal('')),
-  fontColor: z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, { message: "Must be a valid hex color code."}).optional().or(z.literal('')),
+
+  logoUrl: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().url({ message: "Please enter a valid URL." }).optional()
+  ),
+
+  backgroundColor: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, { message: "Must be a valid hex color code."}).optional()
+  ),
+  cardColor: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, { message: "Must be a valid hex color code."}).optional()
+  ),
+  fontColor: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, { message: "Must be a valid hex color code."}).optional()
+  ),
 });
+
 
 export async function updateTenant(tenantId: string, adminUserId: string, formData: FormData): Promise<void> {
   const validatedFields = UpdateTenantSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) {
+    console.error("Validation Errors:", validatedFields.error.flatten().fieldErrors);
     throw new Error('Validation failed');
   }
   
   const { name, email, ...brandingSettings } = validatedFields.data;
 
   try {
-    await prisma.$transaction([
-      prisma.tenant.update({
+    // FIX: We build the data objects conditionally.
+    // This ensures we only try to update fields that were actually provided in the form.
+    const tenantUpdateData: {
+      name?: string;
+      businessName?: string | null;
+      logoUrl?: string | null;
+      backgroundColor?: string | null;
+      cardColor?: string | null;
+      fontColor?: string | null;
+    } = {
+      businessName: brandingSettings.businessName || null,
+      logoUrl: brandingSettings.logoUrl || null,
+      backgroundColor: brandingSettings.backgroundColor || null,
+      cardColor: brandingSettings.cardColor || null,
+      fontColor: brandingSettings.fontColor || null,
+    };
+    if (name) {
+      tenantUpdateData.name = name;
+    }
+
+    const userUpdateData: { email?: string } = {};
+    if (email) {
+      userUpdateData.email = email;
+    }
+
+    // We only run the transaction if there's actually something to update.
+    const transactionPromises = [];
+    if (Object.keys(tenantUpdateData).length > 0) {
+      transactionPromises.push(prisma.tenant.update({
         where: { id: tenantId },
-        data: { 
-          name,
-          businessName: brandingSettings.businessName || null,
-          logoUrl: brandingSettings.logoUrl || null,
-          backgroundColor: brandingSettings.backgroundColor || null,
-          cardColor: brandingSettings.cardColor || null,
-          fontColor: brandingSettings.fontColor || null,
-         },
-      }),
-      prisma.user.update({
+        data: tenantUpdateData,
+      }));
+    }
+    if (Object.keys(userUpdateData).length > 0) {
+      transactionPromises.push(prisma.user.update({
         where: { id: adminUserId },
-        data: { email },
-      })
-    ]);
+        data: userUpdateData,
+      }));
+    }
+
+    if(transactionPromises.length > 0) {
+      await prisma.$transaction(transactionPromises);
+    }
+
   } catch (error) {
     if ((error as any).code === 'P2002') {
         throw new Error('This email address is already in use.');
     }
+    console.error(error);
     throw new Error('Database Error: Failed to update tenant.');
   }
 

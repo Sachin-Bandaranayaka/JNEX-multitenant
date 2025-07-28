@@ -1,4 +1,4 @@
-// src/lib/orders.ts
+// src\lib\orders.ts
 
 import { getScopedPrismaClient, prisma as unscopedPrisma } from './prisma';
 import { LeadStatus, OrderStatus, Prisma, ShippingProvider } from '@prisma/client';
@@ -17,9 +17,13 @@ export async function createOrderFromLead(data: CreateOrderData) {
         where: { id: data.leadId },
         include: { product: true },
       }),
+      // --- FIX: Fetch the invoicePrefix along with other tenant settings ---
       unscopedPrisma.tenant.findUnique({
         where: { id: data.tenantId },
-        select: { defaultShippingProvider: true },
+        select: { 
+            defaultShippingProvider: true,
+            invoicePrefix: true, // <-- ADDED THIS LINE
+        },
       })
     ]);
 
@@ -33,17 +37,18 @@ export async function createOrderFromLead(data: CreateOrderData) {
     }
 
     orderResult = await unscopedPrisma.$transaction(async (tx) => {
-      // --- FIX: New, more robust Order ID generation for serverless environments ---
       const date = new Date();
       const year = date.getFullYear().toString().slice(-2);
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const day = date.getDate().toString().padStart(2, '0');
       
-      // Use timestamp and a random string to ensure uniqueness, avoiding the need to count.
-      const time = date.getTime().toString().slice(-5); // Last 5 digits of timestamp
-      const random = Math.random().toString(36).substring(2, 5).toUpperCase(); // 3 random chars
+      const time = date.getTime().toString().slice(-5);
+      const random = Math.random().toString(36).substring(2, 5).toUpperCase();
       
-      const orderId = `JH${year}${month}${day}${time}${random}`;
+      // --- FIX: Use the tenant's invoicePrefix for the Order ID ---
+      // If no prefix is set, it defaults to 'OD' to ensure an ID is always generated.
+      const prefix = tenant.invoicePrefix || 'OD'; 
+      const orderId = `${prefix}${year}${month}${day}${time}${random}`;
       // --- End of FIX ---
 
       const discount = (lead.csvData as any).discount || 0;
@@ -51,7 +56,7 @@ export async function createOrderFromLead(data: CreateOrderData) {
 
       const order = await tx.order.create({
         data: {
-          id: orderId, // Use the new, unique ID
+          id: orderId, // Use the new, dynamic ID
           tenant: { connect: { id: data.tenantId } },
           lead: { connect: { id: data.leadId } },
           product: { connect: { id: lead.product.id } },

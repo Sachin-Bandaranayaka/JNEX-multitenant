@@ -1,5 +1,3 @@
-// src/app/api/users/[id]/route.ts
-
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -48,7 +46,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
 }
 
-// --- FIX: SECURED SOFT DELETE HANDLER ---
+// --- FIX: CHANGED TO PERMANENT (HARD) DELETE ---
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     
@@ -57,20 +55,20 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // Safety check: Prevent a user from deleting themselves.
     if (session.user.id === resolvedParams.id) {
         return NextResponse.json({ error: 'You cannot delete yourself.' }, { status: 400 });
     }
 
     const prisma = getScopedPrismaClient(session.user.tenantId);
     
-    // Instead of deleting the user, mark them as inactive.
-    // This preserves relations and allows the email to be reused in the future if needed.
-    await prisma.user.update({
+    // --- CHANGE FROM SOFT DELETE TO HARD DELETE ---
+    // This now permanently removes the user from the database.
+    await prisma.user.delete({
       where: { id: resolvedParams.id },
-      data: { isActive: false },
     });
 
-    return new NextResponse(null, { status: 204 });
+    return new NextResponse(null, { status: 204 }); // 204 No Content is standard for successful deletions
   } catch (error) {
     console.error("Delete User Error:", error);
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });

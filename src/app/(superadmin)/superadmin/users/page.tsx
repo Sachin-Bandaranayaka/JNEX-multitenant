@@ -1,10 +1,9 @@
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
-import { toggleTenantStatus } from '../actions'; 
+import { toggleTenantStatus, deleteTenant } from '../actions'; 
 
+// This is a Server Component, so it can be async and fetch data directly.
 export default async function SuperAdminUsersPage() {
-  // --- UPDATED QUERY ---
-  // We now 'include' the 'referredBy' relation to get the referrer's name
   const tenants = await prisma.tenant.findMany({
     orderBy: {
       createdAt: 'desc',
@@ -48,7 +47,6 @@ export default async function SuperAdminUsersPage() {
                   <tr>
                     <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-white sm:pl-6">Name</th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-white">Status</th>
-                    {/* --- NEW COLUMN HEADER --- */}
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-white">Referred By</th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-white">Date Created</th>
                     <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
@@ -67,27 +65,30 @@ export default async function SuperAdminUsersPage() {
                           <span className="inline-flex items-center rounded-md bg-red-900/50 px-2 py-1 text-xs font-medium text-red-300 ring-1 ring-inset ring-red-500/50">Inactive</span>
                         )}
                       </td>
-                      {/* --- NEW COLUMN DATA --- */}
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-400">{tenant.referredBy?.name ?? 'Direct'}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-400">{new Date(tenant.createdAt).toLocaleDateString()}</td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-400">
+                        {/* FIX: Use a consistent date format (YYYY-MM-DD) to prevent hydration errors. */}
+                        {new Date(tenant.createdAt).toISOString().split('T')[0]}
+                      </td>
                       <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        
-                        {/* --- FIX STARTS HERE --- */}
-                        {/* We check the tenant name. If it's not the master tenant, we show the action buttons. */}
-                        {tenant.name !== 'Master Tenant' && (
+                        {(tenant.name !== 'Master Tenant' && tenant.name !== 'J-nex Holdings Master') && (
                           <div className="flex items-center justify-end gap-x-4">
                             <Link href={`/superadmin/tenants/${tenant.id}/edit`} className="text-indigo-400 hover:text-indigo-300">Edit</Link>
                             <form action={toggleTenantStatus}>
                               <input type="hidden" name="tenantId" value={tenant.id} />
                               <input type="hidden" name="isActive" value={String(tenant.isActive)} />
-                              <button type="submit" className={tenant.isActive ? "text-red-400 hover:text-red-300" : "text-green-400 hover:text-green-300"}>
+                              <button type="submit" className={tenant.isActive ? "text-yellow-400 hover:text-yellow-300" : "text-green-400 hover:text-green-300"}>
                                 {tenant.isActive ? 'Deactivate' : 'Activate'}
                               </button>
                             </form>
+                            <form action={deleteTenant}>
+                                <input type="hidden" name="tenantId" value={tenant.id} />
+                                <button type="submit" className="text-red-500 hover:text-red-400">
+                                    Delete
+                                </button>
+                            </form>
                           </div>
                         )}
-                        {/* --- FIX ENDS HERE --- */}
-
                       </td>
                     </tr>
                   ))}

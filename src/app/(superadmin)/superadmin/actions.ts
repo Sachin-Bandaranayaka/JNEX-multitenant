@@ -1,5 +1,3 @@
-// src/app/(superadmin)/superadmin/actions.ts
-
 'use server';
 
 import { prisma } from '@/lib/prisma';
@@ -14,23 +12,58 @@ export async function toggleTenantStatus(formData: FormData) {
   }
 
   try {
-    // We will now wrap the database call in a try...catch block
     await prisma.tenant.update({
       where: {
         id: tenantId,
       },
       data: {
-        isActive: !isActive, // Flip the current status
+        isActive: !isActive,
       },
     });
-
-    console.log(`Successfully updated tenant ${tenantId} to isActive: ${!isActive}`);
-
   } catch (error) {
-    // If an error occurs, log it to the terminal
     console.error("Error updating tenant status:", error);
   }
 
-  // If successful, revalidate the path to refresh the UI
-  revalidatePath('/superadmin');
+  revalidatePath('/superadmin/users');
+}
+
+// --- UPDATED DELETE TENANT ACTION ---
+export async function deleteTenant(formData: FormData) {
+  const tenantId = formData.get('tenantId') as string;
+
+  if (!tenantId) {
+    throw new Error('Tenant ID is required.');
+  }
+
+  try {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true },
+    });
+
+    if (tenant?.name === 'Master Tenant' || tenant?.name === 'J-nex Holdings Master') {
+      console.error("ACTION BLOCKED: Attempted to delete the master tenant.");
+      return;
+    }
+
+    // --- FIX: Use a transaction to delete all dependent data first ---
+    // This ensures data integrity and prevents foreign key constraint errors.
+    await prisma.$transaction([
+      // Delete all data that depends on the tenant in the correct order
+      prisma.stockAdjustment.deleteMany({ where: { tenantId } }),
+      prisma.order.deleteMany({ where: { tenantId } }),
+      prisma.lead.deleteMany({ where: { tenantId } }),
+      prisma.product.deleteMany({ where: { tenantId } }),
+      prisma.user.deleteMany({ where: { tenantId } }),
+      
+      // Finally, delete the tenant itself
+      prisma.tenant.delete({ where: { id: tenantId } }),
+    ]);
+
+  } catch (error) {
+    console.error("Error deleting tenant:", error);
+    throw new Error('Failed to delete tenant.');
+  }
+
+  revalidatePath('/superadmin/users');
 }

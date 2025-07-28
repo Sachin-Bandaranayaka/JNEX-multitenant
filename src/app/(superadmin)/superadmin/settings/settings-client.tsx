@@ -50,7 +50,7 @@ export function SettingsClient({ currentSession, superAdmins }: SettingsClientPr
           </div>
         </div>
 
-        <div className="rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10">
+        {/* <div className="rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10">
           <h2 className="text-lg font-semibold text-white">Create New Super Admin</h2>
           <p className="text-sm text-gray-400 mt-1">Create an additional super admin account.</p>
           <div className="mt-6 border-t border-white/10 pt-6">
@@ -60,7 +60,8 @@ export function SettingsClient({ currentSession, superAdmins }: SettingsClientPr
               <button onClick={() => setActiveForm('create')} className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400">Create Admin</button>
             )}
           </div>
-        </div>
+        </div> */}
+        
       </div>
     </div>
   );

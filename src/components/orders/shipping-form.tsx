@@ -112,13 +112,7 @@ export function ShippingForm({
                     setIsLoadingRoyalLocations(false);
                     return;
                 }
-                const [royalEmail, royalPassword] = royalExpressApiKey.split(':');
-                if (!royalEmail || !royalPassword) {
-                    console.error('Royal Express API key format invalid (expected email:password).');
-                    setIsLoadingRoyalLocations(false);
-                    return;
-                }
-                const royalExpressService = new RoyalExpressProvider(royalEmail, royalPassword);
+                const royalExpressService = new RoyalExpressProvider(royalExpressApiKey);
                 const allStates = await getAllStates(royalExpressService);
                 console.log('States loaded:', allStates);
                 setStates(allStates);
@@ -202,13 +196,7 @@ export function ShippingForm({
                     setIsLoadingRoyalLocations(false);
                     return;
                 }
-                const [royalEmail, royalPassword] = royalExpressApiKey.split(':');
-                if (!royalEmail || !royalPassword) {
-                    console.error('Royal Express API key format invalid (expected email:password).');
-                    setIsLoadingRoyalLocations(false);
-                    return;
-                }
-                const royalExpressService = new RoyalExpressProvider(royalEmail, royalPassword);
+                const royalExpressService = new RoyalExpressProvider(royalExpressApiKey);
                 console.log(`Fetching cities for state: ${selectedState}`);
                 const cities = await getCitiesByState(royalExpressService, selectedState);
                 console.log('Royal Express cities loaded:', cities);
@@ -457,11 +445,7 @@ export function ShippingForm({
                     if (!royalExpressApiKey) {
                         throw new Error('Royal Express API key not provided.');
                     }
-                    const [royalEmail, royalPassword] = royalExpressApiKey.split(':');
-                    if (!royalEmail || !royalPassword) {
-                        throw new Error('Royal Express API key format invalid (expected email:password).');
-                    }
-                    const royalExpressService = new RoyalExpressProvider(royalEmail, royalPassword);
+                    const royalExpressService = new RoyalExpressProvider(royalExpressApiKey);
 
                     // Calculate the COD amount
                     const codAmount = (order.product.price * order.quantity) - (order.discount || 0);

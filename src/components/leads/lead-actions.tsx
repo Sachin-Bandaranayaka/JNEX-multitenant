@@ -84,14 +84,14 @@ function ConfirmationModal({
 
 
 // --- Main LeadActions Component ---
-export function LeadActions({ 
-    lead, 
-    user, 
-    onAction 
-}: { 
-    lead: LeadWithDetails, 
-    user: User, 
-    onAction: () => void 
+export function LeadActions({
+    lead,
+    user,
+    onAction
+}: {
+    lead: LeadWithDetails,
+    user: User,
+    onAction: () => void
 }) {
     const router = useRouter();
     const [isCreating, setIsCreating] = useState(false);
@@ -158,41 +158,106 @@ export function LeadActions({
         }
     };
 
-    // Only render actions for PENDING leads
-    if (lead.status !== 'PENDING') {
+    const handleStatusChange = async (newStatus: string) => {
+        try {
+            const response = await fetch(`/api/leads/${lead.id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to update status');
+            }
+
+            onAction(); // Refresh the leads list
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'An error occurred.');
+        }
+    };
+
+    // Only render actions for PENDING and NO_ANSWER leads
+    if (lead.status !== 'PENDING' && lead.status !== 'NO_ANSWER') {
         return null;
     }
 
     return (
         <>
             <div className="flex items-center space-x-3">
-                {/* --- ADDED CREATE ORDER BUTTON --- */}
-                {canCreateOrder && (
-                    <button
-                        onClick={() => handleCreateOrder(false)}
-                        disabled={isCreating}
-                        className="text-sm font-medium text-green-400 hover:text-green-300 disabled:opacity-50"
-                    >
-                        {isCreating ? 'Processing...' : 'Create Order'}
-                    </button>
+                {/* Actions for PENDING leads */}
+                {lead.status === 'PENDING' && (
+                    <>
+                        {/* --- CREATE ORDER BUTTON --- */}
+                        {canCreateOrder && (
+                            <button
+                                onClick={() => handleCreateOrder(false)}
+                                disabled={isCreating}
+                                className="text-sm font-medium text-green-400 hover:text-green-300 disabled:opacity-50"
+                            >
+                                {isCreating ? 'Processing...' : 'Create Order'}
+                            </button>
+                        )}
+
+                        {canEdit && (
+                            <Link
+                                href={`/leads/${lead.id}`}
+                                className="text-sm font-medium text-indigo-400 hover:text-indigo-200"
+                            >
+                                Edit
+                            </Link>
+                        )}
+
+                        {canDelete && (
+                            <button
+                                onClick={handleDelete}
+                                className="text-sm font-medium text-red-500 hover:text-red-400"
+                            >
+                                Delete
+                            </button>
+                        )}
+                    </>
                 )}
 
-                {canEdit && (
-                    <Link 
-                        href={`/leads/${lead.id}`} 
-                        className="text-sm font-medium text-indigo-400 hover:text-indigo-200"
-                    >
-                        Edit
-                    </Link>
-                )}
+                {/* Actions for NO_ANSWER leads */}
+                {lead.status === 'NO_ANSWER' && (
+                    <>
+                        {canEdit && (
+                            <button
+                                onClick={() => handleStatusChange('PENDING')}
+                                className="text-sm font-medium text-yellow-400 hover:text-yellow-300"
+                            >
+                                Move to Pending
+                            </button>
+                        )}
 
-                {canDelete && (
-                    <button
-                        onClick={handleDelete}
-                        className="text-sm font-medium text-red-500 hover:text-red-400"
-                    >
-                        Delete
-                    </button>
+                        {canEdit && (
+                            <button
+                                onClick={() => handleStatusChange('REJECTED')}
+                                className="text-sm font-medium text-red-400 hover:text-red-300"
+                            >
+                                Reject
+                            </button>
+                        )}
+
+                        {canDelete && (
+                            <button
+                                onClick={handleDelete}
+                                className="text-sm font-medium text-red-500 hover:text-red-400"
+                            >
+                                Delete
+                            </button>
+                        )}
+
+                        {canEdit && (
+                            <Link
+                                href={`/leads/${lead.id}`}
+                                className="text-sm font-medium text-indigo-400 hover:text-indigo-200"
+                            >
+                                Edit
+                            </Link>
+                        )}
+                    </>
                 )}
             </div>
 

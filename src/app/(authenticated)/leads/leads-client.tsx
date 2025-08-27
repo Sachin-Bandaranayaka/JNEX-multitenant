@@ -20,11 +20,18 @@ const STATUS_CONFIG = {
 export function LeadsClient({ 
     initialLeads, 
     user,
-    searchParams
+    searchParams,
+    tenantConfig
 }: { 
     initialLeads: LeadWithDetails[], 
     user: User,
-    searchParams: { [key: string]: string | string[] | undefined }
+    searchParams: { [key: string]: string | string[] | undefined },
+    tenantConfig?: {
+        fardaExpressClientId?: string;
+        fardaExpressApiKey?: string;
+        transExpressApiKey?: string;
+        royalExpressApiKey?: string;
+    }
 }) {
   // --- PERMISSION CHECKS ---
   const canCreate = user.role === 'ADMIN' || user.permissions?.includes('CREATE_LEADS');
@@ -132,7 +139,7 @@ export function LeadsClient({
                         (<div />) // Placeholder for alignment
                     }
                     {/* --- PASS PROPS TO ACTION COMPONENT --- */}
-                    <LeadActions lead={lead} user={user} onAction={refreshLeads} />
+                    <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} />
                   </div>
                 </li>
               ))}

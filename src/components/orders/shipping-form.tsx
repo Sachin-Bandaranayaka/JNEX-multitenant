@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowTopRightOnSquareIcon as ExternalLinkIcon } from '@heroicons/react/24/outline';
 import { FardaExpressService } from '@/lib/shipping/farda-express';
@@ -34,6 +34,7 @@ interface ShippingFormProps {
     fardaExpressApiKey?: string;
     transExpressApiKey?: string;
     royalExpressApiKey?: string;
+    onSuccess?: () => void;
 }
 
 export function ShippingForm({
@@ -45,8 +46,10 @@ export function ShippingForm({
     fardaExpressApiKey,
     transExpressApiKey,
     royalExpressApiKey,
+    onSuccess,
 }: ShippingFormProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [provider, setProvider] = useState(currentProvider || '');
@@ -558,7 +561,18 @@ export function ShippingForm({
                 }
             }
 
-            router.refresh();
+            // Call onSuccess callback if provided (for modal usage)
+            if (onSuccess) {
+                onSuccess();
+            } else {
+                // Check if we should redirect back to leads page
+                const returnTo = searchParams.get('returnTo');
+                if (returnTo === 'leads') {
+                    router.push('/leads');
+                } else {
+                    router.refresh();
+                }
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {

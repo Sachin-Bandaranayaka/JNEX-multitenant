@@ -1,7 +1,7 @@
 // src/app/(authenticated)/leads/page.tsx
 
 import { authOptions } from '@/lib/auth';
-import { getScopedPrismaClient } from '@/lib/prisma';
+import { getScopedPrismaClient, prisma as globalPrisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { LeadsClient } from './leads-client'; // Import the new client component
@@ -12,7 +12,19 @@ import { User } from 'next-auth';
 export type LeadWithDetails = PrismaLead & {
   product: Product;
   assignedTo: PrismaUser | null;
-  order: { id: string } | null;
+  order: { 
+    id: string;
+    status: string;
+    customerName: string;
+    customerPhone: string;
+    customerSecondPhone: string | null;
+    customerAddress: string;
+    customerCity: string | null;
+    quantity: number;
+    discount: number | null;
+    shippingProvider: string | null;
+    trackingNumber: string | null;
+  } | null;
 };
 
 export default async function LeadsPage({
@@ -42,17 +54,43 @@ export default async function LeadsPage({
   }
 
   // 4. FETCH SECURE DATA
-  const leads = await prisma.lead.findMany({
-    where,
-    include: {
-      product: true,
-      assignedTo: true,
-      order: { select: { id: true } },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
+  const [leads, tenant] = await Promise.all([
+    prisma.lead.findMany({
+      where,
+      include: {
+        product: true,
+        assignedTo: true,
+        order: { 
+          select: { 
+            id: true, 
+            status: true,
+            customerName: true,
+            customerPhone: true,
+            customerSecondPhone: true,
+            customerAddress: true,
+            customerCity: true,
+            quantity: true,
+            discount: true,
+            shippingProvider: true,
+            trackingNumber: true
+          } 
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    }),
+    // Get tenant configuration for shipping providers
+    globalPrisma.tenant.findUnique({
+      where: { id: session.user.tenantId },
+      select: {
+        fardaExpressClientId: true,
+        fardaExpressApiKey: true,
+        transExpressApiKey: true,
+        royalExpressApiKey: true,
+      }
+    })
+  ]);
 
   // 5. PASS DATA TO CLIENT COMPONENT
   const resolvedSearchParams = await searchParams;
@@ -61,6 +99,12 @@ export default async function LeadsPage({
         initialLeads={leads as LeadWithDetails[]} 
         user={session.user as User}
         searchParams={resolvedSearchParams}
+        tenantConfig={tenant ? {
+          fardaExpressClientId: tenant.fardaExpressClientId || undefined,
+          fardaExpressApiKey: tenant.fardaExpressApiKey || undefined,
+          transExpressApiKey: tenant.transExpressApiKey || undefined,
+          royalExpressApiKey: tenant.royalExpressApiKey || undefined,
+        } : undefined}
     />
   );
 }

@@ -8,6 +8,7 @@ import { User } from 'next-auth';
 import type { LeadWithDetails } from '@/app/(authenticated)/leads/page';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { ShippingModal } from '@/components/orders/shipping-modal';
 
 // Define the structure for a potential duplicate lead
 interface PotentialDuplicate {
@@ -87,15 +88,23 @@ function ConfirmationModal({
 export function LeadActions({
     lead,
     user,
-    onAction
+    onAction,
+    tenantConfig
 }: {
     lead: LeadWithDetails,
     user: User,
-    onAction: () => void
+    onAction: () => void,
+    tenantConfig?: {
+        fardaExpressClientId?: string;
+        fardaExpressApiKey?: string;
+        transExpressApiKey?: string;
+        royalExpressApiKey?: string;
+    }
 }) {
     const router = useRouter();
     const [isCreating, setIsCreating] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isShippingModalOpen, setIsShippingModalOpen] = useState(false);
     const [potentialDuplicates, setPotentialDuplicates] = useState<PotentialDuplicate[]>([]);
 
     // --- PERMISSION CHECKS ---
@@ -128,7 +137,7 @@ export function LeadActions({
             } else {
                 // Otherwise, the order was created, so navigate to it
                 setIsModalOpen(false);
-                router.push(`/orders/${result.id}`);
+                router.push(`/orders/${result.id}?returnTo=leads`);
                 onAction(); // Refresh the leads list
             }
         } catch (err) {
@@ -177,19 +186,35 @@ export function LeadActions({
         }
     };
 
-    // Only render actions for PENDING and NO_ANSWER leads
-    if (lead.status !== 'PENDING' && lead.status !== 'NO_ANSWER') {
+    // Check if order can be shipped (PENDING or CONFIRMED status and not already shipped)
+    const canShipOrder = lead.order &&
+        ['PENDING', 'CONFIRMED'].includes(lead.order.status) &&
+        !lead.order.shippingProvider &&
+        canCreateOrder;
+
+    // Only render actions for PENDING, NO_ANSWER leads, or orders that can be shipped
+    if (lead.status !== 'PENDING' && lead.status !== 'NO_ANSWER' && !canShipOrder) {
         return null;
     }
 
     return (
         <>
             <div className="flex items-center space-x-3">
+                {/* Ship Order Button for orders that can be shipped */}
+                {canShipOrder && (
+                    <button
+                        onClick={() => setIsShippingModalOpen(true)}
+                        className="text-sm font-medium text-blue-400 hover:text-blue-300"
+                    >
+                        Ship Order
+                    </button>
+                )}
+
                 {/* Actions for PENDING leads */}
                 {lead.status === 'PENDING' && (
                     <>
                         {/* --- CREATE ORDER BUTTON --- */}
-                        {canCreateOrder && (
+                        {canCreateOrder && !lead.order && (
                             <button
                                 onClick={() => handleCreateOrder(false)}
                                 disabled={isCreating}
@@ -261,7 +286,7 @@ export function LeadActions({
                 )}
             </div>
 
-            {/* --- RENDER THE MODAL --- */}
+            {/* --- RENDER THE CONFIRMATION MODAL --- */}
             <ConfirmationModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
@@ -269,6 +294,33 @@ export function LeadActions({
                 duplicates={potentialDuplicates}
                 isCreating={isCreating}
             />
+
+            {/* --- RENDER THE SHIPPING MODAL --- */}
+            {canShipOrder && lead.order && tenantConfig && (
+                <ShippingModal
+                    isOpen={isShippingModalOpen}
+                    onClose={() => setIsShippingModalOpen(false)}
+                    orderId={lead.order.id}
+                    order={{
+                        customerName: lead.order.customerName,
+                        customerPhone: lead.order.customerPhone,
+                        customerSecondPhone: lead.order.customerSecondPhone || undefined,
+                        customerAddress: lead.order.customerAddress,
+                        customerCity: lead.order.customerCity || undefined,
+                        product: {
+                            name: lead.product.name,
+                            price: lead.product.price,
+                        },
+                        quantity: lead.order.quantity,
+                        discount: lead.order.discount || undefined,
+                    }}
+                    fardaExpressClientId={tenantConfig.fardaExpressClientId}
+                    fardaExpressApiKey={tenantConfig.fardaExpressApiKey}
+                    transExpressApiKey={tenantConfig.transExpressApiKey}
+                    royalExpressApiKey={tenantConfig.royalExpressApiKey}
+                    onSuccess={onAction}
+                />
+            )}
         </>
     );
 }

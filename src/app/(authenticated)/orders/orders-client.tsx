@@ -124,36 +124,60 @@ export function OrdersClient({ initialOrders, user }: OrdersClientProps) {
                     <label className="text-sm text-gray-400">Select All</label>
                   </div>
                 </div>
-                <ul className="divide-y divide-gray-700">
-                  {statusOrders.map((order) => (
-                    <li key={order.id} className="hover:bg-gray-700/50 flex items-center px-6 py-4">
-                      <div className="mr-4">
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-indigo-600 focus:ring-indigo-500"
-                          checked={selectedOrders.includes(order.id)}
-                          onChange={() => handleSelectOrder(order.id)}
-                        />
-                      </div>
-                      <div className="flex-grow">
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col">
-                            <Link href={`/orders/${order.id}`} className="text-sm font-medium text-indigo-400 hover:text-indigo-300">Order #{order.id.slice(0, 8)}</Link>
-                            <p className="mt-1 text-sm text-gray-400">{order.product.name} • {order.customerName}</p>
-                            {order.total > 0 && (<p className="text-sm text-gray-400">LKR {order.total.toFixed(2)}</p>)}
+                {/* Mobile-optimized order list with responsive layout */}
+                <div className="overflow-x-auto">
+                  <ul className="divide-y divide-gray-700">
+                    {statusOrders.map((order) => (
+                      <li key={order.id} className="hover:bg-gray-700/50 transition-colors duration-200 touch-manipulation">
+                        <div className="flex items-start gap-3 px-4 py-4 sm:px-6 min-w-0">
+                          <div className="flex-shrink-0 pt-1">
+                            <input
+                              type="checkbox"
+                              className="h-5 w-5 rounded border-gray-600 bg-gray-700 text-indigo-600 focus:ring-indigo-500 touch-manipulation"
+                              checked={selectedOrders.includes(order.id)}
+                              onChange={() => handleSelectOrder(order.id)}
+                            />
                           </div>
-                          <div className="flex items-center space-x-4">
-                            <div className="text-right">
-                              <p className="text-sm text-gray-400">{new Date(order.createdAt).toLocaleDateString()}</p>
-                              {order.assignedTo && <p className="mt-1 text-sm text-gray-400">Assigned to: {order.assignedTo.name}</p>}
+                          <div className="flex-grow min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                              <div className="flex-grow min-w-0">
+                                <Link 
+                                  href={`/orders/${order.id}`} 
+                                  className="text-base sm:text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors block truncate"
+                                >
+                                  Order #{order.id.slice(0, 8)}
+                                </Link>
+                                <p className="mt-1 text-base sm:text-sm text-gray-400 truncate">
+                                  {order.product.name} • {order.customerName}
+                                </p>
+                                {order.total > 0 && (
+                                  <p className="text-base sm:text-sm text-gray-400 font-medium">
+                                    LKR {order.total.toFixed(2)}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 flex-shrink-0">
+                                <div className="text-left sm:text-right">
+                                  <p className="text-base sm:text-sm text-gray-400">
+                                    {new Date(order.createdAt).toLocaleDateString()}
+                                  </p>
+                                  {order.assignedTo && (
+                                    <p className="mt-1 text-sm text-gray-400 truncate">
+                                      Assigned to: {order.assignedTo.name}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex-shrink-0">
+                                  <OrderActions order={order} user={user} />
+                                </div>
+                              </div>
                             </div>
-                            <OrderActions order={order} user={user} />
                           </div>
                         </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             );
           })}

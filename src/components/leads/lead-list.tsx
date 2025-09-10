@@ -130,96 +130,100 @@ export function LeadList() {
   if (leads.length === 0) {
     return (
       <div className="text-center py-12">
-        <h3 className="mt-2 text-sm font-medium text-white">No leads</h3>
-        <p className="mt-1 text-sm text-gray-400">Get started by creating a new lead.</p>
+        <h3 className="mt-2 text-base sm:text-lg font-medium text-white leading-relaxed">No leads</h3>
+        <p className="mt-1 text-sm sm:text-base text-gray-400 leading-relaxed">Get started by creating a new lead.</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col">
+      {/* Mobile-optimized table container with horizontal scroll */}
       <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
           <div className="ring-1 ring-white/10 overflow-hidden border-b border-gray-700 sm:rounded-lg">
-            <table className="min-w-full divide-y divide-gray-700">
-              <thead className="bg-gray-900">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Address
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Product
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th scope="col" className="relative px-6 py-3">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-gray-800 divide-y divide-gray-700">
-                {leads.map((lead) => (
-                  <tr key={lead.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-white">{lead.csvData.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-white">{lead.csvData.phone}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-white">{lead.csvData.address}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-white">{lead.product.name}</div>
-                      <div className="text-sm text-gray-400">{lead.product.code}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${lead.status === 'CONVERTED'
-                        ? 'bg-green-900/30 text-green-300'
-                        : lead.status === 'REJECTED'
-                          ? 'bg-red-900/30 text-red-300'
-                          : lead.status === 'NO_ANSWER'
-                            ? 'bg-yellow-900/30 text-yellow-300'
-                            : 'bg-blue-900/30 text-blue-300'
-                        }`}>
-                        {lead.status.toLowerCase()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                      {format(new Date(lead.createdAt), 'MMM d, yyyy')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {lead.status === 'PENDING' && (
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => handleEditLead(lead)}
-                            className="text-indigo-600 hover:text-indigo-900"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleConvertToOrder(lead)}
-                            className="text-indigo-400 hover:text-indigo-300"
-                          >
-                            Convert to Order
-                          </button>
-                        </div>
-                      )}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-700" style={{ minWidth: '800px' }}>
+                <thead className="bg-gray-900">
+                  <tr>
+                    <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-wider min-w-[120px] leading-tight">
+                      Name
+                    </th>
+                    <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-wider min-w-[120px] leading-tight">
+                      Contact
+                    </th>
+                    <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-wider min-w-[140px] leading-tight">
+                      Address
+                    </th>
+                    <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-400 uppercase tracking-wider min-w-[120px] leading-tight">
+                      Product
+                    </th>
+                    <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[100px]">
+                      Status
+                    </th>
+                    <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[100px]">
+                      Created
+                    </th>
+                    <th scope="col" className="relative px-3 sm:px-6 py-3 min-w-[120px]">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-gray-800 divide-y divide-gray-700">
+                  {leads.map((lead) => (
+                    <tr key={lead.id} className="hover:bg-gray-700/50 transition-colors touch-manipulation">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-white truncate max-w-[100px] sm:max-w-none">{lead.csvData.name}</div>
+                      </td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <div className="text-sm text-white truncate max-w-[100px] sm:max-w-none">{lead.csvData.phone}</div>
+                      </td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <div className="text-sm text-white truncate max-w-[120px] sm:max-w-none">{lead.csvData.address}</div>
+                      </td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <div className="text-sm text-white truncate max-w-[100px] sm:max-w-none">{lead.product.name}</div>
+                        <div className="text-xs sm:text-sm text-gray-400 truncate max-w-[100px] sm:max-w-none">{lead.product.code}</div>
+                      </td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full transition-colors ${
+                          lead.status === 'CONVERTED'
+                            ? 'bg-green-900/30 text-green-300'
+                            : lead.status === 'REJECTED'
+                              ? 'bg-red-900/30 text-red-300'
+                              : lead.status === 'NO_ANSWER'
+                                ? 'bg-yellow-900/30 text-yellow-300'
+                                : 'bg-blue-900/30 text-blue-300'
+                        }`}>
+                          {lead.status.toLowerCase()}
+                        </span>
+                      </td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-400">
+                        {format(new Date(lead.createdAt), 'MMM d, yyyy')}
+                      </td>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium">
+                        {lead.status === 'PENDING' && (
+                          <div className="flex flex-col sm:flex-row justify-end space-y-1 sm:space-y-0 sm:space-x-2">
+                            <button
+                              onClick={() => handleEditLead(lead)}
+                              className="text-indigo-600 hover:text-indigo-400 transition-colors touch-manipulation px-2 py-1 text-xs sm:text-sm"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleConvertToOrder(lead)}
+                              className="text-indigo-400 hover:text-indigo-300 transition-colors touch-manipulation px-2 py-1 text-xs sm:text-sm"
+                            >
+                              Convert
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

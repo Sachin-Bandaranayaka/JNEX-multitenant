@@ -88,6 +88,7 @@ export default async function LeadsPage({
         fardaExpressApiKey: true,
         transExpressApiKey: true,
         royalExpressApiKey: true,
+        royalExpressOrderPrefix: true,
       }
     })
   ]);
@@ -104,6 +105,7 @@ export default async function LeadsPage({
           fardaExpressApiKey: tenant.fardaExpressApiKey || undefined,
           transExpressApiKey: tenant.transExpressApiKey || undefined,
           royalExpressApiKey: tenant.royalExpressApiKey || undefined,
+          royalExpressOrderPrefix: tenant.royalExpressOrderPrefix || undefined,
         } : undefined}
     />
   );

@@ -99,6 +99,7 @@ export function LeadActions({
         fardaExpressApiKey?: string;
         transExpressApiKey?: string;
         royalExpressApiKey?: string;
+        royalExpressOrderPrefix?: string;
     }
 }) {
     const router = useRouter();
@@ -318,6 +319,7 @@ export function LeadActions({
                     fardaExpressApiKey={tenantConfig.fardaExpressApiKey}
                     transExpressApiKey={tenantConfig.transExpressApiKey}
                     royalExpressApiKey={tenantConfig.royalExpressApiKey}
+                    royalExpressOrderPrefix={tenantConfig.royalExpressOrderPrefix}
                     onSuccess={onAction}
                 />
             )}

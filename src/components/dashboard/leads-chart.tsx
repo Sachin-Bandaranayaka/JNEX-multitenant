@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   PieChart,
   Pie,
@@ -31,8 +32,21 @@ const formatStatus = (status: string): string => {
 };
 
 export function LeadsChart({ data }: LeadsChartProps) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   return (
-    <div className="h-[300px] w-full">
+    <div className="h-[250px] sm:h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -40,7 +54,7 @@ export function LeadsChart({ data }: LeadsChartProps) {
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={({
+            label={!isMobile ? ({
               cx,
               cy,
               midAngle,
@@ -60,12 +74,13 @@ export function LeadsChart({ data }: LeadsChartProps) {
                   fill="white"
                   textAnchor={x > cx ? 'start' : 'end'}
                   dominantBaseline="central"
+                  fontSize={12}
                 >
                   {`${formatStatus(status)} ${(percent * 100).toFixed(0)}%`}
                 </text>
               );
-            }}
-            outerRadius={80}
+            } : false}
+            outerRadius={isMobile ? 60 : 80}
             fill="#8884d8"
             dataKey="count"
             nameKey="status"
@@ -82,8 +97,20 @@ export function LeadsChart({ data }: LeadsChartProps) {
               value,
               formatStatus(name)
             ]}
+            contentStyle={{
+              backgroundColor: '#1f2937',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px',
+              fontSize: isMobile ? '12px' : '14px'
+            }}
           />
-          <Legend formatter={(value) => formatStatus(value)} />
+          <Legend 
+            formatter={(value) => formatStatus(value)}
+            wrapperStyle={{
+              fontSize: isMobile ? '10px' : '12px',
+              paddingTop: '10px'
+            }}
+          />
         </PieChart>
       </ResponsiveContainer>
     </div>

@@ -18,6 +18,7 @@ const settingsSchema = z.object({
   fardaExpressApiKey: z.string().optional(),
   transExpressApiKey: z.string().optional(),
   royalExpressApiKey: z.string().optional(),
+  royalExpressOrderPrefix: z.string().optional(),
 });
 
 // --- NEW SCHEMA FOR PASSWORD CHANGE ---
@@ -49,6 +50,7 @@ export async function updateTenantSettings(
     if (!dataToUpdate.fardaExpressApiKey) delete dataToUpdate.fardaExpressApiKey;
     if (!dataToUpdate.transExpressApiKey) delete dataToUpdate.transExpressApiKey;
     if (!dataToUpdate.royalExpressApiKey) delete dataToUpdate.royalExpressApiKey;
+    if (!dataToUpdate.royalExpressOrderPrefix) delete dataToUpdate.royalExpressOrderPrefix;
 
     await prisma.tenant.update({
       where: {

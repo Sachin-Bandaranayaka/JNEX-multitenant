@@ -128,19 +128,19 @@ export function ReportTabs({ user, initialData }: ReportTabsProps) {
                 <div className="flex items-center space-x-2 p-1 bg-gray-900 rounded-lg">
                     <button
                         onClick={() => handleTimeFilterClick('daily')}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${activeFilter === 'daily' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
+                        className={`px-4 py-2 sm:px-3 sm:py-1 text-sm sm:text-base font-medium rounded-md transition-colors touch-manipulation min-h-[44px] sm:min-h-[36px] ${activeFilter === 'daily' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
                     >
                         Daily
                     </button>
                     <button
                         onClick={() => handleTimeFilterClick('weekly')}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${activeFilter === 'weekly' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
+                        className={`px-4 py-2 sm:px-3 sm:py-1 text-sm sm:text-base font-medium rounded-md transition-colors touch-manipulation min-h-[44px] sm:min-h-[36px] ${activeFilter === 'weekly' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
                     >
                         Weekly
                     </button>
                     <button
                         onClick={() => handleTimeFilterClick('monthly')}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${activeFilter === 'monthly' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
+                        className={`px-4 py-2 sm:px-3 sm:py-1 text-sm sm:text-base font-medium rounded-md transition-colors touch-manipulation min-h-[44px] sm:min-h-[36px] ${activeFilter === 'monthly' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-700'}`}
                     >
                         Monthly
                     </button>

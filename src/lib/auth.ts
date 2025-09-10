@@ -65,6 +65,12 @@ export const authOptions: AuthOptions = {
         session.user.permissions = token.permissions as string[]; // Pass permissions to the session
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      // Ensure redirects stay within your domain
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      else if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
     }
   },
   pages: {

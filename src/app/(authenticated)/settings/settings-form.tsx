@@ -117,6 +117,11 @@ export function SettingsForm({ tenant }: { tenant: Tenant }) {
                         <p className="mt-1 text-xs text-gray-400">Enter in format: email:password (e.g., user@example.com:yourpassword)</p>
                         <input type="password" name="royalExpressApiKey" id="royalExpressApiKey" defaultValue={tenant.royalExpressApiKey || ''} placeholder="email:password" className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
                     </div>
+                    <div className="sm:col-span-3">
+                        <label htmlFor="royalExpressOrderPrefix" className="block text-sm font-medium text-gray-300">Royal Express Order Prefix</label>
+                        <p className="mt-1 text-xs text-gray-400">Custom prefix for Royal Express order numbers (default: JNEX)</p>
+                        <input type="text" name="royalExpressOrderPrefix" id="royalExpressOrderPrefix" defaultValue={tenant.royalExpressOrderPrefix || 'JNEX'} placeholder="JNEX" className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
+                    </div>
                 </div>
             </div>
 

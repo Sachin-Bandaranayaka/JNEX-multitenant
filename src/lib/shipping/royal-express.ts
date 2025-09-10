@@ -174,7 +174,8 @@ export class RoyalExpressProvider implements ShippingProvider {
         service: string,
         cityId?: number,
         districtId?: number,
-        orderTotal?: number
+        orderTotal?: number,
+        orderPrefix?: string
     ): Promise<ShippingLabel> {
         // First get the current user info to ensure we're authenticated
         const userInfo = await this.makeRequest('/merchant/user/get-current', 'GET');
@@ -260,7 +261,7 @@ Valid state names are: ${validStateNames.join(', ')}`);
             order_data: [
                 {
                     waybill_number: waybillNumber,
-                    order_no: `JNEX-${Math.floor(Math.random() * 100000)}`,
+                    order_no: `${orderPrefix || 'JNEX'}-${Math.floor(Math.random() * 100000)}`,
                     customer_name: destination.name,
                     customer_address: fullAddress || destination.street || "Customer address",
                     customer_phone: destination.phone,

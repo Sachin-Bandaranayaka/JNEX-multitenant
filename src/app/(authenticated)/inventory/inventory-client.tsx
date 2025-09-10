@@ -97,36 +97,46 @@ export function InventoryClient({ initialProducts, user }: { initialProducts: Pr
                 </div>
             </div>
 
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8 grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2">
+                    {/* Mobile-optimized table container with horizontal scroll */}
                     <div className="bg-gray-800 ring-1 ring-white/10 rounded-lg overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-700">
-                            <thead className="bg-gray-900">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Product</th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Stock</th>
-                                    {canEditStock && <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>}
-                                </tr>
-                            </thead>
-                            <tbody className="bg-gray-800 divide-y divide-gray-700">
-                                {products.map((product) => (
-                                    <tr key={product.id} className={`hover:bg-gray-700/50 cursor-pointer ${selectedProduct?.id === product.id ? 'bg-indigo-600/10' : ''}`} onClick={() => setSelectedProduct(product)}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-white">{product.name}</div>
-                                            <div className="text-sm text-gray-400">{product.code}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right"><span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${getStockStatusColor(product.stock, product.lowStockAlert)}`}>{product.stock}</span></td>
-                                        {canEditStock && (
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                                                <button onClick={(e) => { e.stopPropagation(); handleOpenAdjustModal(product); }} className="text-indigo-400 hover:text-indigo-300">
-                                                    Adjust
-                                                </button>
-                                            </td>
-                                        )}
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-700">
+                                <thead className="bg-gray-900">
+                                    <tr>
+                                        <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[200px]">Product</th>
+                                        <th scope="col" className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[80px]">Stock</th>
+                                        {canEditStock && <th scope="col" className="relative px-3 sm:px-6 py-3 min-w-[80px]"><span className="sr-only">Actions</span></th>}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="bg-gray-800 divide-y divide-gray-700">
+                                    {products.map((product) => (
+                                        <tr key={product.id} className={`hover:bg-gray-700/50 active:bg-gray-700/70 cursor-pointer touch-manipulation transition-colors ${selectedProduct?.id === product.id ? 'bg-indigo-600/10' : ''}`} onClick={() => setSelectedProduct(product)}>
+                                            <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                                <div className="text-sm sm:text-base font-medium text-white">{product.name}</div>
+                                                <div className="text-xs sm:text-sm text-gray-400">{product.code}</div>
+                                            </td>
+                                            <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
+                                                <span className={`inline-flex items-center px-2 sm:px-2.5 py-1 sm:py-0.5 rounded-full text-xs font-medium ring-1 ring-inset ${getStockStatusColor(product.stock, product.lowStockAlert)}`}>
+                                                    {product.stock}
+                                                </span>
+                                            </td>
+                                            {canEditStock && (
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm">
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleOpenAdjustModal(product); }} 
+                                                        className="text-indigo-400 hover:text-indigo-300 active:text-indigo-200 touch-manipulation px-2 py-1 rounded transition-colors"
+                                                    >
+                                                        Adjust
+                                                    </button>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 

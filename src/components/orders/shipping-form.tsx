@@ -34,6 +34,7 @@ interface ShippingFormProps {
     fardaExpressApiKey?: string;
     transExpressApiKey?: string;
     royalExpressApiKey?: string;
+    royalExpressOrderPrefix?: string;
     onSuccess?: () => void;
 }
 
@@ -46,6 +47,7 @@ export function ShippingForm({
     fardaExpressApiKey,
     transExpressApiKey,
     royalExpressApiKey,
+    royalExpressOrderPrefix,
     onSuccess,
 }: ShippingFormProps) {
     const router = useRouter();
@@ -514,7 +516,9 @@ export function ShippingForm({
                         // State ID
                         states.find(s => s.name === selectedState)?.id,
                         // COD amount
-                        codAmount
+                        codAmount,
+                        // Order prefix
+                        royalExpressOrderPrefix
                     );
 
                     console.log('Royal Express (Curfox) shipment created:', result);

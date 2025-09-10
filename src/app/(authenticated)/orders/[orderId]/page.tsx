@@ -35,7 +35,20 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
             },
         }),
         globalPrisma.tenant.findUnique({
-            where: { id: session.user.tenantId }
+            where: { id: session.user.tenantId },
+            select: {
+                id: true,
+                name: true,
+                businessName: true,
+                businessAddress: true,
+                businessPhone: true,
+                invoicePrefix: true,
+                fardaExpressClientId: true,
+                fardaExpressApiKey: true,
+                transExpressApiKey: true,
+                royalExpressApiKey: true,
+                royalExpressOrderPrefix: true
+            }
         })
     ]);
 
@@ -103,6 +116,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                                             fardaExpressApiKey={tenant.fardaExpressApiKey || undefined}
                                             transExpressApiKey={tenant.transExpressApiKey || undefined}
                                             royalExpressApiKey={tenant.royalExpressApiKey || undefined}
+                                            royalExpressOrderPrefix={tenant.royalExpressOrderPrefix || undefined}
                                         />
                                     </div>
                                 </div>

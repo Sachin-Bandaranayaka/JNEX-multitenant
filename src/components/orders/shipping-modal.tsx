@@ -28,6 +28,7 @@ interface ShippingModalProps {
     fardaExpressApiKey?: string;
     transExpressApiKey?: string;
     royalExpressApiKey?: string;
+    royalExpressOrderPrefix?: string;
     onSuccess?: () => void;
 }
 
@@ -40,6 +41,7 @@ export function ShippingModal({
     fardaExpressApiKey,
     transExpressApiKey,
     royalExpressApiKey,
+    royalExpressOrderPrefix,
     onSuccess,
 }: ShippingModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -125,6 +127,7 @@ export function ShippingModal({
                                     fardaExpressApiKey={fardaExpressApiKey}
                                     transExpressApiKey={transExpressApiKey}
                                     royalExpressApiKey={royalExpressApiKey}
+                                    royalExpressOrderPrefix={royalExpressOrderPrefix}
                                     onSuccess={handleSuccess}
                                 />
                             </Dialog.Panel>

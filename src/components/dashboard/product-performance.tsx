@@ -28,49 +28,49 @@ export function ProductPerformanceTable({ data }: ProductPerformanceTableProps) 
       <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
           <div className="ring-1 ring-white/10 overflow-hidden border-b border-gray-700 sm:rounded-lg">
-            <table className="min-w-full divide-y divide-gray-700">
+            <table className="min-w-full divide-y divide-gray-700" style={{ minWidth: '600px' }}>
               <thead className="bg-gray-900">
                 <tr>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                    className="px-4 py-3 sm:px-6 text-left text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[150px]"
                   >
                     Product
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                    className="px-4 py-3 sm:px-6 text-left text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[100px]"
                   >
-                    Total Sales
+                    Sales
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                    className="px-4 py-3 sm:px-6 text-left text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[120px]"
                   >
                     Revenue
                   </th>
                   <th
                     scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                    className="px-4 py-3 sm:px-6 text-left text-xs font-medium text-gray-400 uppercase tracking-wider min-w-[100px]"
                   >
-                    Current Stock
+                    Stock
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-gray-800 divide-y divide-gray-700">
                 {data.products.map((product) => (
-                  <tr key={product.productId}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                  <tr key={product.productId} className="hover:bg-gray-700/50 transition-colors duration-200 touch-manipulation">
+                    <td className="px-4 py-4 sm:px-6 whitespace-nowrap text-base sm:text-sm font-medium text-white truncate">
                       {product.productName}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                      {product.totalSales}
+                    <td className="px-4 py-4 sm:px-6 whitespace-nowrap text-base sm:text-sm text-gray-400">
+                      {product.totalSales.toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                      LKR {product.revenue.toFixed(2)}
+                    <td className="px-4 py-4 sm:px-6 whitespace-nowrap text-base sm:text-sm text-gray-400">
+                      LKR {product.revenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                      {product.stock}
+                    <td className="px-4 py-4 sm:px-6 whitespace-nowrap text-base sm:text-sm text-gray-400">
+                      {product.stock.toLocaleString()}
                     </td>
                   </tr>
                 ))}

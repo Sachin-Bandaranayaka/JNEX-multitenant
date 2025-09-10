@@ -31,6 +31,7 @@ export function LeadsClient({
         fardaExpressApiKey?: string;
         transExpressApiKey?: string;
         royalExpressApiKey?: string;
+        royalExpressOrderPrefix?: string;
     }
 }) {
   // --- PERMISSION CHECKS ---

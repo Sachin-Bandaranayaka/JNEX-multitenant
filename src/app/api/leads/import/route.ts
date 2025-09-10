@@ -36,7 +36,24 @@ export async function POST(request: Request) {
     const json = await request.json();
 
     // Validate the incoming request to see if it's a 'preview' or 'import' action
-    const payload = RequestSchema.parse(json);
+    let payload;
+    try {
+      payload = RequestSchema.parse(json);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        console.log('Lead import validation error:', JSON.stringify(error.issues, null, 2));
+        console.log('Problematic data at error path:', JSON.stringify(json, null, 2));
+        
+        // Extract the specific row that failed
+        const issue = error.issues[0];
+        if (issue.path.includes('leads') && issue.path.length >= 2) {
+          const rowIndex = issue.path[1];
+          const fieldName = issue.path[2];
+          console.log(`Row ${rowIndex} (${fieldName}):`, json.leads?.[rowIndex]);
+        }
+      }
+      throw error;
+    }
 
     // --- ACTION 1: PREVIEW THE CSV DATA ---
     if (payload.action === 'preview') {

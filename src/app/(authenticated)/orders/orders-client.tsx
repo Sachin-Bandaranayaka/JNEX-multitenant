@@ -18,19 +18,23 @@ interface OrdersClientProps {
   user: User;
 }
 
+// Status configuration similar to leads page
+const STATUS_CONFIG = {
+  PENDING: { label: 'Pending Orders', border: 'border-yellow-500/50', text: 'text-yellow-300', icon: '⏳' },
+  SHIPPED: { label: 'Shipped Orders', border: 'border-purple-500/50', text: 'text-purple-300', icon: '🚚' },
+  DELIVERED: { label: 'Delivered Orders', border: 'border-green-500/50', text: 'text-green-300', icon: '✅' },
+};
+
 export function OrdersClient({ initialOrders, user }: OrdersClientProps) {
   // State to keep track of which order IDs are selected
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
 
-  // Group orders by status
-  const ordersByStatus = initialOrders.reduce((acc, order) => {
-    const status = order.status.toLowerCase();
-    if (!acc[status]) acc[status] = [];
-    acc[status].push(order);
-    return acc;
-  }, {} as Record<string, OrderWithRelations[]>);
-
-  const statusOrder = [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.RETURNED, OrderStatus.CANCELLED];
+  // Group orders by the main categories we want to display
+  const ordersByCategory = {
+    PENDING: initialOrders.filter(order => ['PENDING', 'CONFIRMED'].includes(order.status)),
+    SHIPPED: initialOrders.filter(order => order.status === 'SHIPPED'),
+    DELIVERED: initialOrders.filter(order => ['DELIVERED', 'RETURNED', 'CANCELLED'].includes(order.status)),
+  };
   
   const getStatusColor = (status: string) => {
     const colors = {
@@ -49,8 +53,8 @@ export function OrdersClient({ initialOrders, user }: OrdersClientProps) {
     );
   };
 
-  // --- NEW: Handler for the "Select All" checkbox in each section ---
-  const handleSelectAllByStatus = (ordersInSection: OrderWithRelations[]) => {
+  // Handler for the "Select All" checkbox in each section
+  const handleSelectAllByCategory = (ordersInSection: OrderWithRelations[]) => {
     const orderIdsInSection = ordersInSection.map(order => order.id);
     // Check if all orders in this section are already selected
     const allSelected = orderIdsInSection.every(id => selectedOrders.includes(id));
@@ -97,86 +101,104 @@ export function OrdersClient({ initialOrders, user }: OrdersClientProps) {
           <p className="text-gray-400">No orders found</p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {statusOrder.map(statusEnum => {
-            const status = statusEnum.toLowerCase();
-            const statusOrders = ordersByStatus[status] || [];
-            if (statusOrders.length === 0) return null;
-
-            // --- NEW: Check if all orders in this section are selected ---
-            const areAllInSectionSelected = statusOrders.every(order => selectedOrders.includes(order.id));
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-3 lg:grid-cols-2">
+          {Object.entries(STATUS_CONFIG).map(([category, config]) => {
+            const categoryOrders = ordersByCategory[category as keyof typeof ordersByCategory] || [];
+            
+            // Check if all orders in this category are selected
+            const areAllInCategorySelected = categoryOrders.every(order => selectedOrders.includes(order.id));
 
             return (
-              <div key={status} className="bg-gray-800 rounded-lg ring-1 ring-white/10">
-                {/* --- UPDATED: Section header now includes the "Select All" checkbox --- */}
-                <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center">
-                  <h2 className="text-lg font-medium text-white flex items-center space-x-3">
-                    <span className={`inline-block rounded-full w-3 h-3 ${getStatusColor(status)}`}></span>
-                    <span>{status.charAt(0).toUpperCase() + status.slice(1)} Orders ({statusOrders.length})</span>
-                  </h2>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-indigo-600 focus:ring-indigo-500"
-                      onChange={() => handleSelectAllByStatus(statusOrders)}
-                      checked={areAllInSectionSelected}
-                    />
-                    <label className="text-sm text-gray-400">Select All</label>
+              <div key={category} className={`flex flex-col rounded-xl ring-1 ring-white/10 overflow-hidden bg-gray-800 border-2 ${config.border} shadow-xl`}>
+                {/* Fixed Header */}
+                <div className="flex-shrink-0 px-6 py-5 border-b border-gray-700 bg-gray-800/80 backdrop-blur-sm">
+                  <div className="flex items-center justify-between">
+                    <h2 className={`text-xl font-semibold flex items-center space-x-3 ${config.text}`}>
+                      <span className="text-2xl">{config.icon}</span>
+                      <span>{config.label}</span>
+                      <span className="text-sm font-normal text-gray-400">({categoryOrders.length})</span>
+                    </h2>
+                    {categoryOrders.length > 0 && (
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-indigo-600 focus:ring-indigo-500 focus:ring-2"
+                          onChange={() => handleSelectAllByCategory(categoryOrders)}
+                          checked={areAllInCategorySelected}
+                        />
+                        <label className="text-sm text-gray-400 cursor-pointer">Select All</label>
+                      </div>
+                    )}
                   </div>
                 </div>
-                {/* Mobile-optimized order list with responsive layout */}
-                <div className="overflow-x-auto">
-                  <ul className="divide-y divide-gray-700">
-                    {statusOrders.map((order) => (
-                      <li key={order.id} className="hover:bg-gray-700/50 transition-colors duration-200 touch-manipulation">
-                        <div className="flex items-start gap-3 px-4 py-4 sm:px-6 min-w-0">
-                          <div className="flex-shrink-0 pt-1">
-                            <input
-                              type="checkbox"
-                              className="h-5 w-5 rounded border-gray-600 bg-gray-700 text-indigo-600 focus:ring-indigo-500 touch-manipulation"
-                              checked={selectedOrders.includes(order.id)}
-                              onChange={() => handleSelectOrder(order.id)}
-                            />
-                          </div>
-                          <div className="flex-grow min-w-0">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                              <div className="flex-grow min-w-0">
+                
+                {/* Scrollable Content Area */}
+                <div className="flex-1 overflow-hidden">
+                  <div className="h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                    <ul className="divide-y divide-gray-700">
+                      {categoryOrders.map((order) => (
+                        <li key={order.id} className="p-5 hover:bg-gray-700/50 transition-colors duration-200">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-4 flex-grow min-w-0">
+                              <div className="flex-shrink-0 pt-1">
+                                <input
+                                  type="checkbox"
+                                  className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-indigo-600 focus:ring-indigo-500 focus:ring-2"
+                                  checked={selectedOrders.includes(order.id)}
+                                  onChange={() => handleSelectOrder(order.id)}
+                                />
+                              </div>
+                              <div className="flex-grow min-w-0 space-y-2">
                                 <Link 
                                   href={`/orders/${order.id}`} 
-                                  className="text-base sm:text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors block truncate"
+                                  className="text-base font-semibold text-indigo-400 hover:text-indigo-300 transition-colors block truncate"
                                 >
                                   Order #{order.id.slice(0, 8)}
                                 </Link>
-                                <p className="mt-1 text-base sm:text-sm text-gray-400 truncate">
-                                  {order.product.name} • {order.customerName}
-                                </p>
-                                {order.total > 0 && (
-                                  <p className="text-base sm:text-sm text-gray-400 font-medium">
-                                    LKR {order.total.toFixed(2)}
+                                <div className="space-y-1">
+                                  <p className="text-sm text-gray-300 truncate font-medium">
+                                    {order.product.name}
                                   </p>
-                                )}
-                              </div>
-                              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 flex-shrink-0">
-                                <div className="text-left sm:text-right">
-                                  <p className="text-base sm:text-sm text-gray-400">
-                                    {new Date(order.createdAt).toLocaleDateString()}
+                                  <p className="text-sm text-gray-400 truncate">
+                                    {order.customerName}
                                   </p>
-                                  {order.assignedTo && (
-                                    <p className="mt-1 text-sm text-gray-400 truncate">
-                                      Assigned to: {order.assignedTo.name}
-                                    </p>
+                                </div>
+                                <div className="flex items-center justify-between pt-2">
+                                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status.toLowerCase())} text-white shadow-sm`}>
+                                    {order.status.toLowerCase()}
+                                  </span>
+                                  {order.total > 0 && (
+                                    <span className="text-sm font-bold text-gray-200">
+                                      LKR {order.total.toFixed(2)}
+                                    </span>
                                   )}
                                 </div>
-                                <div className="flex-shrink-0">
-                                  <OrderActions order={order} user={user} />
-                                </div>
+                                <p className="text-xs text-gray-500 pt-1">
+                                  {new Date(order.createdAt).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })}
+                                </p>
                               </div>
                             </div>
+                            <div className="flex-shrink-0">
+                              <OrderActions order={order} user={user} />
+                            </div>
                           </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                        </li>
+                      ))}
+                      {categoryOrders.length === 0 && (
+                        <li className="p-8 text-center">
+                          <div className="text-gray-500">
+                            <div className="text-4xl mb-3 opacity-50">{config.icon}</div>
+                            <p className="text-sm font-medium">No {config.label.toLowerCase()}</p>
+                            <p className="text-xs text-gray-600 mt-1">Orders will appear here when available</p>
+                          </div>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
                 </div>
               </div>
             );

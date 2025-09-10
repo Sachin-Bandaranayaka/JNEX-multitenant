@@ -73,11 +73,13 @@ export async function POST(request: Request) {
 
         // 3. SECURE THE CHECK: This now checks for the product code ONLY within the current tenant's products
         const existingProduct = await prisma.product.findFirst({
-          where: { code: validatedData.code },
+          where: { 
+            code: validatedData.code
+          },
         });
 
         if (existingProduct) {
-          // 4. SECURE THE UPDATE: This transaction will only update products belonging to the current tenant
+          // 4. SECURE THE UPDATE: This transaction will update or reactivate products belonging to the current tenant
           await prisma.$transaction(async (tx) => {
             const updatedProduct = await tx.product.update({
               where: { id: existingProduct.id }, // Update by the globally unique ID
@@ -87,14 +89,16 @@ export async function POST(request: Request) {
                 price: validatedData.price,
                 stock: validatedData.stock,
                 lowStockAlert: validatedData.lowStockAlert,
+                isActive: true, // Reactivate if it was soft-deleted
               },
             });
 
             if (existingProduct.stock !== validatedData.stock) {
+              const adjustmentReason = !existingProduct.isActive ? 'CSV import reactivation' : 'CSV import update';
               await tx.stockAdjustment.create({
                 data: {
                   quantity: validatedData.stock - existingProduct.stock,
-                  reason: 'CSV import update',
+                  reason: adjustmentReason,
                   previousStock: existingProduct.stock,
                   newStock: validatedData.stock,
                   tenant: {

@@ -70,31 +70,55 @@ export async function POST(request: Request) {
         const prisma = getScopedPrismaClient(session.user.tenantId);
         const data = await request.json();
         const validatedData = productSchema.parse(data);
+        // Check for any existing product with the same code (active or inactive)
         const existingProduct = await prisma.product.findFirst({
-            where: { code: validatedData.code },
+            where: { 
+                code: validatedData.code
+            },
         });
-        if (existingProduct) {
+        
+        if (existingProduct && existingProduct.isActive) {
             return NextResponse.json({ error: 'Product code already exists for this tenant' }, { status: 400 });
         }
+        
         const product = await prisma.$transaction(async (tx) => {
-            const newProduct = await tx.product.create({
-                data: {
-                    code: validatedData.code,
-                    name: validatedData.name,
-                    description: validatedData.description,
-                    price: validatedData.price,
-                    stock: validatedData.stock,
-                    lowStockAlert: validatedData.lowStockAlert,
-                    tenant: {
-                        connect: { id: session.user.tenantId },
+            let newProduct;
+            
+            if (existingProduct && !existingProduct.isActive) {
+                // Reactivate the soft-deleted product with new data
+                newProduct = await tx.product.update({
+                    where: { id: existingProduct.id },
+                    data: {
+                        name: validatedData.name,
+                        description: validatedData.description,
+                        price: validatedData.price,
+                        stock: validatedData.stock,
+                        lowStockAlert: validatedData.lowStockAlert,
+                        isActive: true,
                     },
-                },
-            });
+                });
+            } else {
+                // Create new product
+                newProduct = await tx.product.create({
+                    data: {
+                        code: validatedData.code,
+                        name: validatedData.name,
+                        description: validatedData.description,
+                        price: validatedData.price,
+                        stock: validatedData.stock,
+                        lowStockAlert: validatedData.lowStockAlert,
+                        tenant: {
+                            connect: { id: session.user.tenantId },
+                        },
+                    },
+                });
+            }
             if (validatedData.stock > 0) {
+                const stockReason = existingProduct && !existingProduct.isActive ? 'Product reactivated' : 'Initial stock';
                 await tx.stockAdjustment.create({
                     data: {
                         quantity: validatedData.stock,
-                        reason: 'Initial stock',
+                        reason: stockReason,
                         previousStock: 0,
                         newStock: validatedData.stock,
                         tenant: {

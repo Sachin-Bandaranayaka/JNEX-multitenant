@@ -205,7 +205,8 @@ export function LeadDetails({ lead }: LeadDetailsProps) {
                 const data = await response.json();
                 throw new Error(data.error || 'Failed to update status');
             }
-            router.refresh();
+            // Redirect back to leads page after successful status update
+            router.push('/leads');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {

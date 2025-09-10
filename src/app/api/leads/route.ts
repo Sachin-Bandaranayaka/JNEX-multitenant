@@ -82,7 +82,10 @@ export async function POST(request: Request) {
     const validatedData = leadSchema.parse(data);
 
     const product = await prisma.product.findFirst({
-      where: { code: validatedData.productCode },
+      where: { 
+        code: validatedData.productCode,
+        isActive: true
+      },
     });
 
     if (!product) {

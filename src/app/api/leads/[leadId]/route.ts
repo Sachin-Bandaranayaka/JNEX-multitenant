@@ -140,7 +140,10 @@ export async function PUT(
 
     // **THE FIX**: Securely find the product within the tenant's scope
     const product = await prisma.product.findFirst({
-      where: { code: validatedData.productCode },
+      where: { 
+        code: validatedData.productCode,
+        isActive: true
+      },
     });
 
     if (!product) {

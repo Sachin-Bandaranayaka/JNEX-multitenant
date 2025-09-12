@@ -105,7 +105,7 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
       )}
       
       {/* Mobile header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-gray-800 border-b border-gray-700 px-4 py-3">
+      <div className="print:hidden lg:hidden fixed top-0 left-0 right-0 z-30 bg-gray-800 border-b border-gray-700 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {tenant.logoUrl && (

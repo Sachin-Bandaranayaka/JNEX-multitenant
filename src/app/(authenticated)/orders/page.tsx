@@ -7,6 +7,7 @@ import { User } from 'next-auth';
 import { OrdersClient } from './orders-client'; // Import our new client component
 import { SearchOrders } from '@/components/orders/search-orders';
 import { SortOrders } from '@/components/orders/sort-orders';
+import { DateFilter } from '@/components/orders/date-filter';
 
 export default async function OrdersPage({
   searchParams,
@@ -16,7 +17,10 @@ export default async function OrdersPage({
   const session = await getServerSession(authOptions);
   const resolvedSearchParams = await searchParams;
   const searchQuery = (resolvedSearchParams.query as string) || '';
-  const sortParam = (resolvedSearchParams.sort as string) || 'createdAt:desc';
+  const sortParam = (resolvedSearchParams.sort as string) || 'createdAt:asc'; // Default to oldest first
+  const dateFilter = (resolvedSearchParams.dateFilter as string) || '';
+  const startDate = (resolvedSearchParams.startDate as string) || '';
+  const endDate = (resolvedSearchParams.endDate as string) || '';
 
   if (!session?.user?.tenantId) {
     return redirect('/auth/signin');
@@ -34,6 +38,20 @@ export default async function OrdersPage({
   const [sortField, sortDirection] = sortParam.split(':');
   const orderBy = { [sortField]: sortDirection };
 
+  // Build date filter conditions
+  const dateConditions: Prisma.OrderWhereInput = {};
+  if (startDate && endDate) {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    
+    dateConditions.createdAt = {
+      gte: start,
+      lte: end,
+    };
+  }
+
   const where: Prisma.OrderWhereInput = {
     ...(!canViewAll && user.role === 'TEAM_MEMBER' ? { userId: user.id } : {}),
     ...(searchQuery ? {
@@ -44,6 +62,7 @@ export default async function OrdersPage({
         { product: { name: { contains: searchQuery, mode: 'insensitive' } } },
       ],
     } : {}),
+    ...dateConditions,
   };
 
   const orders = await prisma.order.findMany({
@@ -54,15 +73,36 @@ export default async function OrdersPage({
 
   return (
     <div className="space-y-8 p-4 sm:p-6 lg:p-8 bg-gray-900">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-                <h1 className="text-2xl font-semibold text-white">Orders</h1>
-                <p className="mt-2 text-sm text-gray-400">Manage orders and track their status {searchQuery && `• Searching: "${searchQuery}"`}</p>
+        <div className="flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-semibold text-white">Orders</h1>
+                    <p className="mt-2 text-sm text-gray-400">
+                        Manage orders and track their status
+                        {searchQuery && ` • Searching: "${searchQuery}"`}
+                        {dateFilter && startDate && endDate && (
+                            <span className="inline-flex items-center gap-1 ml-2 px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded-md text-xs font-medium">
+                                📅 {startDate} to {endDate}
+                            </span>
+                        )}
+                    </p>
+                </div>
             </div>
-            {/* The Search and Sort components can remain here if they use URL params */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <SearchOrders />
-                <SortOrders />
+            
+            {/* Filter Controls Section */}
+            <div className="bg-gray-800 rounded-lg p-4 ring-1 ring-white/10">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-300">Filter by:</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1">
+                        <DateFilter />
+                        <div className="hidden sm:block w-px h-6 bg-gray-600"></div>
+                        <SearchOrders />
+                        <div className="hidden sm:block w-px h-6 bg-gray-600"></div>
+                        <SortOrders />
+                    </div>
+                </div>
             </div>
         </div>
         

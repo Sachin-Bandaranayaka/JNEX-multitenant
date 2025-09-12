@@ -12,12 +12,12 @@ type SortOption = {
 export function SortOrders() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const currentSort = searchParams.get('sort') || 'createdAt:desc';
+    const currentSort = searchParams.get('sort') || 'createdAt:asc';
     const [isOpen, setIsOpen] = useState(false);
 
     const sortOptions: SortOption[] = [
-        { label: 'Date (Newest)', value: 'createdAt', direction: 'desc' },
         { label: 'Date (Oldest)', value: 'createdAt', direction: 'asc' },
+        { label: 'Date (Newest)', value: 'createdAt', direction: 'desc' },
         { label: 'Total (High to Low)', value: 'total', direction: 'desc' },
         { label: 'Total (Low to High)', value: 'total', direction: 'asc' },
         { label: 'Customer Name (A-Z)', value: 'customerName', direction: 'asc' },
@@ -88,4 +88,4 @@ export function SortOrders() {
             )}
         </div>
     );
-} 
+}

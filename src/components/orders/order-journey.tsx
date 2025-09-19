@@ -111,6 +111,8 @@ export function OrderJourney({ order }: OrderJourneyProps) {
                 return `https://transexpress.lk/track-shipment/${order.trackingNumber}`;
             case 'SL_POST':
                 return `http://www.slpost.gov.lk/track-trace/${order.trackingNumber}`;
+            case 'ROYAL_EXPRESS':
+                return `https://royalexpress.lk/track/${order.trackingNumber}`;
             default:
                 return null;
         }

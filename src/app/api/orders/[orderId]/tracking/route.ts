@@ -216,7 +216,7 @@ export async function GET(
                     );
                 }
 
-                const royalExpressService = new RoyalExpressProvider(royalEmail, royalPassword);
+                const royalExpressService = new RoyalExpressProvider(royalApiKey, 'royalexpress');
                 console.log('Tracking Royal Express shipment:', order.trackingNumber);
 
                 const shipmentStatus = await royalExpressService.trackShipment(order.trackingNumber);

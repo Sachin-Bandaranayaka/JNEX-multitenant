@@ -443,9 +443,9 @@ The state name must match exactly, including capitalization.`);
 
             console.log(`Attempting to track Curfox DMS shipment: ${trackingNumber}`);
 
-            // Use the correct endpoint for tracking according to the API
-            // The documentation doesn't explicitly show a tracking endpoint, but we'll check the order status
-            const response = await this.makeRequest(`/merchant/order/${trackingNumber}/status`, 'GET');
+            // Use the correct tracking endpoint - the API only supports GET method
+            // GET /api/public/merchant/order/tracking-info?waybill_number=xxx
+            const response = await this.makeRequest(`/merchant/order/tracking-info?waybill_number=${encodeURIComponent(trackingNumber)}`, 'GET');
 
             console.log('Curfox DMS tracking response:', JSON.stringify(response, null, 2));
 
@@ -455,14 +455,16 @@ The state name must match exactly, including capitalization.`);
                 return ShipmentStatus.PENDING; // Default to pending if we can't determine status
             }
 
-            if (!response.data) {
+            if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
                 console.warn('No tracking data received from Curfox DMS, defaulting to PENDING');
                 return ShipmentStatus.PENDING;
             }
 
-            // Map the status from the API to our internal status enum
-            // We're making educated guesses about status names since they weren't specified in the documentation
-            const status = response.data.status || 'pending';
+            // Get the most recent status (first item in the array)
+            const latestStatus = response.data[0];
+            const status = latestStatus?.status?.name || latestStatus?.status || 'pending';
+            
+            console.log(`Latest tracking status for ${trackingNumber}: ${status}`);
             return this.normalizeStatus(status);
         } catch (error) {
             console.error('Error tracking Curfox DMS shipment:', error);
@@ -650,9 +652,7 @@ The state name must match exactly, including capitalization.`);
         try {
             console.log(`Fetching tracking information for order: ${orderId}`);
             
-            const response = await this.makeRequest('/merchant/order/tracking-info', 'POST', {
-                order_id: orderId
-            }) as TrackingInfoResponse;
+            const response = await this.makeRequest(`/merchant/order/tracking-info?waybill_number=${encodeURIComponent(orderId)}`, 'GET') as TrackingInfoResponse;
             
             if (!response.status || !response.data) {
                 throw new Error(`Invalid response format from Tracking Info API: ${response.message}`);

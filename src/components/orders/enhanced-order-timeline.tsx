@@ -68,6 +68,23 @@ interface EnhancedOrderTimelineProps {
     };
 }
 
+// Helper function to get Royal Express specific status icons
+const getRoyalExpressStatusIcon = (status: string, statusCode: string) => {
+    if (statusCode === 'EXCEPTION') return '⚠️';
+    
+    switch (status) {
+        case 'DELIVERED': return '✅';
+        case 'OUT_FOR_DELIVERY': return '🚛';
+        case 'IN_TRANSIT': return '🚚';
+        case 'PICKED_UP': return '📦';
+        case 'PROCESSING': return '⚙️';
+        case 'PENDING': return '⏳';
+        case 'CANCELLED': return '❌';
+        case 'RETURNED': return '↩️';
+        default: return '📍';
+    }
+};
+
 export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
@@ -77,7 +94,7 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
 
     const hasTracking = Boolean(order.trackingNumber && order.shippingProvider);
     const isRoyalExpress = order.shippingProvider === 'ROYAL_EXPRESS';
-    const hasEnhancedData = isRoyalExpress && (order.statusHistory?.length || order.financialInfo || order.royalExpressTracking?.length);
+    const hasEnhancedData = isRoyalExpress && (order.statusHistory?.length || order.financialInfo || order.royalExpressTracking);
 
     const checkTracking = async () => {
         setIsLoading(true);
@@ -159,7 +176,7 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
                     location: statusUpdate.location,
                     date: format(new Date(statusUpdate.timestamp), 'PPp'),
                     status: statusUpdate.isCurrentStatus ? 'current' : 'complete',
-                    icon: statusUpdate.status === 'DELIVERED' ? '✅' : statusUpdate.statusCode === 'EXCEPTION' ? '⚠️' : '🚚',
+                    icon: getRoyalExpressStatusIcon(statusUpdate.status, statusUpdate.statusCode),
                     type: 'tracking' as const,
                     isDelivered: statusUpdate.status === 'DELIVERED',
                     isException: statusUpdate.statusCode === 'EXCEPTION'
@@ -223,6 +240,16 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
                             {order.royalExpressTracking?.lastLocationUpdate && (
                                 <p className="mt-1 text-sm text-green-400">
                                     📍 Current Location: {order.royalExpressTracking.lastLocationUpdate}
+                                </p>
+                            )}
+                            {order.royalExpressTracking?.estimatedDelivery && (
+                                <p className="mt-1 text-sm text-blue-400">
+                                    🕒 Estimated Delivery: {format(new Date(order.royalExpressTracking.estimatedDelivery), 'PPp')}
+                                </p>
+                            )}
+                            {order.royalExpressTracking?.isException && order.royalExpressTracking?.exceptionDetails && (
+                                <p className="mt-1 text-sm text-red-400">
+                                    ⚠️ Exception: {order.royalExpressTracking.exceptionDetails}
                                 </p>
                             )}
                         </div>

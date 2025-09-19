@@ -165,7 +165,7 @@ export async function GET(request: Request) {
                                 };
                             }
 
-                            const royalExpressService = new RoyalExpressProvider(royalApiKey, order.tenantId);
+                            const royalExpressService = new RoyalExpressProvider(royalApiKey, 'royalexpress');
                             
                             // Use enhanced tracking to get comprehensive order information
                             const enhancedTracking = await royalExpressService.trackShipmentEnhanced(order.trackingNumber!);

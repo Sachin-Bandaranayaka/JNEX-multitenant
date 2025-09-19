@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EnhancedOrderTimeline } from './enhanced-order-timeline';
+import { RoyalExpressTracking } from './royal-express-tracking';
 
 interface OrderJourneyProps {
     order: {
@@ -78,7 +79,26 @@ export function OrderJourney({ order }: OrderJourneyProps) {
     const isRoyalExpress = order.shippingProvider === 'ROYAL_EXPRESS';
     const hasEnhancedData = isRoyalExpress && (order.statusHistory?.length || order.financialInfo || order.royalExpressTracking);
 
-    // Use enhanced timeline for Royal Express orders with enhanced data
+    // Use enhanced Royal Express tracking component for Royal Express orders with tracking number
+    if (isRoyalExpress && order.trackingNumber) {
+        return (
+            <div className="space-y-6">
+                <RoyalExpressTracking 
+                    orderId={order.id} 
+                    trackingNumber={order.trackingNumber} 
+                />
+                {/* Fallback to enhanced timeline if needed */}
+                {hasEnhancedData && (
+                    <div className="border-t border-gray-700 pt-6">
+                        <h4 className="text-lg font-medium text-white mb-4">Order Timeline</h4>
+                        <EnhancedOrderTimeline order={order} />
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // Use enhanced timeline for Royal Express orders with enhanced data but no tracking number
     if (hasEnhancedData) {
         return <EnhancedOrderTimeline order={order} />;
     }

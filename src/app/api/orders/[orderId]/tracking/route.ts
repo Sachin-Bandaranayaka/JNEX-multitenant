@@ -219,11 +219,19 @@ export async function GET(
                 const royalExpressService = new RoyalExpressProvider(royalApiKey, 'royalexpress');
                 console.log('Tracking Royal Express shipment:', order.trackingNumber);
 
+                // Get the raw tracking data from Curfox DMS API
+                const rawTrackingData = await royalExpressService.makeApiRequest(
+                    `/merchant/order/tracking-info?waybill_number=${encodeURIComponent(order.trackingNumber)}`,
+                    'GET'
+                );
+                console.log('Royal Express raw tracking data received:', rawTrackingData);
+
+                // Also get basic status for order update
                 const shipmentStatus = await royalExpressService.trackShipment(order.trackingNumber);
-                console.log('Royal Express tracking status received:', shipmentStatus);
+                console.log('Royal Express basic status:', shipmentStatus);
 
                 // Update order status based on tracking info
-                const updatedOrder = await prisma.order.update({
+                await prisma.order.update({
                     where: { id: order.id },
                     data: {
                         status: shipmentStatus === ShipmentStatus.DELIVERED ? 'DELIVERED' : 'SHIPPED',
@@ -236,17 +244,11 @@ export async function GET(
                             },
                         },
                     },
-                    include: {
-                        trackingUpdates: {
-                            orderBy: {
-                                timestamp: 'desc',
-                            },
-                        },
-                    },
                 });
 
-                console.log('Order updated with tracking info:', updatedOrder.id);
-                return NextResponse.json(updatedOrder);
+                console.log('Order updated with tracking info, returning raw tracking data');
+                // Return the raw tracking data that the frontend component expects
+                return NextResponse.json(rawTrackingData);
             } catch (trackingError) {
                 console.error('Error during tracking operation:', trackingError);
 

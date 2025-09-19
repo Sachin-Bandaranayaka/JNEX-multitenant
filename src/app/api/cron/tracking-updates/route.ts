@@ -154,6 +154,7 @@ export async function GET(request: Request) {
                                 };
                             }
 
+                            // Validate API key format (should be email:password)
                             const [royalEmail, royalPassword] = royalApiKey.split(':');
                             if (!royalEmail || !royalPassword) {
                                 console.warn(`Royal Express API key format invalid for tenant ${order.tenantId}`);
@@ -164,32 +165,145 @@ export async function GET(request: Request) {
                                 };
                             }
 
-                            const royalExpressService = new RoyalExpressProvider(royalEmail, royalPassword);
-                            const shipmentStatus = await royalExpressService.trackShipment(order.trackingNumber!);
+                            const royalExpressService = new RoyalExpressProvider(royalApiKey, order.tenantId);
+                            
+                            // Use enhanced tracking to get comprehensive order information
+                            const enhancedTracking = await royalExpressService.trackShipmentEnhanced(order.trackingNumber!);
+                            const shipmentStatus = enhancedTracking.basicStatus;
 
-                            // Update order status
-                            const updatedOrder = await prisma.order.update({
-                                where: { id: order.id },
-                                data: {
-                                    status: statusMap[shipmentStatus],
-                                    deliveredAt: shipmentStatus === ShipmentStatus.DELIVERED ? new Date() : null,
-                                    trackingUpdates: {
+                            // Prepare database update with enhanced tracking data
+                            const updateData: any = {
+                                status: statusMap[shipmentStatus],
+                                deliveredAt: shipmentStatus === ShipmentStatus.DELIVERED ? new Date() : null,
+                                trackingUpdates: {
+                                     create: {
+                                         status: shipmentStatus,
+                                         timestamp: new Date(),
+                                         tenantId: order.tenantId,
+                                         description: enhancedTracking.enhancedStatus?.statusHistory?.[0]?.description || 'Status updated via cron job',
+                                         location: enhancedTracking.enhancedStatus?.statusHistory?.[0]?.location,
+                                     },
+                                 },
+                            };
+
+                            // Add enhanced status history if available
+                            if (enhancedTracking.enhancedStatus?.statusHistory) {
+                                updateData.statusHistory = {
+                                    createMany: {
+                                        data: enhancedTracking.enhancedStatus.statusHistory.map((historyItem) => ({
+                                            status: historyItem.status,
+                                            timestamp: new Date(historyItem.timestamp),
+                                            description: historyItem.description,
+                                            location: historyItem.location,
+                                            tenantId: order.tenantId,
+                                        })),
+                                        skipDuplicates: true,
+                                    },
+                                };
+                            }
+
+                            // Add financial information if available
+                            if (enhancedTracking.financialInfo) {
+                                updateData.financialInfo = {
+                                    upsert: {
                                         create: {
-                                            status: shipmentStatus,
-                                            timestamp: new Date(),
+                                            totalAmount: enhancedTracking.financialInfo.totalAmount,
+                                            shippingCost: enhancedTracking.financialInfo.shippingCost,
+                                            taxAmount: enhancedTracking.financialInfo.taxAmount,
+                                            discountAmount: enhancedTracking.financialInfo.discountAmount,
+                                            paymentStatus: enhancedTracking.financialInfo.paymentStatus,
+                                            paymentMethod: enhancedTracking.financialInfo.paymentMethod,
+                                            currency: enhancedTracking.financialInfo.currency,
                                             tenantId: order.tenantId,
                                         },
+                                        update: {
+                                            totalAmount: enhancedTracking.financialInfo.totalAmount,
+                                            shippingCost: enhancedTracking.financialInfo.shippingCost,
+                                            taxAmount: enhancedTracking.financialInfo.taxAmount,
+                                            discountAmount: enhancedTracking.financialInfo.discountAmount,
+                                            paymentStatus: enhancedTracking.financialInfo.paymentStatus,
+                                            paymentMethod: enhancedTracking.financialInfo.paymentMethod,
+                                            currency: enhancedTracking.financialInfo.currency,
+                                            updatedAt: new Date(),
+                                        },
                                     },
-                                },
+                                };
+                            }
+
+                            // Add Royal Express tracking details if available
+                             if (enhancedTracking.trackingInfo?.data) {
+                                 updateData.royalExpressTracking = {
+                                     createMany: {
+                                         data: enhancedTracking.trackingInfo.data.map((trackingItem) => ({
+                                             trackingNumber: trackingItem.tracking_number,
+                                             currentLocation: trackingItem.location,
+                                             statusHistory: JSON.stringify([{
+                                                 status: trackingItem.status,
+                                                 timestamp: trackingItem.timestamp,
+                                                 description: trackingItem.description,
+                                                 location: trackingItem.location
+                                             }]),
+                                             tenantId: order.tenantId,
+                                         })),
+                                         skipDuplicates: true,
+                                     },
+                                 };
+                             }
+
+                            // Update order with enhanced tracking data
+                            const updatedOrder = await prisma.order.update({
+                                where: { id: order.id },
+                                data: updateData,
                             });
 
                             return {
                                 orderId: order.id,
                                 success: true,
                                 newStatus: shipmentStatus,
+                                enhancedData: {
+                                    statusHistory: enhancedTracking.enhancedStatus?.statusHistory?.length || 0,
+                                    hasFinancialInfo: !!enhancedTracking.financialInfo,
+                                    hasTrackingInfo: !!enhancedTracking.trackingInfo,
+                                },
                             };
                         } catch (error) {
                             console.error(`Error updating Royal Express tracking for order ${order.id}:`, error);
+                            
+                            // Fallback to basic tracking if enhanced tracking fails
+                            try {
+                                const royalApiKey = order.tenant?.royalExpressApiKey;
+                                if (royalApiKey) {
+                                    const [royalEmail, royalPassword] = royalApiKey.split(':');
+                                    const royalExpressService = new RoyalExpressProvider(royalEmail, royalPassword);
+                                    const basicStatus = await royalExpressService.trackShipment(order.trackingNumber!);
+                                    
+                                    await prisma.order.update({
+                                        where: { id: order.id },
+                                        data: {
+                                            status: statusMap[basicStatus],
+                                            deliveredAt: basicStatus === ShipmentStatus.DELIVERED ? new Date() : null,
+                                            trackingUpdates: {
+                                                create: {
+                                                    status: basicStatus,
+                                                    timestamp: new Date(),
+                                                    tenantId: order.tenantId,
+                                                    description: 'Basic tracking update (enhanced tracking failed)',
+                                                },
+                                            },
+                                        },
+                                    });
+
+                                    return {
+                                        orderId: order.id,
+                                        success: true,
+                                        newStatus: basicStatus,
+                                        fallbackUsed: true,
+                                    };
+                                }
+                            } catch (fallbackError) {
+                                console.error(`Fallback tracking also failed for order ${order.id}:`, fallbackError);
+                            }
+
                             return {
                                 orderId: order.id,
                                 success: false,

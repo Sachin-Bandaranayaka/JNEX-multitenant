@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { EnhancedOrderTimeline } from './enhanced-order-timeline';
 
 interface OrderJourneyProps {
     order: {
@@ -31,6 +32,40 @@ interface OrderJourneyProps {
             description?: string | null;
             timestamp: Date;
         }>;
+        // Enhanced Royal Express tracking data
+        statusHistory?: Array<{
+            id: string;
+            status: string;
+            statusCode: string;
+            description?: string | null;
+            location?: string | null;
+            timestamp: Date;
+            isCurrentStatus: boolean;
+        }>;
+        financialInfo?: {
+            id: string;
+            totalAmount: number;
+            shippingCost: number;
+            taxAmount: number;
+            discountAmount: number;
+            paymentStatus: string;
+            paymentMethod?: string | null;
+            currency: string;
+        } | null;
+        royalExpressTracking?: {
+            id: string;
+            trackingNumber: string;
+            currentStatus: string;
+            currentStatusCode: string;
+            estimatedDelivery?: Date | null;
+            actualDelivery?: Date | null;
+            lastLocationUpdate?: string | null;
+            lastLocationTimestamp?: Date | null;
+            totalStatusUpdates: number;
+            isDelivered: boolean;
+            isException: boolean;
+            exceptionDetails?: string | null;
+        } | null;
     };
 }
 
@@ -40,6 +75,13 @@ export function OrderJourney({ order }: OrderJourneyProps) {
     const [error, setError] = useState<string | null>(null);
 
     const hasTracking = Boolean(order.trackingNumber && order.shippingProvider);
+    const isRoyalExpress = order.shippingProvider === 'ROYAL_EXPRESS';
+    const hasEnhancedData = isRoyalExpress && (order.statusHistory?.length || order.financialInfo || order.royalExpressTracking);
+
+    // Use enhanced timeline for Royal Express orders with enhanced data
+    if (hasEnhancedData) {
+        return <EnhancedOrderTimeline order={order} />;
+    }
 
     const checkTracking = async () => {
         setIsLoading(true);

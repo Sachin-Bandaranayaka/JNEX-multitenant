@@ -32,6 +32,9 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                 lead: true,
                 assignedTo: true,
                 trackingUpdates: { orderBy: { timestamp: 'desc' } },
+                statusHistory: { orderBy: { timestamp: 'desc' } },
+                financialInfo: true,
+                royalExpressTracking: true,
             },
         }),
         globalPrisma.tenant.findUnique({
@@ -117,6 +120,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                                             transExpressApiKey={tenant.transExpressApiKey || undefined}
                                             royalExpressApiKey={tenant.royalExpressApiKey || undefined}
                                             royalExpressOrderPrefix={tenant.royalExpressOrderPrefix || undefined}
+                                            tenantId={tenant.id}
                                         />
                                     </div>
                                 </div>

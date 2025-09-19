@@ -29,6 +29,7 @@ interface ShippingModalProps {
     transExpressApiKey?: string;
     royalExpressApiKey?: string;
     royalExpressOrderPrefix?: string;
+    tenantId?: string;
     onSuccess?: () => void;
 }
 
@@ -42,6 +43,7 @@ export function ShippingModal({
     transExpressApiKey,
     royalExpressApiKey,
     royalExpressOrderPrefix,
+    tenantId,
     onSuccess,
 }: ShippingModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -128,6 +130,7 @@ export function ShippingModal({
                                     transExpressApiKey={transExpressApiKey}
                                     royalExpressApiKey={royalExpressApiKey}
                                     royalExpressOrderPrefix={royalExpressOrderPrefix}
+                                    tenantId={tenantId}
                                     onSuccess={handleSuccess}
                                 />
                             </Dialog.Panel>

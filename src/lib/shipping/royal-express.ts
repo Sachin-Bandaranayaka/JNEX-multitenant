@@ -14,6 +14,103 @@ interface CurfoxAuthResponse {
     message: string;
 }
 
+// Enhanced tracking interfaces based on Royal Express API documentation
+interface OrderStatusResponse {
+    data: {
+        id: number;
+        order_id: string;
+        status: string;
+        status_id: number;
+        created_at: string;
+        updated_at: string;
+        description?: string;
+    }[];
+    message: string;
+    status: boolean;
+}
+
+interface TrackingInfoResponse {
+    data: {
+        id: number;
+        order_id: string;
+        tracking_number: string;
+        status: string;
+        location: string;
+        timestamp: string;
+        description: string;
+        created_at: string;
+        updated_at: string;
+    }[];
+    message: string;
+    status: boolean;
+}
+
+interface FinancialInfoResponse {
+    data: {
+        order_id: string;
+        total_amount: number;
+        shipping_cost: number;
+        tax_amount: number;
+        discount_amount: number;
+        payment_status: string;
+        payment_method: string;
+        currency: string;
+        created_at: string;
+        updated_at: string;
+    };
+    message: string;
+    status: boolean;
+}
+
+// Enhanced status tracking with all 21 Royal Express statuses
+export enum RoyalExpressOrderStatus {
+    ORDER_PLACED = 'Order Placed',
+    ORDER_CONFIRMED = 'Order Confirmed',
+    PAYMENT_PENDING = 'Payment Pending',
+    PAYMENT_CONFIRMED = 'Payment Confirmed',
+    PROCESSING = 'Processing',
+    READY_FOR_PICKUP = 'Ready for Pickup',
+    PICKED_UP = 'Picked Up',
+    IN_TRANSIT = 'In Transit',
+    ARRIVED_AT_HUB = 'Arrived at Hub',
+    OUT_FOR_DELIVERY = 'Out for Delivery',
+    DELIVERY_ATTEMPTED = 'Delivery Attempted',
+    DELIVERED = 'Delivered',
+    DELIVERY_CONFIRMED = 'Delivery Confirmed',
+    FAILED_DELIVERY = 'Failed Delivery',
+    RETURNED_TO_HUB = 'Returned to Hub',
+    RETURN_IN_TRANSIT = 'Return in Transit',
+    RETURNED_TO_SENDER = 'Returned to Sender',
+    CANCELED = 'Canceled',
+    REFUND_INITIATED = 'Refund Initiated',
+    REFUND_COMPLETED = 'Refund Completed',
+    EXCEPTION = 'Exception'
+}
+
+export interface EnhancedOrderStatus {
+    orderId: string;
+    currentStatus: RoyalExpressOrderStatus;
+    statusHistory: {
+        status: RoyalExpressOrderStatus;
+        timestamp: string;
+        description?: string;
+        location?: string;
+    }[];
+    trackingNumber?: string;
+    estimatedDelivery?: string;
+}
+
+export interface OrderFinancialInfo {
+    orderId: string;
+    totalAmount: number;
+    shippingCost: number;
+    taxAmount: number;
+    discountAmount: number;
+    paymentStatus: string;
+    paymentMethod: string;
+    currency: string;
+}
+
 export class RoyalExpressProvider implements ShippingProvider {
     private apiKey!: string;
     private email!: string;
@@ -494,5 +591,289 @@ The state name must match exactly, including capitalization.`);
         };
 
         return stateNameMap[stateName] || stateName;
+    }
+
+    /**
+     * Get detailed order status list with all 21 status types
+     * Based on Royal Express API documentation: GET /api/public/merchant/order/{order_id}/status
+     * @param orderId The order ID to get status for
+     * @returns Enhanced order status with complete history
+     */
+    public async getEnhancedOrderStatus(orderId: string): Promise<EnhancedOrderStatus> {
+        try {
+            console.log(`Fetching enhanced order status for order: ${orderId}`);
+            
+            const response = await this.makeRequest(`/merchant/order/${orderId}/status`, 'GET') as OrderStatusResponse;
+            
+            if (!response.status || !response.data || !Array.isArray(response.data)) {
+                throw new Error(`Invalid response format from Order Status API: ${response.message}`);
+            }
+
+            // Sort status history by timestamp (newest first)
+            const sortedStatuses = response.data.sort((a, b) => 
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+
+            // Get current status (most recent)
+            const currentStatusData = sortedStatuses[0];
+            const currentStatus = this.mapToRoyalExpressStatus(currentStatusData.status);
+
+            // Build status history
+            const statusHistory = sortedStatuses.map(status => ({
+                status: this.mapToRoyalExpressStatus(status.status),
+                timestamp: status.created_at,
+                description: status.description,
+                location: undefined // Location not provided in status endpoint
+            }));
+
+            return {
+                orderId,
+                currentStatus,
+                statusHistory,
+                trackingNumber: undefined, // Will be populated by tracking info if available
+                estimatedDelivery: undefined // Can be calculated based on status and historical data
+            };
+
+        } catch (error) {
+            console.error('Error fetching enhanced order status:', error);
+            throw error instanceof Error ? error : new Error('Failed to fetch enhanced order status');
+        }
+    }
+
+    /**
+     * Get detailed tracking information for an order
+     * Based on Royal Express API documentation: POST /api/public/merchant/order/tracking-info
+     * @param orderId The order ID to get tracking info for
+     * @returns Detailed tracking information with location and timeline
+     */
+    public async getOrderTrackingInfo(orderId: string): Promise<TrackingInfoResponse> {
+        try {
+            console.log(`Fetching tracking information for order: ${orderId}`);
+            
+            const response = await this.makeRequest('/merchant/order/tracking-info', 'POST', {
+                order_id: orderId
+            }) as TrackingInfoResponse;
+            
+            if (!response.status || !response.data) {
+                throw new Error(`Invalid response format from Tracking Info API: ${response.message}`);
+            }
+
+            return response;
+
+        } catch (error) {
+            console.error('Error fetching order tracking info:', error);
+            throw error instanceof Error ? error : new Error('Failed to fetch order tracking info');
+        }
+    }
+
+    /**
+     * Get financial information for an order
+     * Based on Royal Express API documentation: POST /api/public/merchant/order/financial-info
+     * @param orderId The order ID to get financial info for
+     * @returns Financial information including costs, payments, and taxes
+     */
+    public async getOrderFinancialInfo(orderId: string): Promise<OrderFinancialInfo> {
+        try {
+            console.log(`Fetching financial information for order: ${orderId}`);
+            
+            const response = await this.makeRequest('/merchant/order/financial-info', 'POST', {
+                order_id: orderId
+            }) as FinancialInfoResponse;
+            
+            if (!response.status || !response.data) {
+                throw new Error(`Invalid response format from Financial Info API: ${response.message}`);
+            }
+
+            const data = response.data;
+            return {
+                orderId: data.order_id,
+                totalAmount: data.total_amount,
+                shippingCost: data.shipping_cost,
+                taxAmount: data.tax_amount,
+                discountAmount: data.discount_amount,
+                paymentStatus: data.payment_status,
+                paymentMethod: data.payment_method,
+                currency: data.currency
+            };
+
+        } catch (error) {
+            console.error('Error fetching order financial info:', error);
+            throw error instanceof Error ? error : new Error('Failed to fetch order financial info');
+        }
+    }
+
+    /**
+     * Get comprehensive order information combining status, tracking, and financial data
+     * @param orderId The order ID to get complete information for
+     * @returns Complete order information with status, tracking, and financial data
+     */
+    public async getCompleteOrderInfo(orderId: string): Promise<{
+        status: EnhancedOrderStatus;
+        tracking?: TrackingInfoResponse;
+        financial?: OrderFinancialInfo;
+    }> {
+        try {
+            console.log(`Fetching complete order information for order: ${orderId}`);
+            
+            // Fetch all data in parallel for better performance
+            const [statusResult, trackingResult, financialResult] = await Promise.allSettled([
+                this.getEnhancedOrderStatus(orderId),
+                this.getOrderTrackingInfo(orderId),
+                this.getOrderFinancialInfo(orderId)
+            ]);
+
+            const result: any = {};
+
+            // Handle status result
+            if (statusResult.status === 'fulfilled') {
+                result.status = statusResult.value;
+            } else {
+                console.warn('Failed to fetch order status:', statusResult.reason);
+                throw new Error('Failed to fetch order status');
+            }
+
+            // Handle tracking result (optional)
+            if (trackingResult.status === 'fulfilled') {
+                result.tracking = trackingResult.value;
+                
+                // Enhance status with tracking number if available
+                if (result.tracking.data && result.tracking.data.length > 0) {
+                    result.status.trackingNumber = result.tracking.data[0].tracking_number;
+                }
+            } else {
+                console.warn('Failed to fetch tracking info:', trackingResult.reason);
+            }
+
+            // Handle financial result (optional)
+            if (financialResult.status === 'fulfilled') {
+                result.financial = financialResult.value;
+            } else {
+                console.warn('Failed to fetch financial info:', financialResult.reason);
+            }
+
+            return result;
+
+        } catch (error) {
+            console.error('Error fetching complete order info:', error);
+            throw error instanceof Error ? error : new Error('Failed to fetch complete order info');
+        }
+    }
+
+    /**
+     * Map API status strings to RoyalExpressOrderStatus enum
+     * @param apiStatus The status string from the API
+     * @returns Corresponding RoyalExpressOrderStatus enum value
+     */
+    private mapToRoyalExpressStatus(apiStatus: string): RoyalExpressOrderStatus {
+        // Normalize the status string
+        const normalizedStatus = apiStatus.trim().toLowerCase();
+        
+        // Map API status strings to our enum values
+        const statusMap: Record<string, RoyalExpressOrderStatus> = {
+            'order placed': RoyalExpressOrderStatus.ORDER_PLACED,
+            'order confirmed': RoyalExpressOrderStatus.ORDER_CONFIRMED,
+            'payment pending': RoyalExpressOrderStatus.PAYMENT_PENDING,
+            'payment confirmed': RoyalExpressOrderStatus.PAYMENT_CONFIRMED,
+            'processing': RoyalExpressOrderStatus.PROCESSING,
+            'ready for pickup': RoyalExpressOrderStatus.READY_FOR_PICKUP,
+            'picked up': RoyalExpressOrderStatus.PICKED_UP,
+            'in transit': RoyalExpressOrderStatus.IN_TRANSIT,
+            'arrived at hub': RoyalExpressOrderStatus.ARRIVED_AT_HUB,
+            'out for delivery': RoyalExpressOrderStatus.OUT_FOR_DELIVERY,
+            'delivery attempted': RoyalExpressOrderStatus.DELIVERY_ATTEMPTED,
+            'delivered': RoyalExpressOrderStatus.DELIVERED,
+            'delivery confirmed': RoyalExpressOrderStatus.DELIVERY_CONFIRMED,
+            'failed delivery': RoyalExpressOrderStatus.FAILED_DELIVERY,
+            'returned to hub': RoyalExpressOrderStatus.RETURNED_TO_HUB,
+            'return in transit': RoyalExpressOrderStatus.RETURN_IN_TRANSIT,
+            'returned to sender': RoyalExpressOrderStatus.RETURNED_TO_SENDER,
+            'canceled': RoyalExpressOrderStatus.CANCELED,
+            'cancelled': RoyalExpressOrderStatus.CANCELED, // Alternative spelling
+            'refund initiated': RoyalExpressOrderStatus.REFUND_INITIATED,
+            'refund completed': RoyalExpressOrderStatus.REFUND_COMPLETED,
+            'exception': RoyalExpressOrderStatus.EXCEPTION
+        };
+
+        return statusMap[normalizedStatus] || RoyalExpressOrderStatus.EXCEPTION;
+    }
+
+    /**
+     * Enhanced tracking method that uses the new comprehensive order info
+     * This replaces the basic trackShipment method with enhanced functionality
+     * @param trackingNumber The tracking number or order ID
+     * @returns Enhanced shipment status with detailed information
+     */
+    public async trackShipmentEnhanced(trackingNumber: string): Promise<{
+        basicStatus: ShipmentStatus;
+        enhancedStatus?: EnhancedOrderStatus;
+        trackingInfo?: TrackingInfoResponse;
+        financialInfo?: OrderFinancialInfo;
+    }> {
+        try {
+            console.log(`Enhanced tracking for: ${trackingNumber}`);
+            
+            // Try to get complete order info
+            const completeInfo = await this.getCompleteOrderInfo(trackingNumber);
+            
+            // Map enhanced status to basic status for backward compatibility
+            const basicStatus = this.mapEnhancedToBasicStatus(completeInfo.status.currentStatus);
+            
+            return {
+                basicStatus,
+                enhancedStatus: completeInfo.status,
+                trackingInfo: completeInfo.tracking,
+                financialInfo: completeInfo.financial
+            };
+
+        } catch (error) {
+            console.error('Enhanced tracking failed, falling back to basic tracking:', error);
+            
+            // Fallback to basic tracking
+            const basicStatus = await this.trackShipment(trackingNumber);
+            return {
+                basicStatus
+            };
+        }
+    }
+
+    /**
+     * Map enhanced status to basic ShipmentStatus for backward compatibility
+     * @param enhancedStatus The enhanced status enum
+     * @returns Corresponding basic ShipmentStatus
+     */
+    private mapEnhancedToBasicStatus(enhancedStatus: RoyalExpressOrderStatus): ShipmentStatus {
+        switch (enhancedStatus) {
+            case RoyalExpressOrderStatus.ORDER_PLACED:
+            case RoyalExpressOrderStatus.ORDER_CONFIRMED:
+            case RoyalExpressOrderStatus.PAYMENT_PENDING:
+            case RoyalExpressOrderStatus.PAYMENT_CONFIRMED:
+            case RoyalExpressOrderStatus.PROCESSING:
+            case RoyalExpressOrderStatus.READY_FOR_PICKUP:
+                return ShipmentStatus.PENDING;
+                
+            case RoyalExpressOrderStatus.PICKED_UP:
+            case RoyalExpressOrderStatus.IN_TRANSIT:
+            case RoyalExpressOrderStatus.ARRIVED_AT_HUB:
+            case RoyalExpressOrderStatus.RETURN_IN_TRANSIT:
+                return ShipmentStatus.IN_TRANSIT;
+                
+            case RoyalExpressOrderStatus.OUT_FOR_DELIVERY:
+            case RoyalExpressOrderStatus.DELIVERY_ATTEMPTED:
+                return ShipmentStatus.OUT_FOR_DELIVERY;
+                
+            case RoyalExpressOrderStatus.DELIVERED:
+            case RoyalExpressOrderStatus.DELIVERY_CONFIRMED:
+                return ShipmentStatus.DELIVERED;
+                
+            case RoyalExpressOrderStatus.FAILED_DELIVERY:
+            case RoyalExpressOrderStatus.RETURNED_TO_HUB:
+            case RoyalExpressOrderStatus.RETURNED_TO_SENDER:
+            case RoyalExpressOrderStatus.CANCELED:
+            case RoyalExpressOrderStatus.REFUND_INITIATED:
+            case RoyalExpressOrderStatus.REFUND_COMPLETED:
+            case RoyalExpressOrderStatus.EXCEPTION:
+            default:
+                return ShipmentStatus.EXCEPTION;
+        }
     }
 }

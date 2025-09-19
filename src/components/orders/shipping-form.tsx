@@ -35,6 +35,7 @@ interface ShippingFormProps {
     transExpressApiKey?: string;
     royalExpressApiKey?: string;
     royalExpressOrderPrefix?: string;
+    tenantId?: string;
     onSuccess?: () => void;
 }
 
@@ -48,6 +49,7 @@ export function ShippingForm({
     transExpressApiKey,
     royalExpressApiKey,
     royalExpressOrderPrefix,
+    tenantId,
     onSuccess,
 }: ShippingFormProps) {
     const router = useRouter();

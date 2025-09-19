@@ -82,6 +82,9 @@ model Tenant {
   orders              Order[]
   stockAdjustments    StockAdjustment[]
   trackingUpdates     TrackingUpdate[]
+  orderFinancialInfo  OrderFinancialInfo[]
+  orderStatusHistory  OrderStatusHistory[]
+  royalExpressTrackingDetails RoyalExpressTrackingDetail[]
 }
 
 model User {
@@ -169,6 +172,9 @@ model Order {
   shippedAt           DateTime?
   deliveredAt         DateTime?
   trackingUpdates     TrackingUpdate[]
+  financialInfo       OrderFinancialInfo?
+  statusHistory       OrderStatusHistory[]
+  royalExpressTracking RoyalExpressTrackingDetail?
   product             Product     @relation(fields: [productId], references: [id])
   productId           String
   lead                Lead        @relation(fields: [leadId], references: [id])
@@ -217,10 +223,103 @@ model TrackingUpdate {
   timestamp   DateTime
   createdAt   DateTime @default(now())
 
+  // Enhanced Royal Express fields
+  provider            String?
+  statusCode          String?
+  trackingNumber      String?
+  estimatedDelivery   DateTime?
+  actualDelivery      DateTime?
+  locationCode        String?
+  locationName        String?
+  coordinates         String? // JSON string for lat/lng
+  isDelivered         Boolean @default(false)
+  isException         Boolean @default(false)
+  exceptionReason     String?
+
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
 
   @@index([orderId])
   @@index([timestamp])
   @@index([tenantId])
+  @@index([provider])
+  @@index([statusCode])
+  @@index([trackingNumber])
+  @@index([isDelivered])
+  @@index([isException])
+}
+
+model OrderFinancialInfo {
+  id              String   @id @default(uuid())
+  orderId         String   @unique
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  totalAmount     Float
+  shippingCost    Float    @default(0)
+  taxAmount       Float    @default(0)
+  discountAmount  Float    @default(0)
+  paymentStatus   String
+  paymentMethod   String?
+  currency        String   @default("LKR")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([tenantId])
+  @@index([paymentStatus])
+}
+
+model OrderStatusHistory {
+  id              String   @id @default(uuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status          String
+  statusCode      String
+  description     String?
+  location        String?
+  timestamp       DateTime
+  isCurrentStatus Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([tenantId])
+  @@index([statusCode])
+  @@index([timestamp])
+  @@index([isCurrentStatus])
+  @@index([orderId, timestamp])
+}
+
+model RoyalExpressTrackingDetail {
+  id                      String    @id @default(uuid())
+  orderId                 String    @unique
+  order                   Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  trackingNumber          String
+  currentStatus           String
+  currentStatusCode       String
+  estimatedDelivery       DateTime?
+  actualDelivery          DateTime?
+  lastLocationUpdate      String?
+  lastLocationTimestamp   DateTime?
+  totalStatusUpdates      Int       @default(0)
+  isDelivered             Boolean   @default(false)
+  isException             Boolean   @default(false)
+  exceptionDetails        String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  tenantId                String
+  tenant                  Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([tenantId])
+  @@index([trackingNumber])
+  @@index([currentStatusCode])
+  @@index([isDelivered])
+  @@index([isException])
+  @@index([tenantId, isDelivered])
 }

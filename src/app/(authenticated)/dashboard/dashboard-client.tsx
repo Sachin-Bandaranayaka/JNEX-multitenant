@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { LeadsChart } from '@/components/dashboard/leads-chart';
+import { DeliveredOrders } from '@/components/dashboard/delivered-orders';
 import Link from 'next/link';
 
 interface PeriodStats {
@@ -130,6 +131,9 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
                     <LeadsChart data={initialData.leadsByStatus} />
                 </div>
             </motion.div>
+
+            {/* Delivered Orders section */}
+            <DeliveredOrders />
         </div>
     );
 }

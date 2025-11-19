@@ -18,11 +18,11 @@ async function getDashboardData(tenantId: string) {
 
     // --- FIX: Fetch products in parallel to calculate stock counts ---
     const [orders, allTimeLeads, products] = await Promise.all([
-        prisma.order.findMany({ 
+        prisma.order.findMany({
             where: { createdAt: { gte: monthStart } },
-            select: { total: true, createdAt: true } 
+            select: { total: true, createdAt: true }
         }),
-        prisma.lead.findMany({ 
+        prisma.lead.findMany({
             select: { status: true, createdAt: true }
         }),
         // Fetch product stock data to calculate counts
@@ -31,7 +31,7 @@ async function getDashboardData(tenantId: string) {
             select: { stock: true, lowStockAlert: true }
         })
     ]);
-    
+
     // --- NEW: Calculate stock counts from the fetched products ---
     const noStockCount = products.filter(p => p.stock <= 0).length;
     // Low stock items have stock but are at or below the alert level
@@ -95,5 +95,5 @@ export default async function DashboardPage() {
     const dashboardData = await getDashboardData(session.user.tenantId);
 
     // --- FIX: Pass the complete data object to the client component ---
-    return <DashboardClient initialData={dashboardData} />;
+    return <DashboardClient initialData={dashboardData} userName={session.user.name} />;
 }

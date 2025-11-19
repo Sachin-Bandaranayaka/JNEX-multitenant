@@ -16,6 +16,7 @@ const statusMap: Record<ShipmentStatus, OrderStatus> = {
     [ShipmentStatus.IN_TRANSIT]: OrderStatus.SHIPPED,
     [ShipmentStatus.OUT_FOR_DELIVERY]: OrderStatus.SHIPPED,
     [ShipmentStatus.DELIVERED]: OrderStatus.DELIVERED,
+    [ShipmentStatus.RETURNED]: OrderStatus.RETURNED,
     [ShipmentStatus.EXCEPTION]: OrderStatus.SHIPPED
 };
 
@@ -44,6 +45,9 @@ export async function GET(request: Request) {
                 customerPhone: true,
                 customerEmail: true,
                 tenantId: true,
+                productId: true,
+                quantity: true,
+                userId: true,
                 tenant: {
                     select: {
                         fardaExpressClientId: true,
@@ -166,7 +170,7 @@ export async function GET(request: Request) {
                             }
 
                             const royalExpressService = new RoyalExpressProvider(royalApiKey, 'royalexpress');
-                            
+
                             // Use enhanced tracking to get comprehensive order information
                             const enhancedTracking = await royalExpressService.trackShipmentEnhanced(order.trackingNumber!);
                             const shipmentStatus = enhancedTracking.basicStatus;
@@ -176,14 +180,14 @@ export async function GET(request: Request) {
                                 status: statusMap[shipmentStatus],
                                 deliveredAt: shipmentStatus === ShipmentStatus.DELIVERED ? new Date() : null,
                                 trackingUpdates: {
-                                     create: {
-                                         status: shipmentStatus,
-                                         timestamp: new Date(),
-                                         tenantId: order.tenantId,
-                                         description: enhancedTracking.enhancedStatus?.statusHistory?.[0]?.description || 'Status updated via cron job',
-                                         location: enhancedTracking.enhancedStatus?.statusHistory?.[0]?.location,
-                                     },
-                                 },
+                                    create: {
+                                        status: shipmentStatus,
+                                        timestamp: new Date(),
+                                        tenantId: order.tenantId,
+                                        description: enhancedTracking.enhancedStatus?.statusHistory?.[0]?.description || 'Status updated via cron job',
+                                        location: enhancedTracking.enhancedStatus?.statusHistory?.[0]?.location,
+                                    },
+                                },
                             };
 
                             // Add enhanced status history if available
@@ -231,30 +235,84 @@ export async function GET(request: Request) {
                             }
 
                             // Add Royal Express tracking details if available
-                             if (enhancedTracking.trackingInfo?.data) {
-                                 updateData.royalExpressTracking = {
-                                     createMany: {
-                                         data: enhancedTracking.trackingInfo.data.map((trackingItem) => ({
-                                             trackingNumber: trackingItem.tracking_number,
-                                             currentLocation: trackingItem.location,
-                                             statusHistory: JSON.stringify([{
-                                                 status: trackingItem.status,
-                                                 timestamp: trackingItem.timestamp,
-                                                 description: trackingItem.description,
-                                                 location: trackingItem.location
-                                             }]),
-                                             tenantId: order.tenantId,
-                                         })),
-                                         skipDuplicates: true,
-                                     },
-                                 };
-                             }
+                            if (enhancedTracking.trackingInfo?.data) {
+                                updateData.royalExpressTracking = {
+                                    createMany: {
+                                        data: enhancedTracking.trackingInfo.data.map((trackingItem) => ({
+                                            trackingNumber: trackingItem.tracking_number,
+                                            currentLocation: trackingItem.location,
+                                            statusHistory: JSON.stringify([{
+                                                status: trackingItem.status,
+                                                timestamp: trackingItem.timestamp,
+                                                description: trackingItem.description,
+                                                location: trackingItem.location
+                                            }]),
+                                            tenantId: order.tenantId,
+                                        })),
+                                        skipDuplicates: true,
+                                    },
+                                };
+                            }
 
                             // Update order with enhanced tracking data
-                            const updatedOrder = await prisma.order.update({
-                                where: { id: order.id },
-                                data: updateData,
-                            });
+                            const newStatus = statusMap[shipmentStatus];
+
+                            // Check if this is a return that needs stock adjustment
+                            if (newStatus === OrderStatus.RETURNED && order.status !== OrderStatus.RETURNED) {
+                                // Fetch current product stock for accurate adjustment record
+                                const product = await prisma.product.findUnique({
+                                    where: { id: order.productId }
+                                });
+
+                                if (product) {
+                                    // Use transaction to ensure data consistency
+                                    await prisma.$transaction([
+                                        // 1. Update Order
+                                        prisma.order.update({
+                                            where: { id: order.id },
+                                            data: {
+                                                ...updateData,
+                                                status: newStatus,
+                                            },
+                                        }),
+                                        // 2. Update Product Stock
+                                        prisma.product.update({
+                                            where: { id: order.productId },
+                                            data: { stock: { increment: order.quantity } }
+                                        }),
+                                        // 3. Create Stock Adjustment Record
+                                        prisma.stockAdjustment.create({
+                                            data: {
+                                                productId: order.productId,
+                                                quantity: order.quantity,
+                                                reason: `Order Returned (Auto-detected via Royal Express: ${order.trackingNumber})`,
+                                                previousStock: product.stock,
+                                                newStock: product.stock + order.quantity,
+                                                userId: order.userId,
+                                                tenantId: order.tenantId
+                                            }
+                                        })
+                                    ]);
+                                } else {
+                                    // Product not found, just update order
+                                    await prisma.order.update({
+                                        where: { id: order.id },
+                                        data: {
+                                            ...updateData,
+                                            status: newStatus,
+                                        },
+                                    });
+                                }
+                            } else {
+                                // Normal update without stock adjustment
+                                await prisma.order.update({
+                                    where: { id: order.id },
+                                    data: {
+                                        ...updateData,
+                                        status: newStatus,
+                                    },
+                                });
+                            }
 
                             return {
                                 orderId: order.id,
@@ -268,7 +326,7 @@ export async function GET(request: Request) {
                             };
                         } catch (error) {
                             console.error(`Error updating Royal Express tracking for order ${order.id}:`, error);
-                            
+
                             // Fallback to basic tracking if enhanced tracking fails
                             try {
                                 const royalApiKey = order.tenant?.royalExpressApiKey;
@@ -276,7 +334,7 @@ export async function GET(request: Request) {
                                     const [royalEmail, royalPassword] = royalApiKey.split(':');
                                     const royalExpressService = new RoyalExpressProvider(royalEmail, royalPassword);
                                     const basicStatus = await royalExpressService.trackShipment(order.trackingNumber!);
-                                    
+
                                     await prisma.order.update({
                                         where: { id: order.id },
                                         data: {

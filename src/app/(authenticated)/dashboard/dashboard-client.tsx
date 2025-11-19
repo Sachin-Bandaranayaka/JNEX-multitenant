@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { LeadsChart } from '@/components/dashboard/leads-chart';
@@ -30,11 +30,19 @@ interface DashboardData {
 
 type TimeFilter = 'daily' | 'weekly' | 'monthly';
 
-export function DashboardClient({ initialData }: { initialData: DashboardData }) {
+export function DashboardClient({ initialData, userName }: { initialData: DashboardData; userName?: string | null }) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [lastRefresh, setLastRefresh] = useState(new Date());
     const [activeFilter, setActiveFilter] = useState<TimeFilter>('daily');
+    const [greeting, setGreeting] = useState('');
+
+    useEffect(() => {
+        const hour = new Date().getHours();
+        if (hour < 12) setGreeting('Good Morning');
+        else if (hour < 17) setGreeting('Good Afternoon');
+        else setGreeting('Good Evening');
+    }, []);
 
     const handleRefresh = () => {
         setIsLoading(true);
@@ -48,7 +56,12 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
     return (
         <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-foreground leading-tight">Dashboard</h1>
+                <div>
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-foreground leading-tight">
+                        {greeting}, {userName || 'User'}
+                    </h1>
+                    <p className="text-muted-foreground mt-1">Here's what's happening with your store today.</p>
+                </div>
             </div>
 
             <div>
@@ -64,8 +77,8 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
                                     key={filter}
                                     onClick={() => setActiveFilter(filter)}
                                     className={`flex-1 sm:flex-none px-3 py-2 text-sm sm:text-base font-medium rounded-md transition-colors touch-manipulation ${activeFilter === filter
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'text-muted-foreground hover:bg-accent/50 active:bg-accent/50'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'text-muted-foreground hover:bg-accent/50 active:bg-accent/50'
                                         }`}
                                 >
                                     {filter.charAt(0).toUpperCase() + filter.slice(1)}

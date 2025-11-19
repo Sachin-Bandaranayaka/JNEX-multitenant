@@ -82,7 +82,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
         body: JSON.stringify({ orderIds: idsToUpdate }),
       });
       if (!response.ok) throw new Error(errorMessage);
-      
+
       toast.success(successMessage);
       setOrders(prev =>
         prev.map(order =>
@@ -100,7 +100,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
       if (activeTab === 'pending' && selectedOrderIds.length > 0) {
         updatePrintStatus(selectedOrderIds, true);
       }
-      setOrdersToPrint([]); 
+      setOrdersToPrint([]);
     };
     window.addEventListener('afterprint', handleAfterPrint);
     return () => {
@@ -115,7 +115,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
     }
     setOrdersToPrint(orders.filter(o => selectedOrderIds.includes(o.id)));
     setTimeout(() => {
-        window.print();
+      window.print();
     }, 100);
   };
 
@@ -167,14 +167,14 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
           }
         }
       `}</style>
-      
-      <div className="print:hidden container mx-auto p-4 space-y-4 bg-gray-900 text-white min-h-screen">
+
+      <div className="print:hidden container mx-auto p-4 space-y-4 bg-background text-foreground min-h-screen">
         {/* On-screen UI remains the same */}
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Print Invoices</h1>
           <div className="flex items-center space-x-4">
             <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
-              <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[180px] bg-card border-border"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="newest">Newest First</SelectItem><SelectItem value="oldest">Oldest First</SelectItem></SelectContent>
             </Select>
             <Button onClick={handlePrint} disabled={selectedOrderIds.length === 0} className="bg-blue-600 hover:bg-blue-700">
@@ -183,14 +183,14 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
           </div>
         </div>
         <Tabs value={activeTab} onValueChange={value => setActiveTab(value as any)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-800 text-gray-300">
+          <TabsList className="grid w-full grid-cols-2 bg-muted text-muted-foreground">
             <TabsTrigger value="pending" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white">Pending ({pendingOrders.length})</TabsTrigger>
             <TabsTrigger value="printed" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white">Printed ({printedOrders.length})</TabsTrigger>
           </TabsList>
-          <div className="mt-4 rounded-lg bg-gray-800 ring-1 ring-white/10">
-            <div className="flex justify-between items-center gap-4 px-4 py-3 border-b border-gray-700">
+          <div className="mt-4 rounded-lg bg-card ring-1 ring-border">
+            <div className="flex justify-between items-center gap-4 px-4 py-3 border-b border-border">
               <div className="flex items-center gap-4">
-                <input type="checkbox" className="h-4 w-4 rounded bg-gray-700 border-gray-600 text-indigo-600 focus:ring-indigo-500" onChange={handleSelectAll} checked={currentList.length > 0 && selectedOrderIds.length === currentList.length} />
+                <input type="checkbox" className="h-4 w-4 rounded bg-input border-border text-indigo-600 focus:ring-indigo-500" onChange={handleSelectAll} checked={currentList.length > 0 && selectedOrderIds.length === currentList.length} />
                 <label className="text-sm font-medium">Select All</label>
               </div>
               {activeTab === 'printed' && (
@@ -200,20 +200,25 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
               )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-4 max-h-[70vh] overflow-y-auto">
-              {currentList.map(order => (
-                <div key={order.id} className={`rounded-lg bg-white p-1 shadow-md relative cursor-pointer transition-all ${selectedOrderIds.includes(order.id) ? 'ring-2 ring-indigo-500' : 'ring-1 ring-gray-300'}`} onClick={() => handleSelectOrder(order.id)}>
-                  <div className="absolute top-3 left-3 z-10"><input type="checkbox" className="h-5 w-5 rounded bg-gray-200 border-gray-400 text-indigo-600 focus:ring-indigo-500 pointer-events-none" checked={selectedOrderIds.includes(order.id)} readOnly /></div>
-                   <div className="flex justify-between items-start mb-1 pl-10 text-black">
+              {currentList.map((order, index) => (
+                <div key={order.id} className={`rounded-lg bg-card p-1 shadow-md relative cursor-pointer transition-all ${selectedOrderIds.includes(order.id) ? 'ring-2 ring-indigo-500' : 'ring-1 ring-border'}`} onClick={() => handleSelectOrder(order.id)}>
+                  <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
+                    <input type="checkbox" className="h-5 w-5 rounded bg-input border-border text-indigo-600 focus:ring-indigo-500 pointer-events-none" checked={selectedOrderIds.includes(order.id)} readOnly />
+                    <span className="bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded-full shadow-sm">
+                      #{index + 1}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-start mb-1 pl-20 text-foreground">
                     <h3 className="text-xs font-bold">Order ID: {order.id.substring(0, 8)}...</h3>
                     <div className="text-right">
                       <p className="text-xs">{format(new Date(order.createdAt), 'dd/MM/yyyy')}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${order.status === OrderStatus.SHIPPED ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>{order.status}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${order.status === OrderStatus.SHIPPED ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' : 'bg-muted text-muted-foreground'}`}>{order.status}</span>
                     </div>
                   </div>
                   <Invoice order={order} businessName={tenant.businessName} businessAddress={tenant.businessAddress} businessPhone={tenant.businessPhone} invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`} isMultiPrint={true} showPrintControls={false} />
                 </div>
               ))}
-              {currentList.length === 0 && (<div className="col-span-full p-8 text-center text-gray-500">No orders in this tab.</div>)}
+              {currentList.length === 0 && (<div className="col-span-full p-8 text-center text-muted-foreground">No orders in this tab.</div>)}
             </div>
           </div>
         </Tabs>
@@ -226,15 +231,15 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             <div className="grid grid-cols-2 grid-rows-4 w-full h-full">
               {pageOfOrders.map((order) => (
                 <div key={order.id} className="invoice-item">
-                   <Invoice
-                      order={order}
-                      businessName={tenant.businessName}
-                      businessAddress={tenant.businessAddress}
-                      businessPhone={tenant.businessPhone}
-                      invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`}
-                      isMultiPrint={true}
-                      showPrintControls={false}
-                    />
+                  <Invoice
+                    order={order}
+                    businessName={tenant.businessName}
+                    businessAddress={tenant.businessAddress}
+                    businessPhone={tenant.businessPhone}
+                    invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`}
+                    isMultiPrint={true}
+                    showPrintControls={false}
+                  />
                 </div>
               ))}
             </div>

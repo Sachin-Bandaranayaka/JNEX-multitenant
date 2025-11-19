@@ -463,7 +463,7 @@ The state name must match exactly, including capitalization.`);
             // Get the most recent status (first item in the array)
             const latestStatus = response.data[0];
             const status = latestStatus?.status?.name || latestStatus?.status || 'pending';
-            
+
             console.log(`Latest tracking status for ${trackingNumber}: ${status}`);
             return this.normalizeStatus(status);
         } catch (error) {
@@ -481,7 +481,10 @@ The state name must match exactly, including capitalization.`);
             'Out for Delivery': ShipmentStatus.OUT_FOR_DELIVERY,
             'Delivered': ShipmentStatus.DELIVERED,
             'Failed Delivery': ShipmentStatus.EXCEPTION,
-            'Returned': ShipmentStatus.EXCEPTION,
+            'Returned': ShipmentStatus.RETURNED,
+            'Returned to Sender': ShipmentStatus.RETURNED,
+            'Return to Client': ShipmentStatus.RETURNED,
+            'Received Failed Order': ShipmentStatus.RETURNED,
             'Canceled': ShipmentStatus.EXCEPTION,
         };
 
@@ -604,15 +607,15 @@ The state name must match exactly, including capitalization.`);
     public async getEnhancedOrderStatus(orderId: string): Promise<EnhancedOrderStatus> {
         try {
             console.log(`Fetching enhanced order status for order: ${orderId}`);
-            
+
             const response = await this.makeRequest(`/merchant/order/${orderId}/status`, 'GET') as OrderStatusResponse;
-            
+
             if (!response.status || !response.data || !Array.isArray(response.data)) {
                 throw new Error(`Invalid response format from Order Status API: ${response.message}`);
             }
 
             // Sort status history by timestamp (newest first)
-            const sortedStatuses = response.data.sort((a, b) => 
+            const sortedStatuses = response.data.sort((a, b) =>
                 new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             );
 
@@ -651,9 +654,9 @@ The state name must match exactly, including capitalization.`);
     public async getOrderTrackingInfo(orderId: string): Promise<TrackingInfoResponse> {
         try {
             console.log(`Fetching tracking information for order: ${orderId}`);
-            
+
             const response = await this.makeRequest(`/merchant/order/tracking-info?waybill_number=${encodeURIComponent(orderId)}`, 'GET') as TrackingInfoResponse;
-            
+
             if (!response.status || !response.data) {
                 throw new Error(`Invalid response format from Tracking Info API: ${response.message}`);
             }
@@ -675,11 +678,11 @@ The state name must match exactly, including capitalization.`);
     public async getOrderFinancialInfo(orderId: string): Promise<OrderFinancialInfo> {
         try {
             console.log(`Fetching financial information for order: ${orderId}`);
-            
+
             const response = await this.makeRequest('/merchant/order/financial-info', 'POST', {
                 order_id: orderId
             }) as FinancialInfoResponse;
-            
+
             if (!response.status || !response.data) {
                 throw new Error(`Invalid response format from Financial Info API: ${response.message}`);
             }
@@ -714,7 +717,7 @@ The state name must match exactly, including capitalization.`);
     }> {
         try {
             console.log(`Fetching complete order information for order: ${orderId}`);
-            
+
             // Fetch all data in parallel for better performance
             const [statusResult, trackingResult, financialResult] = await Promise.allSettled([
                 this.getEnhancedOrderStatus(orderId),
@@ -735,7 +738,7 @@ The state name must match exactly, including capitalization.`);
             // Handle tracking result (optional)
             if (trackingResult.status === 'fulfilled') {
                 result.tracking = trackingResult.value;
-                
+
                 // Enhance status with tracking number if available
                 if (result.tracking.data && result.tracking.data.length > 0) {
                     result.status.trackingNumber = result.tracking.data[0].tracking_number;
@@ -767,7 +770,7 @@ The state name must match exactly, including capitalization.`);
     private mapToRoyalExpressStatus(apiStatus: string): RoyalExpressOrderStatus {
         // Normalize the status string
         const normalizedStatus = apiStatus.trim().toLowerCase();
-        
+
         // Map API status strings to our enum values
         const statusMap: Record<string, RoyalExpressOrderStatus> = {
             'order placed': RoyalExpressOrderStatus.ORDER_PLACED,
@@ -811,13 +814,13 @@ The state name must match exactly, including capitalization.`);
     }> {
         try {
             console.log(`Enhanced tracking for: ${trackingNumber}`);
-            
+
             // Try to get complete order info
             const completeInfo = await this.getCompleteOrderInfo(trackingNumber);
-            
+
             // Map enhanced status to basic status for backward compatibility
             const basicStatus = this.mapEnhancedToBasicStatus(completeInfo.status.currentStatus);
-            
+
             return {
                 basicStatus,
                 enhancedStatus: completeInfo.status,
@@ -827,7 +830,7 @@ The state name must match exactly, including capitalization.`);
 
         } catch (error) {
             console.error('Enhanced tracking failed, falling back to basic tracking:', error);
-            
+
             // Fallback to basic tracking
             const basicStatus = await this.trackShipment(trackingNumber);
             return {
@@ -850,21 +853,21 @@ The state name must match exactly, including capitalization.`);
             case RoyalExpressOrderStatus.PROCESSING:
             case RoyalExpressOrderStatus.READY_FOR_PICKUP:
                 return ShipmentStatus.PENDING;
-                
+
             case RoyalExpressOrderStatus.PICKED_UP:
             case RoyalExpressOrderStatus.IN_TRANSIT:
             case RoyalExpressOrderStatus.ARRIVED_AT_HUB:
             case RoyalExpressOrderStatus.RETURN_IN_TRANSIT:
                 return ShipmentStatus.IN_TRANSIT;
-                
+
             case RoyalExpressOrderStatus.OUT_FOR_DELIVERY:
             case RoyalExpressOrderStatus.DELIVERY_ATTEMPTED:
                 return ShipmentStatus.OUT_FOR_DELIVERY;
-                
+
             case RoyalExpressOrderStatus.DELIVERED:
             case RoyalExpressOrderStatus.DELIVERY_CONFIRMED:
                 return ShipmentStatus.DELIVERED;
-                
+
             case RoyalExpressOrderStatus.FAILED_DELIVERY:
             case RoyalExpressOrderStatus.RETURNED_TO_HUB:
             case RoyalExpressOrderStatus.RETURNED_TO_SENDER:

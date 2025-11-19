@@ -215,7 +215,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
                       <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${order.status === OrderStatus.SHIPPED ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' : 'bg-muted text-muted-foreground'}`}>{order.status}</span>
                     </div>
                   </div>
-                  <Invoice order={order} businessName={tenant.businessName} businessAddress={tenant.businessAddress} businessPhone={tenant.businessPhone} invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`} isMultiPrint={true} showPrintControls={false} />
+                  <Invoice order={order} businessName={tenant.businessName} businessAddress={tenant.businessAddress} businessPhone={tenant.businessPhone} invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`} isMultiPrint={true} showPrintControls={false} printIndex={index + 1} />
                 </div>
               ))}
               {currentList.length === 0 && (<div className="col-span-full p-8 text-center text-muted-foreground">No orders in this tab.</div>)}
@@ -229,7 +229,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
         {chunk(ordersToPrint, 8).map((pageOfOrders, pageIndex) => (
           <div key={pageIndex} className="print-page-container">
             <div className="grid grid-cols-2 grid-rows-4 w-full h-full">
-              {pageOfOrders.map((order) => (
+              {pageOfOrders.map((order, index) => (
                 <div key={order.id} className="invoice-item">
                   <Invoice
                     order={order}
@@ -239,6 +239,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
                     invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`}
                     isMultiPrint={true}
                     showPrintControls={false}
+                    printIndex={(pageIndex * 8) + index + 1}
                   />
                 </div>
               ))}

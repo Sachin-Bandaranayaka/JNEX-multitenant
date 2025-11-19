@@ -34,6 +34,7 @@ interface InvoiceProps {
     invoiceNumber: string;
     isMultiPrint?: boolean;
     showPrintControls?: boolean;
+    printIndex?: number;
 }
 
 export function Invoice({
@@ -44,6 +45,7 @@ export function Invoice({
     invoiceNumber,
     isMultiPrint = false,
     showPrintControls = false,
+    printIndex,
 }: InvoiceProps) {
 
     const subtotal = order.product.price * order.quantity;
@@ -51,7 +53,7 @@ export function Invoice({
     const total = Math.max(0, subtotal - discount);
 
     const commonInvoice = (
-        <div className="w-full px-2 bg-white text-black p-4 rounded rounded-2">
+        <div className="w-full px-2 bg-white text-black p-4 rounded rounded-2 relative">
             <div className="flex justify-between mb-2">
                 <div className="text-left">
                     <h1 className={`${isMultiPrint ? 'text-[9pt]' : 'text-[12pt]'} font-bold leading-tight`}>{businessName || 'Your Company Name'}</h1>
@@ -137,7 +139,14 @@ export function Invoice({
                 </div>
             )}
 
-            <p className={`${isMultiPrint ? 'text-[7pt]' : 'text-[8pt]'} mt-1`}>Thank you!</p>
+            <div className="flex justify-between items-end mt-1">
+                <p className={`${isMultiPrint ? 'text-[7pt]' : 'text-[8pt]'}`}>Thank you!</p>
+                {printIndex !== undefined && (
+                    <div className="bg-black text-white text-xs font-bold px-2 py-1 rounded-full print:border print:border-black print:bg-white print:text-black">
+                        #{printIndex}
+                    </div>
+                )}
+            </div>
         </div>
     );
 

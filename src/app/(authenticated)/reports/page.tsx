@@ -46,35 +46,35 @@ export default async function ReportsPage() {
     }, {} as Record<string, number>);
 
     return (
-        <div className="space-y-6 p-4 sm:p-6 bg-gray-900">
+        <div className="space-y-6 p-4 sm:p-6 bg-background">
             <div>
-                <h1 className="text-2xl font-semibold text-white">Reports</h1>
-                <p className="mt-2 text-sm text-gray-400">
+                <h1 className="text-2xl font-semibold text-foreground">Reports</h1>
+                <p className="mt-2 text-sm text-muted-foreground">
                     View and analyze your business performance
                 </p>
             </div>
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="bg-gray-800 rounded-lg p-6 ring-1 ring-white/10">
-                    <div className="text-sm font-medium text-gray-400">Total Orders</div>
-                    <div className="mt-2 text-3xl font-semibold text-white">{totalOrders}</div>
+                <div className="bg-card rounded-lg p-6 ring-1 ring-border">
+                    <div className="text-sm font-medium text-muted-foreground">Total Orders</div>
+                    <div className="mt-2 text-3xl font-semibold text-card-foreground">{totalOrders}</div>
                 </div>
-                <div className="bg-gray-800 rounded-lg p-6 ring-1 ring-white/10">
-                    <div className="text-sm font-medium text-gray-400">Active Products</div>
-                    <div className="mt-2 text-3xl font-semibold text-white">{totalProducts}</div>
+                <div className="bg-card rounded-lg p-6 ring-1 ring-border">
+                    <div className="text-sm font-medium text-muted-foreground">Active Products</div>
+                    <div className="mt-2 text-3xl font-semibold text-card-foreground">{totalProducts}</div>
                 </div>
-                <div className="bg-gray-800 rounded-lg p-6 ring-1 ring-white/10">
-                    <div className="text-sm font-medium text-gray-400">Total Leads</div>
-                    <div className="mt-2 text-3xl font-semibold text-white">{totalLeads}</div>
+                <div className="bg-card rounded-lg p-6 ring-1 ring-border">
+                    <div className="text-sm font-medium text-muted-foreground">Total Leads</div>
+                    <div className="mt-2 text-3xl font-semibold text-card-foreground">{totalLeads}</div>
                 </div>
-                <div className="bg-gray-800 rounded-lg p-6 ring-1 ring-white/10">
-                    <div className="text-sm font-medium text-gray-400">Total Shipments</div>
-                    <div className="mt-2 text-3xl font-semibold text-white">{totalShipments}</div>
+                <div className="bg-card rounded-lg p-6 ring-1 ring-border">
+                    <div className="text-sm font-medium text-muted-foreground">Total Shipments</div>
+                    <div className="mt-2 text-3xl font-semibold text-card-foreground">{totalShipments}</div>
                 </div>
             </div>
 
-            <div className="bg-gray-800 rounded-lg ring-1 ring-white/10 overflow-hidden">
+            <div className="bg-card rounded-lg ring-1 ring-border overflow-hidden">
                 {/* --- FIX: Pass the user object to the client component --- */}
                 <ReportTabs
                     user={session.user as User}

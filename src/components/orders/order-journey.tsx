@@ -83,14 +83,14 @@ export function OrderJourney({ order }: OrderJourneyProps) {
     if (isRoyalExpress && order.trackingNumber) {
         return (
             <div className="space-y-6">
-                <RoyalExpressTracking 
-                    orderId={order.id} 
-                    trackingNumber={order.trackingNumber} 
+                <RoyalExpressTracking
+                    orderId={order.id}
+                    trackingNumber={order.trackingNumber}
                 />
                 {/* Fallback to enhanced timeline if needed */}
                 {hasEnhancedData && (
-                    <div className="border-t border-gray-700 pt-6">
-                        <h4 className="text-lg font-medium text-white mb-4">Order Timeline</h4>
+                    <div className="border-t border-border pt-6">
+                        <h4 className="text-lg font-medium text-foreground mb-4">Order Timeline</h4>
                         <EnhancedOrderTimeline order={order} />
                     </div>
                 )}
@@ -239,14 +239,14 @@ export function OrderJourney({ order }: OrderJourneyProps) {
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10"
+                    className="rounded-lg bg-card p-6 ring-1 ring-border"
                 >
                     <div className="flex justify-between items-center">
                         <div>
-                            <h4 className="text-lg font-medium text-indigo-400">
+                            <h4 className="text-lg font-medium text-primary">
                                 {order.shippingProvider?.replace('_', ' ')} Tracking
                             </h4>
-                            <p className="mt-1 text-sm text-gray-400">#{order.trackingNumber}</p>
+                            <p className="mt-1 text-sm text-muted-foreground">#{order.trackingNumber}</p>
                         </div>
                         <div className="flex space-x-4">
                             <motion.button
@@ -254,11 +254,11 @@ export function OrderJourney({ order }: OrderJourneyProps) {
                                 whileTap={{ scale: 0.95 }}
                                 onClick={checkTracking}
                                 disabled={isLoading}
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md ring-1 ring-white/10 text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md ring-1 ring-border text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
                             >
                                 {isLoading ? (
                                     <>
-                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
@@ -275,7 +275,7 @@ export function OrderJourney({ order }: OrderJourneyProps) {
                                     href={getTrackingUrl()!}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md ring-1 ring-white/10 text-gray-300 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    className="inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md ring-1 ring-border text-muted-foreground bg-secondary hover:bg-secondary/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                                 >
                                     Track on Carrier Site →
                                 </motion.a>
@@ -290,11 +290,11 @@ export function OrderJourney({ order }: OrderJourneyProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="rounded-md bg-red-900/50 p-4 ring-1 ring-red-500"
+                    className="rounded-md bg-destructive/10 p-4 ring-1 ring-destructive/20"
                 >
                     <div className="flex">
                         <div className="ml-3">
-                            <h3 className="text-sm font-medium text-red-400">{error}</h3>
+                            <h3 className="text-sm font-medium text-destructive">{error}</h3>
                         </div>
                     </div>
                 </motion.div>
@@ -313,7 +313,7 @@ export function OrderJourney({ order }: OrderJourneyProps) {
                             <div className="relative pb-8">
                                 {stepIdx !== steps.length - 1 ? (
                                     <span
-                                        className={`absolute top-4 left-4 -ml-px h-full w-0.5 ${step.status === 'complete' ? 'bg-indigo-500' : 'bg-gray-700'
+                                        className={`absolute top-4 left-4 -ml-px h-full w-0.5 ${step.status === 'complete' ? 'bg-primary' : 'bg-border'
                                             }`}
                                         aria-hidden="true"
                                     />
@@ -321,28 +321,28 @@ export function OrderJourney({ order }: OrderJourneyProps) {
                                 <div className="relative flex space-x-3">
                                     <div>
                                         <span
-                                            className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-gray-900 ${step.status === 'complete'
-                                                ? 'bg-indigo-500'
+                                            className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-background ${step.status === 'complete'
+                                                ? 'bg-primary'
                                                 : step.status === 'current'
-                                                    ? 'bg-indigo-200'
-                                                    : 'bg-gray-700'
+                                                    ? 'bg-primary/30'
+                                                    : 'bg-muted'
                                                 }`}
                                         >
-                                            <span className={step.status === 'complete' ? 'text-white' : 'text-gray-400'}>
+                                            <span className={step.status === 'complete' ? 'text-primary-foreground' : 'text-muted-foreground'}>
                                                 {step.icon}
                                             </span>
                                         </span>
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <div className="text-sm font-medium text-gray-100">
+                                        <div className="text-sm font-medium text-foreground">
                                             {step.name}
                                         </div>
                                         <div className="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
-                                            <div className="mt-2 text-sm text-gray-400">
+                                            <div className="mt-2 text-sm text-muted-foreground">
                                                 {step.description}
                                             </div>
                                             {step.date && (
-                                                <div className="mt-2 text-sm text-gray-400">
+                                                <div className="mt-2 text-sm text-muted-foreground">
                                                     {step.date}
                                                 </div>
                                             )}
@@ -360,15 +360,15 @@ export function OrderJourney({ order }: OrderJourneyProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="rounded-lg bg-gray-800 ring-1 ring-white/10 overflow-hidden"
+                className="rounded-lg bg-card ring-1 ring-border overflow-hidden"
             >
                 <div className="px-4 py-5 sm:p-6">
-                    <h4 className="text-lg font-medium text-indigo-400">Order Summary</h4>
-                    <div className="mt-6 border-t border-gray-700 pt-6">
+                    <h4 className="text-lg font-medium text-primary">Order Summary</h4>
+                    <div className="mt-6 border-t border-border pt-6">
                         <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
                             <div>
-                                <dt className="text-sm font-medium text-gray-400">Customer</dt>
-                                <dd className="mt-1 text-sm text-gray-100">
+                                <dt className="text-sm font-medium text-muted-foreground">Customer</dt>
+                                <dd className="mt-1 text-sm text-foreground">
                                     <div className="space-y-1">
                                         <p className="font-medium">{order.customerName}</p>
                                         <p>{order.customerPhone}</p>
@@ -377,8 +377,8 @@ export function OrderJourney({ order }: OrderJourneyProps) {
                                 </dd>
                             </div>
                             <div>
-                                <dt className="text-sm font-medium text-gray-400">Product Details</dt>
-                                <dd className="mt-1 text-sm text-gray-100">
+                                <dt className="text-sm font-medium text-muted-foreground">Product Details</dt>
+                                <dd className="mt-1 text-sm text-foreground">
                                     <div className="space-y-1">
                                         <p className="font-medium">{order.product.name}</p>
                                         <p className="text-xs">Code: {order.product.code}</p>
@@ -389,7 +389,7 @@ export function OrderJourney({ order }: OrderJourneyProps) {
                                                 currency: 'LKR',
                                             }).format(order.discount)}</p>
                                         )}
-                                        <p className="font-medium text-indigo-400">
+                                        <p className="font-medium text-primary">
                                             Total: {new Intl.NumberFormat('en-LK', {
                                                 style: 'currency',
                                                 currency: 'LKR',

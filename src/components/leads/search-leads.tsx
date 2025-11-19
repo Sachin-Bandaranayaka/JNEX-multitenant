@@ -56,15 +56,15 @@ export function SearchLeads() {
                     }
                 }}
                 placeholder="Search leads..."
-                className="w-full px-4 py-2 text-sm text-gray-100 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-2 text-sm text-foreground bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent placeholder:text-muted-foreground"
             />
             <button
                 onClick={handleSearch}
-                className="absolute right-2 top-2 p-1 hover:bg-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="absolute right-2 top-2 p-1 hover:bg-accent rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                 aria-label="Search"
             >
                 <svg
-                    className="h-5 w-5 text-gray-400"
+                    className="h-5 w-5 text-muted-foreground"
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
                     fill="currentColor"

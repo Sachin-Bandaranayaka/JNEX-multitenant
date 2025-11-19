@@ -88,27 +88,27 @@ export function ProductList({ products, user }: ProductListProps) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-700">
+      <table className="min-w-full divide-y divide-border">
         <thead>
           <tr>
-            <th onClick={() => handleSort('code')} className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-300">Code</th>
-            <th onClick={() => handleSort('name')} className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-300">Name</th>
-            <th onClick={() => handleSort('price')} className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-300">Price</th>
-            <th onClick={() => handleSort('stock')} className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-300">Stock</th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Activity</th>
+            <th onClick={() => handleSort('code')} className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground">Code</th>
+            <th onClick={() => handleSort('name')} className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground">Name</th>
+            <th onClick={() => handleSort('price')} className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground">Price</th>
+            <th onClick={() => handleSort('stock')} className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground">Stock</th>
+            <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Activity</th>
             {(canEdit || canDelete) && (
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
             )}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-700">
+        <tbody className="divide-y divide-border">
           {sortedProducts.map((product) => (
-            <motion.tr key={product.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="hover:bg-gray-700/50">
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-100">{product.code}</td>
+            <motion.tr key={product.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="hover:bg-accent/50">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-card-foreground">{product.code}</td>
               <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-white">{product.name}</div>
+                <div className="text-sm font-medium text-foreground">{product.name}</div>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-100">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-card-foreground">
                 {new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' }).format(product.price)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -116,13 +116,13 @@ export function ProductList({ products, user }: ProductListProps) {
                   {product.stock}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-400">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-muted-foreground">
                 {product.totalOrders} orders, {product.totalLeads} leads
               </td>
               {(canEdit || canDelete) && (
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-right space-x-3">
                   {canEdit && (
-                    <Link href={`/products/${product.id}/edit`} className="text-indigo-400 hover:text-indigo-300">Edit</Link>
+                    <Link href={`/products/${product.id}/edit`} className="text-primary hover:text-primary/80">Edit</Link>
                   )}
                   {canDelete && (
                     <button
@@ -131,7 +131,7 @@ export function ProductList({ products, user }: ProductListProps) {
                           deleteProduct(product.id);
                         }
                       }}
-                      className="text-red-400 hover:text-red-300"
+                      className="text-destructive hover:text-destructive/80"
                     >
                       Delete
                     </button>

@@ -45,7 +45,7 @@ export default async function OrdersPage({
     start.setHours(0, 0, 0, 0);
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
-    
+
     dateConditions.createdAt = {
       gte: start,
       lte: end,
@@ -72,42 +72,42 @@ export default async function OrdersPage({
   });
 
   return (
-    <div className="space-y-8 p-4 sm:p-6 lg:p-8 bg-gray-900">
-        <div className="flex flex-col gap-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-semibold text-white">Orders</h1>
-                    <p className="mt-2 text-sm text-gray-400">
-                        Manage orders and track their status
-                        {searchQuery && ` • Searching: "${searchQuery}"`}
-                        {dateFilter && startDate && endDate && (
-                            <span className="inline-flex items-center gap-1 ml-2 px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded-md text-xs font-medium">
-                                📅 {startDate} to {endDate}
-                            </span>
-                        )}
-                    </p>
-                </div>
-            </div>
-            
-            {/* Filter Controls Section */}
-            <div className="bg-gray-800 rounded-lg p-4 ring-1 ring-white/10">
-                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-300">Filter by:</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1">
-                        <DateFilter />
-                        <div className="hidden sm:block w-px h-6 bg-gray-600"></div>
-                        <SearchOrders />
-                        <div className="hidden sm:block w-px h-6 bg-gray-600"></div>
-                        <SortOrders />
-                    </div>
-                </div>
-            </div>
+    <div className="space-y-8 p-4 sm:p-6 lg:p-8 bg-background">
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">Orders</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Manage orders and track their status
+              {searchQuery && ` • Searching: "${searchQuery}"`}
+              {dateFilter && startDate && endDate && (
+                <span className="inline-flex items-center gap-1 ml-2 px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded-md text-xs font-medium">
+                  📅 {startDate} to {endDate}
+                </span>
+              )}
+            </p>
+          </div>
         </div>
-        
-        {/* Render the new client component with the fetched data */}
-        <OrdersClient initialOrders={orders} user={user} />
+
+        {/* Filter Controls Section */}
+        <div className="bg-card rounded-lg p-4 ring-1 ring-border">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Filter by:</span>
+            </div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1">
+              <DateFilter />
+              <div className="hidden sm:block w-px h-6 bg-border"></div>
+              <SearchOrders />
+              <div className="hidden sm:block w-px h-6 bg-border"></div>
+              <SortOrders />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Render the new client component with the fetched data */}
+      <OrdersClient initialOrders={orders} user={user} />
     </div>
   );
 }

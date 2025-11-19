@@ -14,7 +14,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   if (!session?.user?.tenantId) {
     return redirect('/auth/signin');
   }
-  
+
   const resolvedParams = await params;
   const prisma = getScopedPrismaClient(session.user.tenantId);
 
@@ -22,10 +22,19 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   if (!canViewPage) {
     return redirect('/unauthorized');
   }
-  
+
   const [product, stockAdjustments] = await Promise.all([
     prisma.product.findUnique({
       where: { id: resolvedParams.productId },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        description: true,
+        price: true,
+        stock: true,
+        lowStockAlert: true,
+      }
     }),
     prisma.stockAdjustment.findMany({
       where: { productId: resolvedParams.productId },
@@ -37,7 +46,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   if (!product) {
     return notFound();
   }
-  
+
   // --- FIX: Convert Date objects to strings before passing to client ---
   // This makes the data serializable and matches the type expected by the client component.
   const serializedStockAdjustments = stockAdjustments.map(adjustment => ({

@@ -35,7 +35,7 @@ export function OrdersClient({ initialOrders, user }: OrdersClientProps) {
     SHIPPED: initialOrders.filter(order => order.status === 'SHIPPED'),
     DELIVERED: initialOrders.filter(order => ['DELIVERED', 'RETURNED', 'CANCELLED'].includes(order.status)),
   };
-  
+
   const getStatusColor = (status: string) => {
     const colors = {
       pending: 'bg-yellow-400', confirmed: 'bg-blue-400', shipped: 'bg-purple-400',
@@ -81,11 +81,10 @@ export function OrdersClient({ initialOrders, user }: OrdersClientProps) {
             <Link
               href={selectedOrders.length > 0 ? `/orders/print?ids=${selectedOrders.join(',')}` : '#'}
               aria-disabled={selectedOrders.length === 0}
-              className={`inline-flex items-center px-4 py-2 border rounded-md ring-1 text-sm font-medium transition-colors ${
-                selectedOrders.length === 0
-                  ? 'border-gray-700 bg-gray-800 text-gray-500 cursor-not-allowed'
-                  : 'border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700 ring-white/10'
-              }`}
+              className={`inline-flex items-center px-4 py-2 border rounded-md ring-1 text-sm font-medium transition-colors ${selectedOrders.length === 0
+                  ? 'border-border bg-muted text-muted-foreground cursor-not-allowed'
+                  : 'border-border bg-card text-muted-foreground hover:bg-accent ring-border'
+                }`}
               onClick={(e) => {
                 if (selectedOrders.length === 0) e.preventDefault();
               }}
@@ -97,69 +96,69 @@ export function OrdersClient({ initialOrders, user }: OrdersClientProps) {
       </div>
 
       {initialOrders.length === 0 ? (
-        <div className="bg-gray-800 rounded-lg ring-1 ring-white/10 p-6 text-center">
-          <p className="text-gray-400">No orders found</p>
+        <div className="bg-card rounded-lg ring-1 ring-border p-6 text-center">
+          <p className="text-muted-foreground">No orders found</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-1 xl:grid-cols-2 gap-8">
           {Object.entries(STATUS_CONFIG).map(([category, config]) => {
             const categoryOrders = ordersByCategory[category as keyof typeof ordersByCategory] || [];
-            
+
             // Check if all orders in this category are selected
             const areAllInCategorySelected = categoryOrders.every(order => selectedOrders.includes(order.id));
 
             return (
-              <div key={category} className={`flex flex-col rounded-2xl ring-1 ring-white/10 overflow-hidden bg-gray-800 border-2 ${config.border} shadow-2xl min-h-[600px]`}>
+              <div key={category} className={`flex flex-col rounded-2xl ring-1 ring-border overflow-hidden bg-card border-2 ${config.border} shadow-2xl min-h-[600px]`}>
                 {/* Fixed Header */}
-                <div className="flex-shrink-0 px-8 py-6 border-b border-gray-700 bg-gray-800/80 backdrop-blur-sm">
+                <div className="flex-shrink-0 px-8 py-6 border-b border-border bg-card/80 backdrop-blur-sm">
                   <div className="flex items-center justify-between">
                     <h2 className={`text-2xl font-bold flex items-center space-x-4 ${config.text}`}>
                       <span className="text-3xl">{config.icon}</span>
                       <span>{config.label}</span>
-                      <span className="text-lg font-normal text-gray-400">({categoryOrders.length})</span>
+                      <span className="text-lg font-normal text-muted-foreground">({categoryOrders.length})</span>
                     </h2>
                     {categoryOrders.length > 0 && (
                       <div className="flex items-center space-x-3">
                         <input
                           type="checkbox"
-                          className="h-5 w-5 rounded border-gray-600 bg-gray-700 text-indigo-600 focus:ring-indigo-500 focus:ring-2"
+                          className="h-5 w-5 rounded border-border bg-muted text-primary focus:ring-primary focus:ring-2"
                           onChange={() => handleSelectAllByCategory(categoryOrders)}
                           checked={areAllInCategorySelected}
                         />
-                        <label className="text-base text-gray-300 cursor-pointer font-medium">Select All</label>
+                        <label className="text-base text-muted-foreground cursor-pointer font-medium">Select All</label>
                       </div>
                     )}
                   </div>
                 </div>
-                
+
                 {/* Scrollable Content Area */}
                 <div className="flex-1 overflow-hidden">
-                  <div className="h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-                    <ul className="divide-y divide-gray-700">
+                  <div className="h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-card">
+                    <ul className="divide-y divide-border">
                       {categoryOrders.map((order) => (
-                        <li key={order.id} className="p-6 hover:bg-gray-700/50 transition-all duration-200 hover:scale-[1.01]">
+                        <li key={order.id} className="p-6 hover:bg-accent/50 transition-all duration-200 hover:scale-[1.01]">
                           <div className="flex items-start justify-between gap-6">
                             <div className="flex items-start gap-5 flex-grow min-w-0">
                               <div className="flex-shrink-0 pt-1">
                                 <input
                                   type="checkbox"
-                                  className="h-5 w-5 rounded border-gray-600 bg-gray-700 text-indigo-600 focus:ring-indigo-500 focus:ring-2"
+                                  className="h-5 w-5 rounded border-border bg-muted text-primary focus:ring-primary focus:ring-2"
                                   checked={selectedOrders.includes(order.id)}
                                   onChange={() => handleSelectOrder(order.id)}
                                 />
                               </div>
                               <div className="flex-grow min-w-0 space-y-3">
-                                <Link 
-                                  href={`/orders/${order.id}`} 
-                                  className="text-lg font-bold text-indigo-400 hover:text-indigo-300 transition-colors block truncate"
+                                <Link
+                                  href={`/orders/${order.id}`}
+                                  className="text-lg font-bold text-primary hover:text-primary/80 transition-colors block truncate"
                                 >
                                   Order #{order.id.slice(0, 8)}
                                 </Link>
                                 <div className="space-y-2">
-                                  <p className="text-base text-gray-200 truncate font-semibold">
+                                  <p className="text-base text-card-foreground truncate font-semibold">
                                     {order.product.name}
                                   </p>
-                                  <p className="text-base text-gray-400 truncate">
+                                  <p className="text-base text-muted-foreground truncate">
                                     {order.customerName}
                                   </p>
                                 </div>
@@ -168,12 +167,12 @@ export function OrdersClient({ initialOrders, user }: OrdersClientProps) {
                                     {order.status.toLowerCase()}
                                   </span>
                                   {order.total > 0 && (
-                                    <span className="text-lg font-bold text-green-400">
+                                    <span className="text-lg font-bold text-green-500">
                                       LKR {order.total.toFixed(2)}
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-sm text-gray-400 pt-2 font-medium">
+                                <p className="text-sm text-muted-foreground pt-2 font-medium">
                                   {new Date(order.createdAt).toLocaleDateString('en-US', {
                                     year: 'numeric',
                                     month: 'short',
@@ -190,10 +189,10 @@ export function OrdersClient({ initialOrders, user }: OrdersClientProps) {
                       ))}
                       {categoryOrders.length === 0 && (
                         <li className="p-12 text-center">
-                          <div className="text-gray-500">
+                          <div className="text-muted-foreground">
                             <div className="text-6xl mb-6 opacity-50">{config.icon}</div>
                             <p className="text-lg font-semibold">No {config.label.toLowerCase()}</p>
-                            <p className="text-base text-gray-400 mt-3">Orders will appear here when available</p>
+                            <p className="text-base text-muted-foreground mt-3">Orders will appear here when available</p>
                           </div>
                         </li>
                       )}

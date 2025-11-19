@@ -9,22 +9,22 @@ import { User } from 'next-auth'; // --- FIX: Import the User type
 
 // Interfaces for Product and StockAdjustment
 interface Product {
-    id: string;
-    code: string;
-    name: string;
-    description?: string | null;
-    price: number;
-    stock: number;
-    lowStockAlert: number;
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  stock: number;
+  lowStockAlert: number;
 }
 interface StockAdjustment {
-    id: string;
-    quantity: number;
-    reason: string;
-    previousStock: number;
-    newStock: number;
-    createdAt: string;
-    adjustedBy?: { name: string | null; email: string };
+  id: string;
+  quantity: number;
+  reason: string;
+  previousStock: number;
+  newStock: number;
+  createdAt: string;
+  adjustedBy?: { name: string | null; email: string };
 }
 
 // --- FIX: Update the component's props to accept the user object ---
@@ -63,19 +63,19 @@ export function EditProductClient({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Edit Product</h1>
-          <p className="mt-2 text-sm text-gray-400">Update product details and manage stock</p>
+          <h1 className="text-2xl font-semibold text-foreground">Edit Product</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Update product details and manage stock</p>
         </div>
-        <motion.button 
-          onClick={() => router.back()} 
-          className="inline-flex items-center px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700"
+        <motion.button
+          onClick={() => router.back()}
+          className="inline-flex items-center px-4 py-2 border border-input rounded-md shadow-sm text-sm font-medium text-muted-foreground bg-card hover:bg-accent hover:text-accent-foreground"
         >
           Back to Products
         </motion.button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="bg-gray-800 rounded-lg ring-1 ring-white/10">
+        <div className="bg-card rounded-lg ring-1 ring-border">
           <div className="p-6">
             <ProductForm
               product={product}
@@ -87,9 +87,9 @@ export function EditProductClient({
           </div>
         </div>
 
-        <div className="bg-gray-800 rounded-lg ring-1 ring-white/10">
+        <div className="bg-card rounded-lg ring-1 ring-border">
           <div className="p-6">
-            <h2 className="text-lg font-medium text-white mb-4">Stock Adjustment History</h2>
+            <h2 className="text-lg font-medium text-card-foreground mb-4">Stock Adjustment History</h2>
             <StockAdjustmentHistory adjustments={stockAdjustments} />
           </div>
         </div>

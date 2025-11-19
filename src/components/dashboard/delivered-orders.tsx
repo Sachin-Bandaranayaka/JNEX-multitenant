@@ -42,11 +42,11 @@ export function DeliveredOrders() {
         try {
             setIsLoading(true);
             const response = await fetch('/api/dashboard/delivered-orders');
-            
+
             if (!response.ok) {
                 throw new Error('Failed to fetch delivered orders');
             }
-            
+
             const result = await response.json();
             setData(result);
         } catch (err) {
@@ -73,18 +73,18 @@ export function DeliveredOrders() {
 
     if (isLoading) {
         return (
-            <motion.div 
-                initial={{ opacity: 0, y: 20 }} 
-                animate={{ opacity: 1, y: 0 }} 
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="rounded-lg bg-gray-800 p-4 sm:p-6 ring-1 ring-white/10"
+                className="rounded-lg bg-card p-4 sm:p-6 ring-1 ring-border"
             >
-                <h2 className="text-lg font-medium text-white mb-4">Recent Deliveries</h2>
+                <h2 className="text-lg font-medium text-card-foreground mb-4">Recent Deliveries</h2>
                 <div className="space-y-3">
                     {[...Array(3)].map((_, i) => (
                         <div key={i} className="animate-pulse">
-                            <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
-                            <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+                            <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-muted rounded w-1/2"></div>
                         </div>
                     ))}
                 </div>
@@ -94,13 +94,13 @@ export function DeliveredOrders() {
 
     if (error) {
         return (
-            <motion.div 
-                initial={{ opacity: 0, y: 20 }} 
-                animate={{ opacity: 1, y: 0 }} 
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="rounded-lg bg-gray-800 p-4 sm:p-6 ring-1 ring-white/10"
+                className="rounded-lg bg-card p-4 sm:p-6 ring-1 ring-border"
             >
-                <h2 className="text-lg font-medium text-white mb-4">Recent Deliveries</h2>
+                <h2 className="text-lg font-medium text-card-foreground mb-4">Recent Deliveries</h2>
                 <div className="text-red-400 text-sm">
                     Error loading delivered orders: {error}
                 </div>
@@ -110,15 +110,15 @@ export function DeliveredOrders() {
 
     if (!data || data.orders.length === 0) {
         return (
-            <motion.div 
-                initial={{ opacity: 0, y: 20 }} 
-                animate={{ opacity: 1, y: 0 }} 
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="rounded-lg bg-gray-800 p-4 sm:p-6 ring-1 ring-white/10"
+                className="rounded-lg bg-card p-4 sm:p-6 ring-1 ring-border"
             >
-                <h2 className="text-lg font-medium text-white mb-4">Recent Deliveries</h2>
-                <div className="text-gray-400 text-sm text-center py-8">
-                    <Package className="h-12 w-12 mx-auto mb-3 text-gray-600" />
+                <h2 className="text-lg font-medium text-card-foreground mb-4">Recent Deliveries</h2>
+                <div className="text-muted-foreground text-sm text-center py-8">
+                    <Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
                     No delivered orders in the last 30 days
                 </div>
             </motion.div>
@@ -126,17 +126,17 @@ export function DeliveredOrders() {
     }
 
     return (
-        <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
             className="rounded-lg bg-gray-800 p-4 sm:p-6 ring-1 ring-white/10"
         >
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-medium text-white">Recent Deliveries</h2>
-                <Link 
-                    href="/orders?status=DELIVERED" 
-                    className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+                <h2 className="text-lg font-medium text-card-foreground">Recent Deliveries</h2>
+                <Link
+                    href="/orders?status=DELIVERED"
+                    className="text-sm text-primary hover:text-primary/80 transition-colors"
                 >
                     View all
                 </Link>
@@ -144,21 +144,21 @@ export function DeliveredOrders() {
 
             {/* Summary Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                <div className="rounded-lg bg-gray-700/50 p-3 ring-1 ring-gray-700">
-                    <div className="text-xs text-gray-400">Total Delivered</div>
-                    <div className="mt-1 text-lg font-semibold text-white">
+                <div className="rounded-lg bg-accent/50 p-3 ring-1 ring-border">
+                    <div className="text-xs text-muted-foreground">Total Delivered</div>
+                    <div className="mt-1 text-lg font-semibold text-card-foreground">
                         {data.summary.totalDeliveredOrders}
                     </div>
                 </div>
-                <div className="rounded-lg bg-gray-700/50 p-3 ring-1 ring-gray-700">
-                    <div className="text-xs text-gray-400">Revenue</div>
-                    <div className="mt-1 text-lg font-semibold text-white">
+                <div className="rounded-lg bg-accent/50 p-3 ring-1 ring-border">
+                    <div className="text-xs text-muted-foreground">Revenue</div>
+                    <div className="mt-1 text-lg font-semibold text-card-foreground">
                         {formatCurrency(data.summary.totalRevenue)}
                     </div>
                 </div>
-                <div className="rounded-lg bg-gray-700/50 p-3 ring-1 ring-gray-700">
-                    <div className="text-xs text-gray-400">Avg Order Value</div>
-                    <div className="mt-1 text-lg font-semibold text-white">
+                <div className="rounded-lg bg-accent/50 p-3 ring-1 ring-border">
+                    <div className="text-xs text-muted-foreground">Avg Order Value</div>
+                    <div className="mt-1 text-lg font-semibold text-card-foreground">
                         {formatCurrency(data.summary.averageOrderValue)}
                     </div>
                 </div>
@@ -172,25 +172,25 @@ export function DeliveredOrders() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.1 * index }}
-                        className="rounded-lg bg-gray-700/30 p-4 ring-1 ring-gray-700/50 hover:bg-gray-700/50 transition-colors"
+                        className="rounded-lg bg-accent/30 p-4 ring-1 ring-border hover:bg-accent/50 transition-colors"
                     >
                         <div className="flex items-start justify-between">
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2">
                                     <CheckCircle className="h-4 w-4 text-green-400 flex-shrink-0" />
-                                    <Link 
+                                    <Link
                                         href={`/orders/${order.id}`}
-                                        className="text-sm font-medium text-white hover:text-indigo-300 transition-colors truncate"
+                                        className="text-sm font-medium text-card-foreground hover:text-primary transition-colors truncate"
                                     >
                                         Order #{order.orderNumber}
                                     </Link>
                                 </div>
-                                
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-400">
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
                                     <div className="flex items-center gap-1">
                                         <Package className="h-3 w-3" />
                                         <span className="truncate">{order.productName}</span>
-                                        <span className="text-gray-500">×{order.quantity}</span>
+                                        <span className="text-muted-foreground">×{order.quantity}</span>
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <Calendar className="h-3 w-3" />
@@ -209,7 +209,7 @@ export function DeliveredOrders() {
                                             <Truck className="h-3 w-3" />
                                             <span className="truncate">{order.trackingNumber}</span>
                                             {order.shippingProvider && (
-                                                <span className="text-gray-500">
+                                                <span className="text-muted-foreground">
                                                     via {order.shippingProvider}
                                                 </span>
                                             )}
@@ -217,9 +217,9 @@ export function DeliveredOrders() {
                                     )}
                                 </div>
                             </div>
-                            
+
                             <div className="text-right ml-4">
-                                <div className="text-sm font-semibold text-white">
+                                <div className="text-sm font-semibold text-card-foreground">
                                     {formatCurrency(order.total)}
                                 </div>
                             </div>

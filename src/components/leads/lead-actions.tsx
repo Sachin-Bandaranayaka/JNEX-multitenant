@@ -34,28 +34,28 @@ function ConfirmationModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-            <div className="w-full max-w-2xl rounded-lg bg-gray-800 p-6 shadow-xl ring-1 ring-white/10">
-                <h2 className="text-xl font-bold text-white">Potential Duplicate Leads Found</h2>
-                <p className="mt-2 text-sm text-gray-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+            <div className="w-full max-w-2xl rounded-lg bg-card p-6 shadow-xl ring-1 ring-border">
+                <h2 className="text-xl font-bold text-card-foreground">Potential Duplicate Leads Found</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
                     This customer has recently purchased similar products from other companies.
                 </p>
 
-                <div className="mt-4 h-64 max-h-[50vh] overflow-y-auto rounded-md border border-gray-700">
-                    <table className="min-w-full divide-y divide-gray-700">
-                        <thead className="bg-gray-700/50 sticky top-0">
+                <div className="mt-4 h-64 max-h-[50vh] overflow-y-auto rounded-md border border-border">
+                    <table className="min-w-full divide-y divide-border">
+                        <thead className="bg-muted/50 sticky top-0">
                             <tr>
-                                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-300">Product Name</th>
-                                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-300">Customer Name</th>
-                                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-300">Confirmed Date</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Product Name</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customer Name</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Confirmed Date</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-700 bg-gray-800">
+                        <tbody className="divide-y divide-border bg-card">
                             {duplicates.map((lead, index) => (
                                 <tr key={index}>
-                                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-300">{lead.productName}</td>
-                                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-300">{lead.customerName}</td>
-                                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-300">{format(new Date(lead.confirmedDate), 'MMM d, yyyy')}</td>
+                                    <td className="whitespace-nowrap px-4 py-3 text-sm text-foreground">{lead.productName}</td>
+                                    <td className="whitespace-nowrap px-4 py-3 text-sm text-foreground">{lead.customerName}</td>
+                                    <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{format(new Date(lead.confirmedDate), 'MMM d, yyyy')}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -66,14 +66,14 @@ function ConfirmationModal({
                     <button
                         onClick={onClose}
                         disabled={isCreating}
-                        className="rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-white hover:bg-gray-500 disabled:opacity-50"
+                        className="rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={onConfirm}
                         disabled={isCreating}
-                        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {isCreating ? 'Creating...' : 'Proceed Anyway'}
                     </button>
@@ -205,7 +205,7 @@ export function LeadActions({
                 {canShipOrder && (
                     <button
                         onClick={() => setIsShippingModalOpen(true)}
-                        className="text-sm font-medium text-blue-400 hover:text-blue-300"
+                        className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
                     >
                         Ship Order
                     </button>
@@ -219,7 +219,7 @@ export function LeadActions({
                             <button
                                 onClick={() => handleCreateOrder(false)}
                                 disabled={isCreating}
-                                className="text-sm font-medium text-green-400 hover:text-green-300 disabled:opacity-50"
+                                className="text-sm font-medium text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 disabled:opacity-50"
                             >
                                 {isCreating ? 'Processing...' : 'Create Order'}
                             </button>
@@ -228,7 +228,7 @@ export function LeadActions({
                         {canEdit && (
                             <Link
                                 href={`/leads/${lead.id}`}
-                                className="text-sm font-medium text-indigo-400 hover:text-indigo-200"
+                                className="text-sm font-medium text-primary hover:text-primary/80"
                             >
                                 Edit
                             </Link>
@@ -237,7 +237,7 @@ export function LeadActions({
                         {canDelete && (
                             <button
                                 onClick={handleDelete}
-                                className="text-sm font-medium text-red-500 hover:text-red-400"
+                                className="text-sm font-medium text-destructive hover:text-destructive/80"
                             >
                                 Delete
                             </button>
@@ -251,7 +251,7 @@ export function LeadActions({
                         {canEdit && (
                             <button
                                 onClick={() => handleStatusChange('PENDING')}
-                                className="text-sm font-medium text-yellow-400 hover:text-yellow-300"
+                                className="text-sm font-medium text-yellow-600 hover:text-yellow-500 dark:text-yellow-400 dark:hover:text-yellow-300"
                             >
                                 Move to Pending
                             </button>
@@ -260,7 +260,7 @@ export function LeadActions({
                         {canEdit && (
                             <button
                                 onClick={() => handleStatusChange('REJECTED')}
-                                className="text-sm font-medium text-red-400 hover:text-red-300"
+                                className="text-sm font-medium text-destructive hover:text-destructive/80"
                             >
                                 Reject
                             </button>
@@ -269,7 +269,7 @@ export function LeadActions({
                         {canDelete && (
                             <button
                                 onClick={handleDelete}
-                                className="text-sm font-medium text-red-500 hover:text-red-400"
+                                className="text-sm font-medium text-destructive hover:text-destructive/80"
                             >
                                 Delete
                             </button>
@@ -278,7 +278,7 @@ export function LeadActions({
                         {canEdit && (
                             <Link
                                 href={`/leads/${lead.id}`}
-                                className="text-sm font-medium text-indigo-400 hover:text-indigo-200"
+                                className="text-sm font-medium text-primary hover:text-primary/80"
                             >
                                 Edit
                             </Link>

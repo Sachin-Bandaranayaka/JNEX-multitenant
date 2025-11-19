@@ -52,20 +52,20 @@ export default function SearchPage() {
 
     const getStatusColor = (status: string) => {
         const colors = {
-            PENDING: 'bg-yellow-900/50 text-yellow-300 ring-yellow-500/50',
-            CONFIRMED: 'bg-blue-900/50 text-blue-300 ring-blue-500/50',
-            SHIPPED: 'bg-purple-900/50 text-purple-300 ring-purple-500/50',
-            DELIVERED: 'bg-green-900/50 text-green-300 ring-green-500/50',
-            RETURNED: 'bg-red-900/50 text-red-300 ring-red-500/50',
+            PENDING: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 ring-yellow-500/50',
+            CONFIRMED: 'bg-blue-500/20 text-blue-700 dark:text-blue-300 ring-blue-500/50',
+            SHIPPED: 'bg-purple-500/20 text-purple-700 dark:text-purple-300 ring-purple-500/50',
+            DELIVERED: 'bg-green-500/20 text-green-700 dark:text-green-300 ring-green-500/50',
+            RETURNED: 'bg-red-500/20 text-red-700 dark:text-red-300 ring-red-500/50',
         };
         return colors[status as keyof typeof colors] || colors.PENDING;
     };
 
     return (
-        <div className="space-y-6 bg-gray-900">
+        <div className="space-y-6 bg-background">
             <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white leading-tight">Customer Search</h1>
-                <p className="mt-2 text-sm sm:text-base text-gray-400 leading-relaxed">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-foreground leading-tight">Customer Search</h1>
+                <p className="mt-2 text-sm sm:text-base text-muted-foreground leading-relaxed">
                     Search for customers by name or phone number
                 </p>
             </div>
@@ -79,7 +79,7 @@ export default function SearchPage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                         placeholder="Enter customer name or phone number..."
-                        className="w-full rounded-lg border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500"
+                        className="w-full rounded-lg border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary"
                     />
                 </div>
                 <motion.button
@@ -87,7 +87,7 @@ export default function SearchPage() {
                     whileTap={{ scale: 0.98 }}
                     onClick={handleSearch}
                     disabled={isLoading || !searchQuery.trim()}
-                    className="inline-flex items-center rounded-lg bg-indigo-600 px-6 py-3 sm:px-4 sm:py-2 text-base sm:text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 touch-manipulation min-h-[44px]"
+                    className="inline-flex items-center rounded-lg bg-primary px-6 py-3 sm:px-4 sm:py-2 text-base sm:text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 touch-manipulation min-h-[44px]"
                 >
                     {isLoading ? (
                         <>
@@ -109,7 +109,7 @@ export default function SearchPage() {
             </div>
 
             {error && (
-                <div className="rounded-lg bg-red-900/50 p-4 text-sm text-red-400 ring-1 ring-red-500">
+                <div className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive ring-1 ring-destructive/20">
                     {error}
                 </div>
             )}
@@ -123,24 +123,24 @@ export default function SearchPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10"
+                            className="rounded-lg bg-card p-6 ring-1 ring-border"
                         >
                             <div className="mb-4">
-                                <h3 className="text-lg font-medium text-white">{result.customerName}</h3>
-                                <div className="mt-1 text-sm text-gray-400">
+                                <h3 className="text-lg font-medium text-card-foreground">{result.customerName}</h3>
+                                <div className="mt-1 text-sm text-muted-foreground">
                                     <p>📞 {result.customerPhone}</p>
                                     <p>📍 {result.customerAddress}</p>
                                 </div>
                             </div>
 
-                            <div className="divide-y divide-gray-700">
-                                <h4 className="mb-2 text-sm font-medium text-gray-300">Order History</h4>
+                            <div className="divide-y divide-border">
+                                <h4 className="mb-2 text-sm font-medium text-muted-foreground">Order History</h4>
                                 {result.orders.map((order) => (
                                     <div key={order.id} className="py-3">
                                         <div className="flex items-center justify-between">
                                             <Link
                                                 href={`/orders/${order.id}`}
-                                                className="text-sm font-medium text-indigo-400 hover:text-indigo-300"
+                                                className="text-sm font-medium text-primary hover:text-primary/80"
                                             >
                                                 Order #{order.id}
                                             </Link>
@@ -148,7 +148,7 @@ export default function SearchPage() {
                                                 {order.status.toLowerCase()}
                                             </span>
                                         </div>
-                                        <div className="mt-1 flex items-center justify-between text-sm text-gray-400">
+                                        <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
                                             <span>{order.product.name} × {order.quantity}</span>
                                             <span>
                                                 {new Intl.NumberFormat('en-LK', {
@@ -157,7 +157,7 @@ export default function SearchPage() {
                                                 }).format(order.product.price * order.quantity)}
                                             </span>
                                         </div>
-                                        <div className="mt-1 text-xs text-gray-500">
+                                        <div className="mt-1 text-xs text-muted-foreground">
                                             {format(new Date(order.createdAt), 'PPp')}
                                         </div>
                                     </div>
@@ -167,11 +167,10 @@ export default function SearchPage() {
                     ))}
                 </div>
             ) : searchQuery && !isLoading ? (
-                <div className="rounded-lg bg-gray-800 p-8 text-center text-gray-400 ring-1 ring-white/10">
+                <div className="rounded-lg bg-card p-8 text-center text-muted-foreground ring-1 ring-border">
                     No results found for "{searchQuery}"
                 </div>
             ) : null}
         </div>
     );
 }
- 

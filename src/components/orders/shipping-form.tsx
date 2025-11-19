@@ -604,14 +604,14 @@ export function ShippingForm({
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-                <label htmlFor="provider" className="block text-sm font-medium text-gray-400">
+                <label htmlFor="provider" className="block text-sm font-medium text-muted-foreground">
                     Shipping Provider
                 </label>
                 <select
                     id="provider"
                     value={provider}
                     onChange={(e) => setProvider(e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-gray-100 ring-1 ring-white/10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary sm:text-sm"
                     required
                 >
                     <option key="empty" value="">Select a provider</option>
@@ -625,7 +625,7 @@ export function ShippingForm({
             {(provider === ShippingProvider.FARDA_EXPRESS || provider === ShippingProvider.TRANS_EXPRESS || provider === ShippingProvider.ROYAL_EXPRESS) && (
                 <>
                     <div>
-                        <label htmlFor="weight" className="block text-sm font-medium text-gray-400">
+                        <label htmlFor="weight" className="block text-sm font-medium text-muted-foreground">
                             Parcel Weight (kg)
                         </label>
                         <input
@@ -633,7 +633,7 @@ export function ShippingForm({
                             id="weight"
                             value={weight}
                             onChange={(e) => setWeight(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-gray-100 ring-1 ring-white/10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary sm:text-sm"
                             required
                             min="0.1"
                             step="0.1"
@@ -642,7 +642,7 @@ export function ShippingForm({
 
                     {provider === ShippingProvider.FARDA_EXPRESS && (
                         <div>
-                            <label htmlFor="city" className="block text-sm font-medium text-gray-400">
+                            <label htmlFor="city" className="block text-sm font-medium text-muted-foreground">
                                 Recipient City
                             </label>
                             <input
@@ -650,7 +650,7 @@ export function ShippingForm({
                                 id="city"
                                 value={city}
                                 onChange={(e) => setCity(e.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-gray-100 ring-1 ring-white/10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary sm:text-sm"
                                 required
                             />
                         </div>
@@ -659,14 +659,14 @@ export function ShippingForm({
                     {provider === ShippingProvider.TRANS_EXPRESS && (
                         <>
                             <div style={{ position: 'relative', zIndex: 50 }}>
-                                <label htmlFor="district" className="block text-sm font-medium text-gray-400">
+                                <label htmlFor="district" className="block text-sm font-medium text-muted-foreground">
                                     District
                                 </label>
                                 <select
                                     id="district"
                                     value={selectedDistrict}
                                     onChange={(e) => setSelectedDistrict(e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-gray-100 ring-1 ring-white/10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                    className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary sm:text-sm"
                                     required
                                     disabled={isLoadingLocations}
                                     style={{ zIndex: 50 }}
@@ -690,16 +690,16 @@ export function ShippingForm({
                                         </option>
                                     ))}
                                 </select>
-                                {isLoadingLocations && <div className="text-xs text-gray-400 mt-1">Loading districts...</div>}
+                                {isLoadingLocations && <div className="text-xs text-muted-foreground mt-1">Loading districts...</div>}
                             </div>
 
                             <div style={{ position: 'relative', zIndex: 40 }}>
-                                <label htmlFor="city_id" className="block text-sm font-medium text-gray-400">
+                                <label htmlFor="city_id" className="block text-sm font-medium text-muted-foreground">
                                     City
                                 </label>
                                 <div className="relative city-dropdown-container">
                                     <div className="relative">
-                                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
                                             <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                                 <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
                                             </svg>
@@ -715,11 +715,11 @@ export function ShippingForm({
                                             onClick={() => setShowCityDropdown(true)}
                                             onFocus={() => setShowCityDropdown(true)}
                                             placeholder={isLoadingLocations ? "Loading cities..." : "Search for a city..."}
-                                            className="mt-1 block w-full pl-10 pr-10 rounded-md border-gray-600 bg-gray-700 text-gray-100 ring-1 ring-white/10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                            className="mt-1 block w-full pl-10 pr-10 rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary sm:text-sm"
                                             required
                                             disabled={isLoadingLocations}
                                         />
-                                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground">
                                             {isLoadingLocations ? (
                                                 <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -734,7 +734,7 @@ export function ShippingForm({
                                         </div>
                                     </div>
                                     {showCityDropdown && !isLoadingLocations && (
-                                        <div className="absolute z-50 mt-1 w-full bg-gray-800 rounded-md ring-1 ring-white/10 max-h-60 overflow-y-auto border border-gray-700">
+                                        <div className="absolute z-50 mt-1 w-full bg-card rounded-md ring-1 ring-border max-h-60 overflow-y-auto border border-border">
                                             {filteredCities.length > 0 ? filteredCities.map((city) => (
                                                 <button
                                                     key={city.id}
@@ -743,12 +743,12 @@ export function ShippingForm({
                                                         setCitySearchTerm(city.name);
                                                         setShowCityDropdown(false);
                                                     }}
-                                                    className="block w-full text-left px-4 py-2 text-sm text-gray-100 hover:bg-gray-700"
+                                                    className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent"
                                                 >
                                                     {city.name}
                                                 </button>
                                             )) : (
-                                                <div className="px-4 py-2 text-sm text-gray-400">
+                                                <div className="px-4 py-2 text-sm text-muted-foreground">
                                                     No cities match your search
                                                 </div>
                                             )}
@@ -757,7 +757,7 @@ export function ShippingForm({
                                 </div>
                                 {/* Display the selected city name below the dropdown */}
                                 {selectedCity && citiesInDistrict.length > 0 && !showCityDropdown && (
-                                    <div className="mt-1 text-xs text-gray-400">
+                                    <div className="mt-1 text-xs text-muted-foreground">
                                         Selected: {citiesInDistrict.find(c => c.id === selectedCity)?.name || "Unknown City"}
                                     </div>
                                 )}
@@ -768,14 +768,14 @@ export function ShippingForm({
                     {provider === ShippingProvider.ROYAL_EXPRESS && (
                         <>
                             <div style={{ position: 'relative', zIndex: 50 }}>
-                                <label htmlFor="royalState" className="block text-sm font-medium text-gray-400">
+                                <label htmlFor="royalState" className="block text-sm font-medium text-muted-foreground">
                                     State
                                 </label>
                                 <select
                                     id="royalState"
                                     value={selectedState}
                                     onChange={(e) => setSelectedState(e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-gray-100 ring-1 ring-white/10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                    className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary sm:text-sm"
                                     required
                                     disabled={isLoadingRoyalLocations}
                                     style={{ zIndex: 50 }}
@@ -797,7 +797,7 @@ export function ShippingForm({
                                         </option>
                                     ))}
                                 </select>
-                                {isLoadingRoyalLocations && <div className="text-xs text-gray-400 mt-1">Loading states...</div>}
+                                {isLoadingRoyalLocations && <div className="text-xs text-muted-foreground mt-1">Loading states...</div>}
                             </div>
 
                             <div style={{ position: 'relative', zIndex: 30 }}>

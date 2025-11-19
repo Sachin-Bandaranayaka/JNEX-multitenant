@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useSessionStatus } from '@/hooks/use-session-status';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Tenant } from '@prisma/client';
 import {
   HomeIcon, ShoppingBagIcon, ArchiveBoxIcon, ClipboardDocumentListIcon,
@@ -13,10 +14,10 @@ import {
   ArrowRightOnRectangleIcon, Bars3Icon, XMarkIcon
 } from '@heroicons/react/24/outline';
 
-function NavLink({ href, icon, children, isActive, onClick }: { 
-  href: string; 
-  icon: React.ReactNode; 
-  children: React.ReactNode; 
+function NavLink({ href, icon, children, isActive, onClick }: {
+  href: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
   isActive: boolean;
   onClick?: () => void;
 }) {
@@ -24,11 +25,10 @@ function NavLink({ href, icon, children, isActive, onClick }: {
   return (
     <Link href={href} onClick={onClick}>
       <div
-        className={`flex items-center space-x-4 rounded-lg px-4 py-3 transition-colors touch-manipulation ${
-          isActive
-            ? 'bg-indigo-600/20 text-indigo-300'
-            : 'text-gray-400 hover:bg-gray-700/50 hover:text-white active:bg-gray-600/50'
-        }`}
+        className={`flex items-center space-x-4 rounded-lg px-4 py-3 transition-colors touch-manipulation ${isActive
+          ? 'bg-indigo-600/20 text-indigo-300'
+          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground active:bg-accent/50'
+          }`}
       >
         {icon}
         {showText && <span className="font-medium">{children}</span>}
@@ -42,7 +42,7 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
   const { data: session, status } = useSession();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Default closed on mobile
   const [isMobile, setIsMobile] = useState(false);
-  
+
   const pathname = usePathname();
 
   // Handle responsive behavior
@@ -95,234 +95,241 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
   const userPermissions = session.user.permissions || [];
 
   return (
-    <div className="flex min-h-screen bg-gray-900">
+    <div className="flex min-h-screen bg-background">
       {/* Mobile overlay */}
       {isMobile && isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
-      
+
       {/* Mobile header */}
-      <div className="print:hidden lg:hidden fixed top-0 left-0 right-0 z-30 bg-gray-800 border-b border-gray-700 px-4 py-3">
+      {/* Mobile header */}
+      <div className="print:hidden lg:hidden fixed top-0 left-0 right-0 z-30 bg-muted/40 border-b border-border px-4 py-3 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {tenant.logoUrl && (
-              <Image 
-                src={tenant.logoUrl} 
-                alt="Logo" 
-                width={28} 
-                height={28} 
-                className="rounded-md object-contain w-7 h-7 sm:w-8 sm:h-8" 
+              <Image
+                src={tenant.logoUrl}
+                alt="Logo"
+                width={28}
+                height={28}
+                className="rounded-md object-contain w-7 h-7 sm:w-8 sm:h-8"
                 priority
                 sizes="(max-width: 640px) 28px, 32px"
               />
             )}
-            <h1 className="text-lg font-bold text-white truncate">
+            <h1 className="text-lg font-bold text-foreground truncate">
               {tenant.businessName || 'Dashboard'}
             </h1>
           </div>
-          <button 
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
-            className="p-2 rounded-md hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-white touch-manipulation"
-          >
-            {isSidebarOpen ? (
-              <XMarkIcon className="h-6 w-6 text-gray-300" />
-            ) : (
-              <Bars3Icon className="h-6 w-6 text-gray-300" />
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 rounded-md hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring touch-manipulation"
+            >
+              {isSidebarOpen ? (
+                <XMarkIcon className="h-6 w-6 text-gray-300" />
+              ) : (
+                <Bars3Icon className="h-6 w-6 text-gray-300" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
-      <aside 
+      <aside
         id="mobile-sidebar"
-        className={`print:hidden flex-shrink-0 flex flex-col transition-all duration-300 bg-gray-800 text-white z-50
-          ${isMobile 
-            ? `fixed top-0 left-0 h-full ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full'}` 
+        className={`print:hidden flex-shrink-0 flex flex-col transition-all duration-300 bg-muted/40 border-r border-border z-50
+          ${isMobile
+            ? `fixed top-0 left-0 h-full ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full'}`
             : `sticky top-0 h-screen ${isSidebarOpen ? 'w-64' : 'w-20'}`
           }`}
       >
         {/* Desktop header */}
-        <div className={`hidden lg:flex items-center p-4 border-b border-gray-700 ${isSidebarOpen ? 'justify-between' : 'justify-center'}`}>
-            {isSidebarOpen && (
-                <div className="flex items-center gap-3">
-                    {tenant.logoUrl && (
-                        <Image 
-                          src={tenant.logoUrl} 
-                          alt="Logo" 
-                          width={32} 
-                          height={32} 
-                          className="rounded-md object-contain w-8 h-8 lg:w-10 lg:h-10" 
-                          priority
-                          sizes="(max-width: 1024px) 32px, 40px"
-                        />
-                    )}
-                    <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white truncate leading-tight">
-                        {tenant.businessName || 'Dashboard'}
-                    </h1>
-                </div>
-            )}
-            <button 
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
-                className="p-2 rounded-md hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-white touch-manipulation"
-            >
-                <Bars3Icon className="h-6 w-6 text-gray-300" />
-            </button>
-        </div>
-        
-        {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-700">
+        <div className={`hidden lg:flex items-center p-4 border-b border-border ${isSidebarOpen ? 'justify-between' : 'justify-center'}`}>
+          {isSidebarOpen && (
             <div className="flex items-center gap-3">
-                {tenant.logoUrl && (
-                    <Image 
-                      src={tenant.logoUrl} 
-                      alt="Logo" 
-                      width={28} 
-                      height={28} 
-                      className="rounded-md object-contain w-7 h-7" 
-                      priority
-                      sizes="28px"
-                    />
-                )}
-                <h1 className="text-base sm:text-lg font-bold text-white truncate leading-tight">
-                    {tenant.businessName || 'Dashboard'}
-                </h1>
+              {tenant.logoUrl && (
+                <Image
+                  src={tenant.logoUrl}
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                  className="rounded-md object-contain w-8 h-8 lg:w-10 lg:h-10"
+                  priority
+                  sizes="(max-width: 1024px) 32px, 40px"
+                />
+              )}
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground truncate leading-tight">
+                {tenant.businessName || 'Dashboard'}
+              </h1>
             </div>
-            <button 
-                onClick={() => setIsSidebarOpen(false)} 
-                className="p-2 rounded-md hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-white touch-manipulation"
-            >
-                <XMarkIcon className="h-6 w-6 text-gray-300" />
-            </button>
+          )}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-2 rounded-md hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring touch-manipulation"
+          >
+            <Bars3Icon className="h-6 w-6 text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Mobile header */}
+        <div className="lg:hidden flex items-center justify-between p-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            {tenant.logoUrl && (
+              <Image
+                src={tenant.logoUrl}
+                alt="Logo"
+                width={28}
+                height={28}
+                className="rounded-md object-contain w-7 h-7"
+                priority
+                sizes="28px"
+              />
+            )}
+            <h1 className="text-base sm:text-lg font-bold text-foreground truncate leading-tight">
+              {tenant.businessName || 'Dashboard'}
+            </h1>
+          </div>
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="p-2 rounded-md hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring touch-manipulation"
+          >
+            <XMarkIcon className="h-6 w-6 text-muted-foreground" />
+          </button>
         </div>
         <nav className="flex-grow space-y-1 px-4 mt-4 overflow-y-auto">
-            {(userRole === 'ADMIN' || userPermissions.includes('VIEW_DASHBOARD')) && 
-              <NavLink 
-                href="/dashboard" 
-                icon={<HomeIcon className="h-6 w-6" />} 
-                isActive={pathname === '/dashboard'}
-                onClick={closeMobileSidebar}
-              >
-                {(isSidebarOpen || isMobile) && 'Dashboard'}
-              </NavLink>
-            }
-            {(userRole === 'ADMIN' || userPermissions.includes('VIEW_PRODUCTS')) && 
-              <NavLink 
-                href="/products" 
-                icon={<ShoppingBagIcon className="h-6 w-6" />} 
-                isActive={pathname.startsWith('/products')}
-                onClick={closeMobileSidebar}
-              >
-                {(isSidebarOpen || isMobile) && 'Products'}
-              </NavLink>
-            }
-            {(userRole === 'ADMIN' || userPermissions.includes('VIEW_INVENTORY')) && 
-              <NavLink 
-                href="/inventory" 
-                icon={<ArchiveBoxIcon className="h-6 w-6" />} 
-                isActive={pathname.startsWith('/inventory')}
-                onClick={closeMobileSidebar}
-              >
-                {(isSidebarOpen || isMobile) && 'Inventory'}
-              </NavLink>
-            }
-            {(userRole === 'ADMIN' || userPermissions.includes('VIEW_ORDERS')) && 
-              <NavLink 
-                href="/orders" 
-                icon={<ClipboardDocumentListIcon className="h-6 w-6" />} 
-                isActive={pathname.startsWith('/orders')}
-                onClick={closeMobileSidebar}
-              >
-                {(isSidebarOpen || isMobile) && 'Orders'}
-              </NavLink>
-            }
-            {(userRole === 'ADMIN' || userPermissions.includes('VIEW_LEADS')) && 
-              <NavLink 
-                href="/leads" 
-                icon={<UsersIcon className="h-6 w-6" />} 
-                isActive={pathname.startsWith('/leads')}
-                onClick={closeMobileSidebar}
-              >
-                {(isSidebarOpen || isMobile) && 'Leads'}
-              </NavLink>
-            }
-            {(userRole === 'ADMIN' || userPermissions.includes('VIEW_SEARCH')) && 
-              <NavLink 
-                href="/search" 
-                icon={<MagnifyingGlassIcon className="h-6 w-6" />} 
-                isActive={pathname.startsWith('/search')}
-                onClick={closeMobileSidebar}
-              >
-                {(isSidebarOpen || isMobile) && 'Search'}
-              </NavLink>
-            }
-            {(userRole === 'ADMIN' || userPermissions.includes('VIEW_SHIPPING')) && 
-              <NavLink 
-                href="/shipping" 
-                icon={<TruckIcon className="h-6 w-6" />} 
-                isActive={pathname.startsWith('/shipping')}
-                onClick={closeMobileSidebar}
-              >
-                {(isSidebarOpen || isMobile) && 'Shipping'}
-              </NavLink>
-            }
-            
-            {(userRole === 'ADMIN' || userPermissions.includes('VIEW_REPORTS') || userPermissions.includes('MANAGE_USERS') || userPermissions.includes('MANAGE_SETTINGS')) && (
-              <>
-                <div className="pt-4 pb-2 px-4 text-xs font-semibold text-gray-500 uppercase">
-                  {(isSidebarOpen || isMobile) && 'Admin'}
-                </div>
-                {(userRole === 'ADMIN' || userPermissions.includes('VIEW_REPORTS')) && 
-                  <NavLink 
-                    href="/reports" 
-                    icon={<ChartBarIcon className="h-6 w-6" />} 
-                    isActive={pathname.startsWith('/reports')}
-                    onClick={closeMobileSidebar}
-                  >
-                    {(isSidebarOpen || isMobile) && 'Reports'}
-                  </NavLink>
-                }
-                {(userRole === 'ADMIN' || userPermissions.includes('MANAGE_USERS')) && 
-                  <NavLink 
-                    href="/users" 
-                    icon={<UsersIcon className="h-6 w-6" />} 
-                    isActive={pathname.startsWith('/users')}
-                    onClick={closeMobileSidebar}
-                  >
-                    {(isSidebarOpen || isMobile) && 'Users'}
-                  </NavLink>
-                }
-                {(userRole === 'ADMIN' || userPermissions.includes('MANAGE_SETTINGS')) && 
-                  <NavLink 
-                    href="/settings" 
-                    icon={<CogIcon className="h-6 w-6" />} 
-                    isActive={pathname.startsWith('/settings')}
-                    onClick={closeMobileSidebar}
-                  >
-                    {(isSidebarOpen || isMobile) && 'Settings'}
-                  </NavLink>
-                }
-              </>
-            )}
-        </nav>
-        <div className="p-4 mt-auto border-t border-gray-700">
-            <button 
-              onClick={() => signOut({ callbackUrl: '/auth/signin' })} 
-              className={`flex w-full items-center space-x-4 rounded-lg px-4 py-3 text-gray-400 transition-colors hover:bg-gray-700/50 hover:text-white active:bg-gray-600/50 touch-manipulation ${
-                !isSidebarOpen && !isMobile && 'justify-center'
-              }`}
+          {(userRole === 'ADMIN' || userPermissions.includes('VIEW_DASHBOARD')) &&
+            <NavLink
+              href="/dashboard"
+              icon={<HomeIcon className="h-6 w-6" />}
+              isActive={pathname === '/dashboard'}
+              onClick={closeMobileSidebar}
             >
-              <ArrowRightOnRectangleIcon className="h-6 w-6" />
-              {(isSidebarOpen || isMobile) && <span className="font-medium">Logout</span>}
-            </button>
+              {(isSidebarOpen || isMobile) && 'Dashboard'}
+            </NavLink>
+          }
+          {(userRole === 'ADMIN' || userPermissions.includes('VIEW_PRODUCTS')) &&
+            <NavLink
+              href="/products"
+              icon={<ShoppingBagIcon className="h-6 w-6" />}
+              isActive={pathname.startsWith('/products')}
+              onClick={closeMobileSidebar}
+            >
+              {(isSidebarOpen || isMobile) && 'Products'}
+            </NavLink>
+          }
+          {(userRole === 'ADMIN' || userPermissions.includes('VIEW_INVENTORY')) &&
+            <NavLink
+              href="/inventory"
+              icon={<ArchiveBoxIcon className="h-6 w-6" />}
+              isActive={pathname.startsWith('/inventory')}
+              onClick={closeMobileSidebar}
+            >
+              {(isSidebarOpen || isMobile) && 'Inventory'}
+            </NavLink>
+          }
+          {(userRole === 'ADMIN' || userPermissions.includes('VIEW_ORDERS')) &&
+            <NavLink
+              href="/orders"
+              icon={<ClipboardDocumentListIcon className="h-6 w-6" />}
+              isActive={pathname.startsWith('/orders')}
+              onClick={closeMobileSidebar}
+            >
+              {(isSidebarOpen || isMobile) && 'Orders'}
+            </NavLink>
+          }
+          {(userRole === 'ADMIN' || userPermissions.includes('VIEW_LEADS')) &&
+            <NavLink
+              href="/leads"
+              icon={<UsersIcon className="h-6 w-6" />}
+              isActive={pathname.startsWith('/leads')}
+              onClick={closeMobileSidebar}
+            >
+              {(isSidebarOpen || isMobile) && 'Leads'}
+            </NavLink>
+          }
+          {(userRole === 'ADMIN' || userPermissions.includes('VIEW_SEARCH')) &&
+            <NavLink
+              href="/search"
+              icon={<MagnifyingGlassIcon className="h-6 w-6" />}
+              isActive={pathname.startsWith('/search')}
+              onClick={closeMobileSidebar}
+            >
+              {(isSidebarOpen || isMobile) && 'Search'}
+            </NavLink>
+          }
+          {(userRole === 'ADMIN' || userPermissions.includes('VIEW_SHIPPING')) &&
+            <NavLink
+              href="/shipping"
+              icon={<TruckIcon className="h-6 w-6" />}
+              isActive={pathname.startsWith('/shipping')}
+              onClick={closeMobileSidebar}
+            >
+              {(isSidebarOpen || isMobile) && 'Shipping'}
+            </NavLink>
+          }
+
+          {(userRole === 'ADMIN' || userPermissions.includes('VIEW_REPORTS') || userPermissions.includes('MANAGE_USERS') || userPermissions.includes('MANAGE_SETTINGS')) && (
+            <>
+              <div className="pt-4 pb-2 px-4 text-xs font-semibold text-gray-500 uppercase">
+                {(isSidebarOpen || isMobile) && 'Admin'}
+              </div>
+              {(userRole === 'ADMIN' || userPermissions.includes('VIEW_REPORTS')) &&
+                <NavLink
+                  href="/reports"
+                  icon={<ChartBarIcon className="h-6 w-6" />}
+                  isActive={pathname.startsWith('/reports')}
+                  onClick={closeMobileSidebar}
+                >
+                  {(isSidebarOpen || isMobile) && 'Reports'}
+                </NavLink>
+              }
+              {(userRole === 'ADMIN' || userPermissions.includes('MANAGE_USERS')) &&
+                <NavLink
+                  href="/users"
+                  icon={<UsersIcon className="h-6 w-6" />}
+                  isActive={pathname.startsWith('/users')}
+                  onClick={closeMobileSidebar}
+                >
+                  {(isSidebarOpen || isMobile) && 'Users'}
+                </NavLink>
+              }
+              {(userRole === 'ADMIN' || userPermissions.includes('MANAGE_SETTINGS')) &&
+                <NavLink
+                  href="/settings"
+                  icon={<CogIcon className="h-6 w-6" />}
+                  isActive={pathname.startsWith('/settings')}
+                  onClick={closeMobileSidebar}
+                >
+                  {(isSidebarOpen || isMobile) && 'Settings'}
+                </NavLink>
+              }
+            </>
+          )}
+        </nav>
+        <div className="p-4 mt-auto border-t border-border space-y-2">
+          <div className={`flex items-center ${!isSidebarOpen && !isMobile ? 'justify-center' : 'justify-between px-4'}`}>
+            {(isSidebarOpen || isMobile) && <span className="text-sm font-medium text-muted-foreground">Theme</span>}
+            <ThemeToggle />
+          </div>
+          <button
+            onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+            className={`flex w-full items-center space-x-4 rounded-lg px-4 py-3 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground active:bg-accent/50 touch-manipulation ${!isSidebarOpen && !isMobile && 'justify-center'
+              }`}
+          >
+            <ArrowRightOnRectangleIcon className="h-6 w-6" />
+            {(isSidebarOpen || isMobile) && <span className="font-medium">Logout</span>}
+          </button>
         </div>
       </aside>
 
       <main className={`flex-1 overflow-x-hidden ${isMobile ? 'pt-16' : ''}`}>
         <div className="p-4 sm:p-6 lg:p-8 xl:p-10">
-            {children}
+          {children}
         </div>
       </main>
     </div>

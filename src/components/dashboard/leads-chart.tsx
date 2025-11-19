@@ -38,10 +38,10 @@ export function LeadsChart({ data }: LeadsChartProps) {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 640);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -71,7 +71,7 @@ export function LeadsChart({ data }: LeadsChartProps) {
                 <text
                   x={x}
                   y={y}
-                  fill="white"
+                  fill="hsl(var(--foreground))"
                   textAnchor={x > cx ? 'start' : 'end'}
                   dominantBaseline="central"
                   fontSize={12}
@@ -98,13 +98,14 @@ export function LeadsChart({ data }: LeadsChartProps) {
               formatStatus(name)
             ]}
             contentStyle={{
-              backgroundColor: '#1f2937',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'hsl(var(--popover))',
+              border: '1px solid hsl(var(--border))',
+              color: 'hsl(var(--popover-foreground))',
               borderRadius: '8px',
               fontSize: isMobile ? '12px' : '14px'
             }}
           />
-          <Legend 
+          <Legend
             formatter={(value) => formatStatus(value)}
             wrapperStyle={{
               fontSize: isMobile ? '10px' : '12px',

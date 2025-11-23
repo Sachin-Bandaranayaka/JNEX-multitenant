@@ -25,7 +25,8 @@ export default function SuperAdminLayout({
         <div className="flex min-h-screen bg-gray-900 text-white">
             {/* Sidebar */}
             <aside className="sticky top-0 h-screen w-64 flex flex-col bg-gray-900/80 backdrop-blur-sm ring-1 ring-white/10">
-                <div className="p-6">
+                <div className="p-6 flex items-center gap-3">
+                    <img src="/IMAGES/logo.svg" alt="Logo" className="w-8 h-8 object-contain" />
                     <h1 className="text-2xl font-bold text-indigo-400">Super Admin</h1>
                 </div>
                 <nav className="flex-1 space-y-2 px-4">

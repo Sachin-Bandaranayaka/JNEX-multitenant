@@ -82,8 +82,8 @@ export default function SignInPage() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-3 font-bold text-xl tracking-tighter">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <span className="text-white text-lg">J</span>
+            <div className="w-10 h-10 relative">
+              <img src="/IMAGES/logo.svg" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <span className="text-2xl">Jnex Holdings</span>
           </div>

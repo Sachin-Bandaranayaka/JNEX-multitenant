@@ -129,9 +129,14 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
                   priority
                 />
               ) : (
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-                  {tenant.businessName?.charAt(0) || 'J'}
-                </div>
+                <Image
+                  src="/IMAGES/logo.svg"
+                  alt="Logo"
+                  width={40}
+                  height={40}
+                  className="rounded-xl object-contain"
+                  priority
+                />
               )}
               <div className="flex flex-col">
                 <h1 className="text-lg font-bold text-foreground truncate leading-none">
@@ -276,8 +281,12 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
       </aside>
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        <Header tenant={tenant} userName={session.user.name} />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background/50 p-6">
+        <Header
+          tenant={tenant}
+          userName={session.user.name}
+          onMenuClick={() => setIsSidebarOpen(true)}
+        />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background/50 p-4 sm:p-6">
           {children}
         </main>
       </div>

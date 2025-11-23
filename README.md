@@ -9,6 +9,7 @@ A comprehensive sales management system built with Next.js for managing leads, o
 - Inventory management
 - Shipping integration with Farda Express, Trans Express, and Royal Express
 - QR code-based returns system
+- Automatic tracking updates for delivered and returned orders
 - Role-based access control
 - Reporting and analytics
 - Invoice generation with QR codes
@@ -82,6 +83,15 @@ NEXT_PUBLIC_ROYAL_EXPRESS_API_URL=https://v1.api.curfox.com/api/public
 # Cron job secret key for tracking updates
 CRON_SECRET_KEY=your_cron_secret_key_here
 ```
+
+**Note:** See [docs/CRON_SETUP.md](./docs/CRON_SETUP.md) for complete cron job configuration instructions.
+
+
+## Cron Jobs
+
+The system uses automated cron jobs to check for order tracking updates (delivered and returned orders).
+
+**Setup:** See [docs/CRON_SETUP.md](./docs/CRON_SETUP.md) for detailed configuration instructions using cron-job.org.
 
 ## Project Structure
 

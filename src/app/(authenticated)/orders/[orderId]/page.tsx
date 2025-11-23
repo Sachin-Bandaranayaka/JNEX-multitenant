@@ -7,6 +7,7 @@ import { OrderJourney } from '@/components/orders/order-journey';
 import { Invoice } from '@/components/orders/invoice';
 import { PrintButton } from '@/components/orders/print-button';
 import { CancelOrderButton } from '@/components/orders/cancel-order-button';
+import { OrderDetailInvoiceSection } from '@/components/orders/order-detail-invoice-section';
 
 interface OrderDetailsPageProps {
     params: Promise<{
@@ -82,17 +83,11 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                         {/* This is the invoice displayed on the screen */}
                         <div className="col-span-12 lg:col-span-1">
-                            <h2 className="font-semibold text-xl mb-6 text-foreground">Invoice Preview</h2>
-                            <div className="bg-white text-black p-4 rounded-md border border-border shadow-sm">
-                                <Invoice
-                                    businessName={tenant.businessName}
-                                    businessAddress={tenant.businessAddress}
-                                    businessPhone={tenant.businessPhone}
-                                    invoiceNumber={invoiceNumber}
-                                    order={order}
-                                    showPrintControls={true}
-                                />
-                            </div>
+                            <OrderDetailInvoiceSection
+                                order={order}
+                                tenant={tenant}
+                                invoiceNumber={invoiceNumber}
+                            />
                         </div>
 
                         {/* Other components like Order Journey, Shipping Form, etc. */}

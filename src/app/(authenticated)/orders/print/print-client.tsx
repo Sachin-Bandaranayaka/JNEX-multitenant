@@ -11,6 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tenant, Order, Product, OrderStatus } from '@prisma/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { FormatSelector } from '@/components/invoice/format-selector';
+import { InvoiceFormat, InvoiceData, BatchInvoiceRequest } from '@/types/invoice';
+import { Download } from 'lucide-react';
 
 type OrderWithProduct = Order & { product: Product };
 
@@ -36,6 +39,8 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'pending' | 'printed'>('pending');
   const [ordersToPrint, setOrdersToPrint] = useState<OrderWithProduct[]>([]);
+  const [selectedFormat, setSelectedFormat] = useState<InvoiceFormat>(InvoiceFormat.FULL_PAGE);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const { pendingOrders, printedOrders } = useMemo(() => {
     const sorted = [...orders].sort((a, b) => {
@@ -119,6 +124,80 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
     }, 100);
   };
 
+  const handleGeneratePDF = async () => {
+    if (selectedOrderIds.length === 0) {
+      toast.warning('Please select at least one invoice to generate PDF.');
+      return;
+    }
+
+    setIsGeneratingPDF(true);
+
+    try {
+      // Convert orders to InvoiceData format
+      const selectedOrders = orders.filter(o => selectedOrderIds.includes(o.id));
+      const invoices: InvoiceData[] = selectedOrders.map(order => ({
+        invoiceNumber: `${tenant.invoicePrefix || 'INV'}-${order.number}`,
+        businessName: tenant.businessName,
+        businessAddress: tenant.businessAddress,
+        businessPhone: tenant.businessPhone,
+        customerName: order.customerName,
+        customerAddress: order.customerAddress,
+        customerPhone: order.customerPhone,
+        customerSecondPhone: order.customerSecondPhone,
+        amount: order.product.price * order.quantity - (order.discount || 0),
+        productName: order.product.name,
+        quantity: order.quantity,
+        discount: order.discount || 0,
+        trackingNumber: order.trackingNumber,
+        shippingProvider: order.shippingProvider,
+        notes: order.notes,
+        createdAt: new Date(order.createdAt),
+      }));
+
+      const batchRequest: BatchInvoiceRequest = {
+        invoices,
+        format: selectedFormat,
+      };
+
+      // Call the API endpoint to generate PDF
+      const response = await fetch('/api/invoices/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(batchRequest),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate PDF');
+      }
+
+      // Download the PDF
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoices-${selectedFormat.toLowerCase()}-${invoices.length}-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success(`PDF generated successfully with ${invoices.length} invoice(s)`);
+
+      // Mark as printed if on pending tab
+      if (activeTab === 'pending') {
+        await updatePrintStatus(selectedOrderIds, true);
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to generate PDF');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   return (
     <>
       <style jsx global>{`
@@ -169,7 +248,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
       `}</style>
 
       <div className="print:hidden container mx-auto p-4 space-y-4 bg-background text-foreground min-h-screen">
-        {/* On-screen UI remains the same */}
+        {/* On-screen UI with format selector */}
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Print Invoices</h1>
           <div className="flex items-center space-x-4">
@@ -177,10 +256,26 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
               <SelectTrigger className="w-[180px] bg-card border-border"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="newest">Newest First</SelectItem><SelectItem value="oldest">Oldest First</SelectItem></SelectContent>
             </Select>
+            <Button 
+              onClick={handleGeneratePDF} 
+              disabled={selectedOrderIds.length === 0 || isGeneratingPDF} 
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {isGeneratingPDF ? 'Generating...' : `Generate PDF (${selectedOrderIds.length})`}
+            </Button>
             <Button onClick={handlePrint} disabled={selectedOrderIds.length === 0} className="bg-blue-600 hover:bg-blue-700">
               Print Selected ({selectedOrderIds.length})
             </Button>
           </div>
+        </div>
+
+        {/* Format Selector */}
+        <div className="bg-card rounded-lg p-4 ring-1 ring-border">
+          <FormatSelector 
+            selectedFormat={selectedFormat}
+            onFormatChange={setSelectedFormat}
+          />
         </div>
         <Tabs value={activeTab} onValueChange={value => setActiveTab(value as any)} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-muted text-muted-foreground">

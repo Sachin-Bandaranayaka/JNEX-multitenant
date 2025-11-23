@@ -25,8 +25,8 @@ function NavLink({ href, icon, children, isActive, onClick }: {
   return (
     <Link href={href} onClick={onClick}>
       <div
-        className={`flex items-center space-x-4 rounded-lg px-4 py-3 transition-colors touch-manipulation ${isActive
-          ? 'bg-indigo-600/20 text-indigo-300'
+        className={`flex items-center space-x-4 rounded-lg px-4 py-3 transition-all duration-200 touch-manipulation ${isActive
+          ? 'bg-primary/10 text-primary border-l-2 border-primary shadow-[0_0_10px_rgba(220,38,38,0.1)]'
           : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground active:bg-accent/50'
           }`}
       >
@@ -86,7 +86,7 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
   if (status === 'loading' || !session) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-900">
-        <div className="h-16 w-16 animate-spin rounded-full border-t-4 border-b-4 border-indigo-500"></div>
+        <div className="h-16 w-16 animate-spin rounded-full border-t-4 border-b-4 border-primary"></div>
       </div>
     );
   }

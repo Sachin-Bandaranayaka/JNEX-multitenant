@@ -1,9 +1,10 @@
 
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { RoyalExpressProvider } from './royal-express';
 import { ShipmentStatus } from './types';
 
 // Mock fetch
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 describe('Royal Express Return Logic', () => {
     let provider: RoyalExpressProvider;
@@ -12,22 +13,22 @@ describe('Royal Express Return Logic', () => {
         provider = new RoyalExpressProvider('test@example.com:password');
     });
 
-    test('should map "Returned" to ShipmentStatus.RETURNED', async () => {
+    it('should map "Returned" to ShipmentStatus.RETURNED', async () => {
         // Access private method via any cast or testing a public method that uses it
         // Since normalizeStatus is private, we can test trackShipment with a mocked response
 
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+        (global.fetch as any).mockResolvedValueOnce({
             ok: true,
-            text: async () => JSON.stringify({
+            json: async () => ({
                 user: { id: 1 },
                 token: 'mock-token',
                 message: 'success'
             })
         });
 
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+        (global.fetch as any).mockResolvedValueOnce({
             ok: true,
-            text: async () => JSON.stringify({
+            json: async () => ({
                 data: [{
                     status: { name: 'Returned' },
                     date_time: '2023-01-01T12:00:00Z'
@@ -40,19 +41,19 @@ describe('Royal Express Return Logic', () => {
         expect(status).toBe(ShipmentStatus.RETURNED);
     });
 
-    test('should map "Returned to Sender" to ShipmentStatus.RETURNED', async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+    it('should map "Returned to Sender" to ShipmentStatus.RETURNED', async () => {
+        (global.fetch as any).mockResolvedValueOnce({
             ok: true,
-            text: async () => JSON.stringify({
+            json: async () => ({
                 user: { id: 1 },
                 token: 'mock-token',
                 message: 'success'
             })
         });
 
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+        (global.fetch as any).mockResolvedValueOnce({
             ok: true,
-            text: async () => JSON.stringify({
+            json: async () => ({
                 data: [{
                     status: { name: 'Returned to Sender' },
                     date_time: '2023-01-01T12:00:00Z'
@@ -65,19 +66,19 @@ describe('Royal Express Return Logic', () => {
         expect(status).toBe(ShipmentStatus.RETURNED);
     });
 
-    test('should map "Return to Client" to ShipmentStatus.RETURNED', async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+    it('should map "Return to Client" to ShipmentStatus.RETURNED', async () => {
+        (global.fetch as any).mockResolvedValueOnce({
             ok: true,
-            text: async () => JSON.stringify({
+            json: async () => ({
                 user: { id: 1 },
                 token: 'mock-token',
                 message: 'success'
             })
         });
 
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+        (global.fetch as any).mockResolvedValueOnce({
             ok: true,
-            text: async () => JSON.stringify({
+            json: async () => ({
                 data: [{
                     status: { name: 'Return to Client' },
                     date_time: '2023-01-01T12:00:00Z'

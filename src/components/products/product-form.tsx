@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { User } from 'next-auth'; // Import the User type from next-auth
+import { User } from 'next-auth';
 
 const productSchema = z.object({
   code: z.string()
@@ -38,20 +38,17 @@ interface Product {
   lowStockAlert: number;
 }
 
-// --- FIX: The component now requires the full user object ---
 interface ProductFormProps {
   product?: Product;
   onSubmit: (data: ProductFormData) => Promise<void>;
   onCancel: () => void;
-  user: User; // The user object from the session
+  user: User;
 }
 
 export function ProductForm({ product, onSubmit, onCancel, user }: ProductFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // --- FIX: Derive the permission directly inside the component ---
-  // An Admin can ALWAYS edit stock. A team member can only edit if they have the specific permission.
   const canEditStock = user.role === 'ADMIN' || (user.permissions && user.permissions.includes('EDIT_STOCK_LEVELS'));
 
   const {
@@ -81,8 +78,6 @@ export function ProductForm({ product, onSubmit, onCancel, user }: ProductFormPr
     setIsSubmitting(true);
     setError(null);
     try {
-      // If a user (who is not an admin) can't edit stock, revert to the original value.
-      // This logic is now more robust.
       if (!canEditStock && product) {
         data.stock = product.stock;
       }
@@ -95,18 +90,18 @@ export function ProductForm({ product, onSubmit, onCancel, user }: ProductFormPr
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+    <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6 p-6">
       {error && (
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive ring-1 ring-destructive/20"
+          className="rounded-2xl bg-destructive/10 p-4 text-sm text-destructive ring-1 ring-destructive/20"
         >
           {error}
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
           <label htmlFor="code" className="block text-sm font-medium text-muted-foreground mb-2">Code</label>
           <input
@@ -114,9 +109,9 @@ export function ProductForm({ product, onSubmit, onCancel, user }: ProductFormPr
             id="code"
             {...register('code')}
             disabled={!!product}
-            className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary text-base sm:text-sm px-4 py-3 sm:py-2 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           />
-          {errors.code && <p className="mt-1 text-sm text-destructive">{errors.code.message}</p>}
+          {errors.code && <p className="mt-1 text-sm text-destructive px-2">{errors.code.message}</p>}
         </div>
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-muted-foreground mb-2">Name</label>
@@ -124,24 +119,23 @@ export function ProductForm({ product, onSubmit, onCancel, user }: ProductFormPr
             type="text"
             id="name"
             {...register('name')}
-            className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary text-base sm:text-sm px-4 py-3 sm:py-2 touch-manipulation"
+            className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
-          {errors.name && <p className="mt-1 text-sm text-destructive">{errors.name.message}</p>}
+          {errors.name && <p className="mt-1 text-sm text-destructive px-2">{errors.name.message}</p>}
         </div>
         <div className="sm:col-span-2">
-          <label htmlFor="description" className="block text-sm sm:text-base font-medium text-muted-foreground mb-2 leading-tight">Description</label>
+          <label htmlFor="description" className="block text-sm font-medium text-muted-foreground mb-2">Description</label>
           <textarea
             id="description"
             rows={3}
             {...register('description')}
-            className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary text-base sm:text-sm px-4 py-3 sm:py-2 touch-manipulation resize-none"
+            className="w-full p-4 rounded-3xl border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none transition-all"
           />
-          {errors.description && <p className="mt-1 text-sm text-destructive">{errors.description.message}</p>}
+          {errors.description && <p className="mt-1 text-sm text-destructive px-2">{errors.description.message}</p>}
         </div>
 
-        {/* The stock input field */}
         <div>
-          <label htmlFor="stock" className="block text-sm sm:text-base font-medium text-muted-foreground mb-2 leading-tight">
+          <label htmlFor="stock" className="block text-sm font-medium text-muted-foreground mb-2">
             Stock
           </label>
           <input
@@ -149,13 +143,13 @@ export function ProductForm({ product, onSubmit, onCancel, user }: ProductFormPr
             id="stock"
             {...register('stock', { valueAsNumber: true })}
             disabled={!canEditStock && !!product}
-            className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary text-base sm:text-sm px-4 py-3 sm:py-2 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           />
           {!canEditStock && !!product && (
-            <p className="mt-1 text-sm text-yellow-500">You don't have permission to change the stock of existing products.</p>
+            <p className="mt-1 text-sm text-yellow-500 px-2">You don't have permission to change the stock of existing products.</p>
           )}
           {errors.stock && (
-            <p className="mt-1 text-sm text-destructive">{errors.stock.message}</p>
+            <p className="mt-1 text-sm text-destructive px-2">{errors.stock.message}</p>
           )}
         </div>
 
@@ -166,29 +160,29 @@ export function ProductForm({ product, onSubmit, onCancel, user }: ProductFormPr
             id="price"
             step="0.01"
             {...register('price', { valueAsNumber: true })}
-            className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary text-base sm:text-sm px-4 py-3 sm:py-2 touch-manipulation"
+            className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
-          {errors.price && <p className="mt-1 text-sm text-destructive">{errors.price.message}</p>}
+          {errors.price && <p className="mt-1 text-sm text-destructive px-2">{errors.price.message}</p>}
         </div>
         <div>
-          <label htmlFor="lowStockAlert" className="block text-sm sm:text-base font-medium text-muted-foreground mb-2 leading-tight">Low Stock Alert</label>
+          <label htmlFor="lowStockAlert" className="block text-sm font-medium text-muted-foreground mb-2">Low Stock Alert</label>
           <input
             type="number"
             id="lowStockAlert"
             {...register('lowStockAlert', { valueAsNumber: true })}
-            className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary text-base sm:text-sm px-4 py-3 sm:py-2 touch-manipulation"
+            className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
-          {errors.lowStockAlert && <p className="mt-1 text-sm text-destructive">{errors.lowStockAlert.message}</p>}
+          {errors.lowStockAlert && <p className="mt-1 text-sm text-destructive px-2">{errors.lowStockAlert.message}</p>}
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-4">
+      <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-border mt-6">
         <motion.button
           type="button"
           onClick={onCancel}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="inline-flex items-center justify-center rounded-md border border-input px-6 py-3 sm:px-4 sm:py-2 text-base sm:text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 touch-manipulation min-h-[44px]"
+          className="h-12 px-6 rounded-full border border-input text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
         >
           Cancel
         </motion.button>
@@ -197,16 +191,13 @@ export function ProductForm({ product, onSubmit, onCancel, user }: ProductFormPr
           disabled={isSubmitting}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 sm:px-4 sm:py-2 text-base sm:text-sm font-medium text-primary-foreground ring-1 ring-border hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 touch-manipulation min-h-[44px]"
+          className="h-12 px-8 rounded-full bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50 transition-all shadow-sm"
         >
           {isSubmitting ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Saving...
-            </>
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              <span>Saving...</span>
+            </div>
           ) : (
             product ? 'Update Product' : 'Create Product'
           )}

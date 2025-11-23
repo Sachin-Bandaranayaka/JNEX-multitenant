@@ -3,9 +3,10 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { MagnifyingGlassIcon, UserIcon, PhoneIcon, MapPinIcon } from '@heroicons/react/24/outline';
 
 interface SearchResult {
     customerName: string;
@@ -28,12 +29,14 @@ export default function SearchPage() {
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [hasSearched, setHasSearched] = useState(false);
 
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
 
         setIsLoading(true);
         setError(null);
+        setHasSearched(true);
 
         try {
             const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
@@ -52,125 +55,176 @@ export default function SearchPage() {
 
     const getStatusColor = (status: string) => {
         const colors = {
-            PENDING: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 ring-yellow-500/50',
-            CONFIRMED: 'bg-blue-500/20 text-blue-700 dark:text-blue-300 ring-blue-500/50',
-            SHIPPED: 'bg-purple-500/20 text-purple-700 dark:text-purple-300 ring-purple-500/50',
-            DELIVERED: 'bg-green-500/20 text-green-700 dark:text-green-300 ring-green-500/50',
-            RETURNED: 'bg-red-500/20 text-red-700 dark:text-red-300 ring-red-500/50',
+            pending: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 ring-yellow-500/20',
+            confirmed: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 ring-blue-500/20',
+            shipped: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 ring-purple-500/20',
+            delivered: 'bg-green-500/10 text-green-700 dark:text-green-400 ring-green-500/20',
+            returned: 'bg-red-500/10 text-red-700 dark:text-red-400 ring-red-500/20',
+            cancelled: 'bg-gray-500/10 text-gray-700 dark:text-gray-400 ring-gray-500/20',
         };
-        return colors[status as keyof typeof colors] || colors.PENDING;
+        return colors[status.toLowerCase() as keyof typeof colors] || colors.pending;
     };
 
     return (
-        <div className="space-y-6 bg-background">
-            <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-foreground leading-tight">Customer Search</h1>
-                <p className="mt-2 text-sm sm:text-base text-muted-foreground leading-relaxed">
-                    Search for customers by name or phone number
+        <div className="max-w-5xl mx-auto space-y-8 p-4 sm:p-6 lg:p-8">
+            <div className="text-center space-y-4">
+                <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">Customer Search</h1>
+                <p className="text-muted-foreground max-w-lg mx-auto text-lg">
+                    Find customers and their order history by name or phone number
                 </p>
             </div>
 
             {/* Search Bar */}
-            <div className="flex gap-4">
-                <div className="flex-1">
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        placeholder="Enter customer name or phone number..."
-                        className="w-full rounded-lg border-input bg-background text-foreground placeholder-muted-foreground focus:border-primary focus:ring-primary"
-                    />
+            <div className="max-w-2xl mx-auto">
+                <div className="relative flex items-center gap-2">
+                    <div className="relative flex-1">
+                        <MagnifyingGlassIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                            placeholder="Enter customer name or phone number..."
+                            className="w-full h-14 pl-12 pr-4 text-lg bg-card border border-border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted-foreground/70"
+                        />
+                    </div>
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleSearch}
+                        disabled={isLoading || !searchQuery.trim()}
+                        className="h-14 px-8 rounded-full bg-primary text-primary-foreground font-semibold shadow-lg hover:bg-primary/90 hover:shadow-xl disabled:opacity-50 disabled:shadow-none transition-all"
+                    >
+                        {isLoading ? (
+                            <div className="flex items-center gap-2">
+                                <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                <span>Searching</span>
+                            </div>
+                        ) : (
+                            'Search'
+                        )}
+                    </motion.button>
                 </div>
-                <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleSearch}
-                    disabled={isLoading || !searchQuery.trim()}
-                    className="inline-flex items-center rounded-lg bg-primary px-6 py-3 sm:px-4 sm:py-2 text-base sm:text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 touch-manipulation min-h-[44px]"
-                >
-                    {isLoading ? (
-                        <>
-                            <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                            Searching...
-                        </>
-                    ) : (
-                        <>
-                            <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            Search
-                        </>
-                    )}
-                </motion.button>
             </div>
 
             {error && (
-                <div className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive ring-1 ring-destructive/20">
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="max-w-2xl mx-auto rounded-2xl bg-destructive/10 p-4 text-center text-destructive font-medium"
+                >
                     {error}
-                </div>
+                </motion.div>
             )}
 
             {/* Search Results */}
-            {searchResults.length > 0 ? (
-                <div className="space-y-4">
-                    {searchResults.map((result, index) => (
+            <div className="space-y-6">
+                <AnimatePresence mode="wait">
+                    {searchResults.length > 0 ? (
                         <motion.div
-                            key={index}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                            className="rounded-lg bg-card p-6 ring-1 ring-border"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="grid gap-6"
                         >
-                            <div className="mb-4">
-                                <h3 className="text-lg font-medium text-card-foreground">{result.customerName}</h3>
-                                <div className="mt-1 text-sm text-muted-foreground">
-                                    <p>📞 {result.customerPhone}</p>
-                                    <p>📍 {result.customerAddress}</p>
-                                </div>
-                            </div>
-
-                            <div className="divide-y divide-border">
-                                <h4 className="mb-2 text-sm font-medium text-muted-foreground">Order History</h4>
-                                {result.orders.map((order) => (
-                                    <div key={order.id} className="py-3">
-                                        <div className="flex items-center justify-between">
-                                            <Link
-                                                href={`/orders/${order.id}`}
-                                                className="text-sm font-medium text-primary hover:text-primary/80"
-                                            >
-                                                Order #{order.id}
-                                            </Link>
-                                            <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(order.status)}`}>
-                                                {order.status.toLowerCase()}
-                                            </span>
-                                        </div>
-                                        <div className="mt-1 flex items-center justify-between text-sm text-muted-foreground">
-                                            <span>{order.product.name} × {order.quantity}</span>
-                                            <span>
-                                                {new Intl.NumberFormat('en-LK', {
-                                                    style: 'currency',
-                                                    currency: 'LKR'
-                                                }).format(order.product.price * order.quantity)}
-                                            </span>
-                                        </div>
-                                        <div className="mt-1 text-xs text-muted-foreground">
-                                            {format(new Date(order.createdAt), 'PPp')}
+                            {searchResults.map((result, index) => (
+                                <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                    className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+                                >
+                                    <div className="p-6 sm:p-8 border-b border-border bg-muted/30">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+                                                    <UserIcon className="h-6 w-6" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-foreground">{result.customerName}</h3>
+                                                    <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                                                        <span className="flex items-center gap-1">
+                                                            <PhoneIcon className="h-3.5 w-3.5" />
+                                                            {result.customerPhone}
+                                                        </span>
+                                                        <span className="hidden sm:inline text-border">|</span>
+                                                        <span className="flex items-center gap-1">
+                                                            <MapPinIcon className="h-3.5 w-3.5" />
+                                                            {result.customerAddress}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-sm font-medium text-muted-foreground">Total Orders</span>
+                                                <p className="text-2xl font-bold text-foreground">{result.orders.length}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
+
+                                    <div className="p-6 sm:p-8 bg-card">
+                                        <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Order History</h4>
+                                        <div className="space-y-4">
+                                            {result.orders.map((order) => (
+                                                <div key={order.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-3 mb-1">
+                                                                <Link
+                                                                    href={`/orders/${order.id}`}
+                                                                    className="text-base font-bold text-foreground hover:text-primary transition-colors"
+                                                                >
+                                                                    Order #{order.id.slice(0, 8)}
+                                                                </Link>
+                                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 inset-0 ${getStatusColor(order.status)}`}>
+                                                                    {order.status}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {format(new Date(order.createdAt), 'PPP')} at {format(new Date(order.createdAt), 'p')}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between sm:justify-end gap-6 min-w-[200px]">
+                                                        <div className="text-right">
+                                                            <p className="font-medium text-foreground">{order.product.name}</p>
+                                                            <p className="text-sm text-muted-foreground">Qty: {order.quantity}</p>
+                                                        </div>
+                                                        <div className="text-right min-w-[100px]">
+                                                            <p className="font-bold text-foreground">
+                                                                {new Intl.NumberFormat('en-LK', {
+                                                                    style: 'currency',
+                                                                    currency: 'LKR'
+                                                                }).format(order.product.price * order.quantity)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
                         </motion.div>
-                    ))}
-                </div>
-            ) : searchQuery && !isLoading ? (
-                <div className="rounded-lg bg-card p-8 text-center text-muted-foreground ring-1 ring-border">
-                    No results found for "{searchQuery}"
-                </div>
-            ) : null}
+                    ) : hasSearched && !isLoading ? (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="max-w-md mx-auto text-center py-12"
+                        >
+                            <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                                <MagnifyingGlassIcon className="h-10 w-10 text-muted-foreground/50" />
+                            </div>
+                            <h3 className="text-xl font-semibold text-foreground mb-2">No customers found</h3>
+                            <p className="text-muted-foreground">
+                                We couldn't find any customers matching "{searchQuery}". Try searching with a different name or phone number.
+                            </p>
+                        </motion.div>
+                    ) : null}
+                </AnimatePresence>
+            </div>
         </div>
     );
 }

@@ -31,7 +31,7 @@ export function DateFilter() {
         const today = new Date();
         const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
-        
+
         return { start, end };
       }
     },
@@ -43,10 +43,10 @@ export function DateFilter() {
         const today = new Date();
         const yesterday = new Date(today);
         yesterday.setDate(today.getDate() - 1);
-        
+
         const start = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
         const end = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999);
-        
+
         return { start, end };
       }
     },
@@ -106,7 +106,7 @@ export function DateFilter() {
   const createQueryString = useCallback(
     (updates: Record<string, string | null>) => {
       const params = new URLSearchParams(Array.from(searchParams.entries()));
-      
+
       Object.entries(updates).forEach(([name, value]) => {
         if (value === null || value === '') {
           params.delete(name);
@@ -114,7 +114,7 @@ export function DateFilter() {
           params.set(name, value);
         }
       });
-      
+
       return params.toString();
     },
     [searchParams]
@@ -122,7 +122,7 @@ export function DateFilter() {
 
   const handleQuickFilter = (option: QuickFilterOption) => {
     const { start, end } = option.getDateRange();
-    
+
     // Format dates in local timezone to avoid UTC conversion issues
     const formatLocalDate = (date: Date) => {
       const year = date.getFullYear();
@@ -130,16 +130,16 @@ export function DateFilter() {
       const day = String(date.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     };
-    
+
     // For single-day filters (Today, Yesterday), only set startDate
     const isSingleDay = option.value === 'today' || option.value === 'yesterday';
-    
+
     const queryString = createQueryString({
       dateFilter: option.value,
       startDate: formatLocalDate(start),
       endDate: isSingleDay ? formatLocalDate(start) : formatLocalDate(end),
     });
-    
+
     router.push(`?${queryString}`);
     setIsOpen(false);
     setShowCustomRange(false);
@@ -147,13 +147,13 @@ export function DateFilter() {
 
   const handleCustomRange = () => {
     if (!customStartDate || !customEndDate) return;
-    
+
     const queryString = createQueryString({
       dateFilter: 'custom',
       startDate: customStartDate,
       endDate: customEndDate,
     });
-    
+
     router.push(`?${queryString}`);
     setIsOpen(false);
     setShowCustomRange(false);
@@ -165,7 +165,7 @@ export function DateFilter() {
       startDate: null,
       endDate: null,
     });
-    
+
     router.push(`?${queryString}`);
     setIsOpen(false);
     setShowCustomRange(false);
@@ -175,11 +175,11 @@ export function DateFilter() {
 
   const getActiveFilterLabel = () => {
     if (!currentDateFilter) return 'All Dates';
-    
+
     if (currentDateFilter === 'custom') {
       return `${currentStartDate} to ${currentEndDate}`;
     }
-    
+
     const option = quickFilterOptions.find(opt => opt.value === currentDateFilter);
     return option?.label || 'All Dates';
   };
@@ -189,94 +189,91 @@ export function DateFilter() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-colors min-w-[200px] justify-between ${
-          currentDateFilter 
-            ? 'text-indigo-300 bg-indigo-500/20 border border-indigo-500/50 hover:bg-indigo-500/30' 
-            : 'text-gray-300 bg-gray-700 border border-gray-600 hover:bg-gray-600'
-        }`}
+        className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-colors min-w-[200px] justify-between shadow-sm border ${currentDateFilter
+            ? 'text-primary bg-primary/10 border-primary/20 hover:bg-primary/20'
+            : 'text-foreground bg-white dark:bg-muted border-border hover:bg-accent'
+          }`}
       >
         <div className="flex items-center gap-2">
-          <CalendarIcon className="h-4 w-4" />
+          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
           <span className="truncate">{getActiveFilterLabel()}</span>
           {currentDateFilter && (
-            <div className="w-2 h-2 bg-indigo-400 rounded-full flex-shrink-0"></div>
+            <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
           )}
         </div>
-        <ChevronDownIcon className={`h-4 w-4 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDownIcon className={`h-4 w-4 text-muted-foreground transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 z-50 mt-2 w-80 bg-gray-800 border border-gray-600 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5 backdrop-blur-sm">
+        <div className="absolute right-0 z-50 mt-2 w-80 bg-popover border border-border rounded-xl shadow-xl ring-1 ring-black ring-opacity-5 backdrop-blur-sm overflow-hidden">
           <div className="p-4">
             <div className="space-y-2">
-              <h3 className="text-sm font-medium text-gray-200 mb-3">Quick Filters</h3>
-              
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">Quick Filters</h3>
+
               {quickFilterOptions.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => handleQuickFilter(option)}
-                  className={`block w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                    currentDateFilter === option.value
-                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                  }`}
+                  className={`block w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${currentDateFilter === option.value
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'text-foreground hover:bg-accent'
+                    }`}
                 >
                   {option.label}
                 </button>
               ))}
-              
-              <div className="border-t border-gray-600 pt-3 mt-3">
+
+              <div className="border-t border-border pt-3 mt-3">
                 <button
                   onClick={() => setShowCustomRange(!showCustomRange)}
-                  className={`block w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${
-                    currentDateFilter === 'custom'
-                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                  }`}
+                  className={`block w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${currentDateFilter === 'custom'
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'text-foreground hover:bg-accent'
+                    }`}
                 >
                   Custom Date Range
                 </button>
-                
+
                 {showCustomRange && (
-                  <div className="mt-3 space-y-3 p-3 bg-gray-700/50 rounded-md">
+                  <div className="mt-3 space-y-3 p-3 bg-muted/50 rounded-lg">
                     <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">
                         Start Date
                       </label>
                       <input
                         type="date"
                         value={customStartDate || currentStartDate}
                         onChange={(e) => setCustomStartDate(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-gray-800 border border-gray-600 rounded-md text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-300 mb-1">
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">
                         End Date
                       </label>
                       <input
                         type="date"
                         value={customEndDate || currentEndDate}
                         onChange={(e) => setCustomEndDate(e.target.value)}
-                        className="w-full px-3 py-2 text-sm bg-gray-800 border border-gray-600 rounded-md text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                     </div>
                     <button
                       onClick={handleCustomRange}
                       disabled={!customStartDate || !customEndDate}
-                      className="w-full px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="w-full px-3 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       Apply Range
                     </button>
                   </div>
                 )}
               </div>
-              
+
               {currentDateFilter && (
-                <div className="border-t border-gray-600 pt-3 mt-3">
+                <div className="border-t border-border pt-3 mt-3">
                   <button
                     onClick={clearFilter}
-                    className="block w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-md transition-colors"
+                    className="block w-full text-left px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                   >
                     Clear Filter
                   </button>

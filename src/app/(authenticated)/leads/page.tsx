@@ -12,8 +12,9 @@ import { User } from 'next-auth';
 export type LeadWithDetails = PrismaLead & {
   product: Product;
   assignedTo: PrismaUser | null;
-  order: { 
+  order: {
     id: string;
+    number: number;
     status: string;
     customerName: string;
     customerPhone: string;
@@ -33,20 +34,20 @@ export default async function LeadsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const session = await getServerSession(authOptions);
-  
+
   // 1. SECURE THE PAGE
   if (!session?.user?.tenantId) {
     return redirect('/auth/signin');
   }
-  
+
   // Redirect if a team member without VIEW_LEADS tries to access
   if (session.user.role === 'TEAM_MEMBER' && !session.user.permissions?.includes('VIEW_LEADS')) {
-      return redirect('/unauthorized');
+    return redirect('/unauthorized');
   }
 
   // 2. USE SCOPED PRISMA CLIENT
   const prisma = getScopedPrismaClient(session.user.tenantId);
-  
+
   // 3. BUILD SECURE WHERE CLAUSE
   const where: Prisma.LeadWhereInput = {};
   if (session.user.role === 'TEAM_MEMBER') {
@@ -60,9 +61,10 @@ export default async function LeadsPage({
       include: {
         product: true,
         assignedTo: true,
-        order: { 
-          select: { 
-            id: true, 
+        order: {
+          select: {
+            id: true,
+            number: true,
             status: true,
             customerName: true,
             customerPhone: true,
@@ -73,7 +75,7 @@ export default async function LeadsPage({
             discount: true,
             shippingProvider: true,
             trackingNumber: true
-          } 
+          }
         },
       },
       orderBy: {
@@ -96,17 +98,17 @@ export default async function LeadsPage({
   // 5. PASS DATA TO CLIENT COMPONENT
   const resolvedSearchParams = await searchParams;
   return (
-    <LeadsClient 
-        initialLeads={leads as LeadWithDetails[]} 
-        user={session.user as User}
-        searchParams={resolvedSearchParams}
-        tenantConfig={tenant ? {
-          fardaExpressClientId: tenant.fardaExpressClientId || undefined,
-          fardaExpressApiKey: tenant.fardaExpressApiKey || undefined,
-          transExpressApiKey: tenant.transExpressApiKey || undefined,
-          royalExpressApiKey: tenant.royalExpressApiKey || undefined,
-          royalExpressOrderPrefix: tenant.royalExpressOrderPrefix || undefined,
-        } : undefined}
+    <LeadsClient
+      initialLeads={leads as LeadWithDetails[]}
+      user={session.user as User}
+      searchParams={resolvedSearchParams}
+      tenantConfig={tenant ? {
+        fardaExpressClientId: tenant.fardaExpressClientId || undefined,
+        fardaExpressApiKey: tenant.fardaExpressApiKey || undefined,
+        transExpressApiKey: tenant.transExpressApiKey || undefined,
+        royalExpressApiKey: tenant.royalExpressApiKey || undefined,
+        royalExpressOrderPrefix: tenant.royalExpressOrderPrefix || undefined,
+      } : undefined}
     />
   );
 }

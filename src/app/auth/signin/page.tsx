@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Loader2, Sun, Moon, ArrowRight } from "lucide-react";
+import { Loader2, Sun, Moon, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +27,7 @@ function ThemeToggle() {
     else root.classList.remove("dark");
   };
   return (
-    <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme" className="rounded-full">
+    <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme" className="rounded-full hover:bg-muted">
       {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
     </Button>
   );
@@ -71,38 +71,57 @@ export default function SignInPage() {
         className="lg:w-1/2 relative flex flex-col justify-between p-8 lg:p-12 bg-zinc-900 text-white overflow-hidden"
       >
         {/* Background Pattern */}
-        <div className="absolute inset-0 z-0 opacity-20">
-          <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary blur-3xl mix-blend-multiply animate-blob"></div>
-          <div className="absolute top-1/2 left-1/2 w-96 h-96 rounded-full bg-red-800 blur-3xl mix-blend-multiply animate-blob animation-delay-2000"></div>
-          <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-primary blur-3xl mix-blend-multiply animate-blob animation-delay-4000"></div>
+        <div className="absolute inset-0 z-0">
+          <img
+            src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1920&auto=format&fit=crop"
+            alt="System Analytics"
+            className="w-full h-full object-cover opacity-40 mix-blend-overlay"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-zinc-900/90 to-primary/20 mix-blend-multiply" />
         </div>
 
         <div className="relative z-10">
-          <div className="flex items-center gap-2 font-bold text-xl tracking-tighter">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-white">J</span>
+          <div className="flex items-center gap-3 font-bold text-xl tracking-tighter">
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+              <span className="text-white text-lg">J</span>
             </div>
-            Jnex Holdings
+            <span className="text-2xl">Jnex Holdings</span>
           </div>
         </div>
 
-        <div className="relative z-10 mt-12 lg:mt-0">
+        <div className="relative z-10 mt-12 lg:mt-0 space-y-6">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-4xl lg:text-6xl font-bold tracking-tight leading-tight mb-6"
+            className="text-4xl lg:text-6xl font-bold tracking-tight leading-tight"
           >
             Sales <span className="text-primary">Management</span> System
           </motion.h1>
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6 }}
-            className="text-lg text-zinc-400 max-w-md"
+            className="space-y-4"
           >
-            Streamline your sales operations, track performance, and drive growth with our comprehensive management solution.
-          </motion.p>
+            <p className="text-lg text-zinc-300 max-w-md leading-relaxed">
+              Streamline your sales operations, track performance, and drive growth with our comprehensive management solution.
+            </p>
+            <div className="flex flex-col gap-3 pt-4">
+              <div className="flex items-center gap-2 text-zinc-400">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+                <span>Real-time inventory tracking</span>
+              </div>
+              <div className="flex items-center gap-2 text-zinc-400">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+                <span>Advanced order management</span>
+              </div>
+              <div className="flex items-center gap-2 text-zinc-400">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+                <span>Seamless shipping integration</span>
+              </div>
+            </div>
+          </motion.div>
         </div>
 
         <div className="relative z-10 text-sm text-zinc-500 mt-8">
@@ -111,7 +130,7 @@ export default function SignInPage() {
       </motion.div>
 
       {/* Right Side - Login Form */}
-      <div className="lg:w-1/2 flex items-center justify-center p-6 lg:p-12 relative">
+      <div className="lg:w-1/2 flex items-center justify-center p-6 lg:p-12 relative bg-background">
         <div className="absolute top-6 right-6">
           <ThemeToggle />
         </div>
@@ -122,9 +141,9 @@ export default function SignInPage() {
           transition={{ delay: 0.2, duration: 0.5 }}
           className="w-full max-w-md space-y-8"
         >
-          <div className="text-center lg:text-left">
-            <h2 className="text-3xl font-bold tracking-tight">Welcome back</h2>
-            <p className="mt-2 text-muted-foreground">
+          <div className="text-center lg:text-left space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">Welcome back</h2>
+            <p className="text-muted-foreground">
               Please enter your details to sign in.
             </p>
           </div>
@@ -133,15 +152,16 @@ export default function SignInPage() {
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
-              className="p-4 rounded-lg bg-destructive/10 text-destructive text-sm font-medium border border-destructive/20"
+              className="p-4 rounded-2xl bg-destructive/10 text-destructive text-sm font-medium border border-destructive/20 flex items-center gap-2"
             >
+              <div className="h-2 w-2 rounded-full bg-destructive" />
               {error}
             </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email" className="ml-1 text-muted-foreground">Email Address</Label>
               <Input
                 id="email"
                 type="email"
@@ -149,14 +169,14 @@ export default function SignInPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-11"
+                className="h-12 rounded-full px-5 border-input bg-background/50 hover:bg-background focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <a href="#" className="text-sm font-medium text-primary hover:underline">
+              <div className="flex items-center justify-between ml-1">
+                <Label htmlFor="password" className="text-muted-foreground">Password</Label>
+                <a href="#" className="text-sm font-medium text-primary hover:underline hover:text-primary/80 transition-colors">
                   Forgot password?
                 </a>
               </div>
@@ -167,13 +187,13 @@ export default function SignInPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="h-11"
+                className="h-12 rounded-full px-5 border-input bg-background/50 hover:bg-background focus:ring-2 focus:ring-primary/20 transition-all"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full h-11 text-base font-medium transition-all hover:scale-[1.02]"
+              className="w-full h-12 rounded-full text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:scale-[1.02]"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -191,7 +211,7 @@ export default function SignInPage() {
 
           <p className="text-center text-sm text-muted-foreground">
             Don't have an account?{" "}
-            <a href="#" className="font-medium text-primary hover:underline">
+            <a href="#" className="font-medium text-primary hover:underline hover:text-primary/80 transition-colors">
               Contact Admin
             </a>
           </p>

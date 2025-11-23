@@ -76,12 +76,12 @@ export default async function OrdersPage({
       <div className="flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Orders</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <h1 className="text-2xl font-bold text-foreground">Orders</h1>
+            <p className="text-sm text-muted-foreground">
               Manage orders and track their status
               {searchQuery && ` • Searching: "${searchQuery}"`}
               {dateFilter && startDate && endDate && (
-                <span className="inline-flex items-center gap-1 ml-2 px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded-md text-xs font-medium">
+                <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-medium">
                   📅 {startDate} to {endDate}
                 </span>
               )}
@@ -90,17 +90,15 @@ export default async function OrdersPage({
         </div>
 
         {/* Filter Controls Section */}
-        <div className="bg-card rounded-lg p-4 ring-1 ring-border">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Filter by:</span>
-            </div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1">
+        <div className="bg-card rounded-2xl p-2 border border-border shadow-sm">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-4 p-2">
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
               <DateFilter />
               <div className="hidden sm:block w-px h-6 bg-border"></div>
-              <SearchOrders />
-              <div className="hidden sm:block w-px h-6 bg-border"></div>
               <SortOrders />
+            </div>
+            <div className="w-full lg:w-auto">
+              <SearchOrders />
             </div>
           </div>
         </div>

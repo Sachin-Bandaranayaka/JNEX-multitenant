@@ -205,7 +205,7 @@ export function LeadActions({
                 {canShipOrder && (
                     <button
                         onClick={() => setIsShippingModalOpen(true)}
-                        className="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+                        className="px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 transition-colors"
                     >
                         Ship Order
                     </button>
@@ -219,7 +219,7 @@ export function LeadActions({
                             <button
                                 onClick={() => handleCreateOrder(false)}
                                 disabled={isCreating}
-                                className="text-sm font-medium text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 disabled:opacity-50"
+                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/20 disabled:opacity-50 transition-colors"
                             >
                                 {isCreating ? 'Processing...' : 'Create Order'}
                             </button>
@@ -228,7 +228,7 @@ export function LeadActions({
                         {canEdit && (
                             <Link
                                 href={`/leads/${lead.id}`}
-                                className="text-sm font-medium text-primary hover:text-primary/80"
+                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                             >
                                 Edit
                             </Link>
@@ -237,7 +237,7 @@ export function LeadActions({
                         {canDelete && (
                             <button
                                 onClick={handleDelete}
-                                className="text-sm font-medium text-destructive hover:text-destructive/80"
+                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors"
                             >
                                 Delete
                             </button>
@@ -251,7 +251,7 @@ export function LeadActions({
                         {canEdit && (
                             <button
                                 onClick={() => handleStatusChange('PENDING')}
-                                className="text-sm font-medium text-yellow-600 hover:text-yellow-500 dark:text-yellow-400 dark:hover:text-yellow-300"
+                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-600 hover:bg-yellow-100 dark:bg-yellow-500/10 dark:text-yellow-400 dark:hover:bg-yellow-500/20 transition-colors"
                             >
                                 Move to Pending
                             </button>
@@ -260,7 +260,7 @@ export function LeadActions({
                         {canEdit && (
                             <button
                                 onClick={() => handleStatusChange('REJECTED')}
-                                className="text-sm font-medium text-destructive hover:text-destructive/80"
+                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors"
                             >
                                 Reject
                             </button>
@@ -269,7 +269,7 @@ export function LeadActions({
                         {canDelete && (
                             <button
                                 onClick={handleDelete}
-                                className="text-sm font-medium text-destructive hover:text-destructive/80"
+                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors"
                             >
                                 Delete
                             </button>
@@ -278,7 +278,7 @@ export function LeadActions({
                         {canEdit && (
                             <Link
                                 href={`/leads/${lead.id}`}
-                                className="text-sm font-medium text-primary hover:text-primary/80"
+                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                             >
                                 Edit
                             </Link>

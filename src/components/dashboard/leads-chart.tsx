@@ -17,7 +17,7 @@ interface LeadsChartProps {
   }[];
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD'];
+const COLORS = ['#F43F5E', '#3B82F6', '#EAB308', '#A855F7', '#10B981'];
 
 // Format the status for display
 const formatStatus = (status: string): string => {

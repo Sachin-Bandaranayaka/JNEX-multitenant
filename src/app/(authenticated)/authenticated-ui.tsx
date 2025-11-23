@@ -13,6 +13,7 @@ import {
   UsersIcon, ChartBarIcon, MagnifyingGlassIcon, TruckIcon, CogIcon,
   ArrowRightOnRectangleIcon, Bars3Icon, XMarkIcon
 } from '@heroicons/react/24/outline';
+import { Header } from '@/components/dashboard/header';
 
 function NavLink({ href, icon, children, isActive, onClick }: {
   href: string;
@@ -25,12 +26,14 @@ function NavLink({ href, icon, children, isActive, onClick }: {
   return (
     <Link href={href} onClick={onClick}>
       <div
-        className={`flex items-center space-x-4 rounded-lg px-4 py-3 transition-all duration-200 touch-manipulation ${isActive
-          ? 'bg-primary/10 text-primary border-l-2 border-primary shadow-[0_0_10px_rgba(220,38,38,0.1)]'
-          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground active:bg-accent/50'
+        className={`flex items-center space-x-3 rounded-xl px-4 py-3 transition-all duration-200 touch-manipulation group ${isActive
+          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
           }`}
       >
-        {icon}
+        <div className={isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground'}>
+          {icon}
+        </div>
         {showText && <span className="font-medium">{children}</span>}
       </div>
     </Link>
@@ -85,7 +88,7 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
 
   if (status === 'loading' || !session) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-900">
+      <div className="flex h-screen items-center justify-center bg-background">
         <div className="h-16 w-16 animate-spin rounded-full border-t-4 border-b-4 border-primary"></div>
       </div>
     );
@@ -99,109 +102,54 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
       {/* Mobile overlay */}
       {isMobile && isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* Mobile header */}
-      {/* Mobile header */}
-      <div className="print:hidden lg:hidden fixed top-0 left-0 right-0 z-30 bg-muted/40 border-b border-border px-4 py-3 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {tenant.logoUrl && (
-              <Image
-                src={tenant.logoUrl}
-                alt="Logo"
-                width={28}
-                height={28}
-                className="rounded-md object-contain w-7 h-7 sm:w-8 sm:h-8"
-                priority
-                sizes="(max-width: 640px) 28px, 32px"
-              />
-            )}
-            <h1 className="text-lg font-bold text-foreground truncate">
-              {tenant.businessName || 'Dashboard'}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-md hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring touch-manipulation"
-            >
-              {isSidebarOpen ? (
-                <XMarkIcon className="h-6 w-6 text-gray-300" />
-              ) : (
-                <Bars3Icon className="h-6 w-6 text-gray-300" />
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
       <aside
         id="mobile-sidebar"
-        className={`print:hidden flex-shrink-0 flex flex-col transition-all duration-300 bg-muted/40 border-r border-border z-50
+        className={`print:hidden flex-shrink-0 flex flex-col transition-all duration-300 bg-card border-r border-border/40 z-50
           ${isMobile
-            ? `fixed top-0 left-0 h-full ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full'}`
-            : `sticky top-0 h-screen ${isSidebarOpen ? 'w-64' : 'w-20'}`
+            ? `fixed top-0 left-0 h-full shadow-2xl ${isSidebarOpen ? 'w-72 translate-x-0' : 'w-72 -translate-x-full'}`
+            : `sticky top-0 h-screen ${isSidebarOpen ? 'w-72' : 'w-20'}`
           }`}
       >
         {/* Desktop header */}
-        <div className={`hidden lg:flex items-center p-4 border-b border-border ${isSidebarOpen ? 'justify-between' : 'justify-center'}`}>
+        <div className={`flex items-center p-6 mb-2 ${isSidebarOpen ? 'justify-between' : 'justify-center'}`}>
           {isSidebarOpen && (
             <div className="flex items-center gap-3">
-              {tenant.logoUrl && (
+              {tenant.logoUrl ? (
                 <Image
                   src={tenant.logoUrl}
                   alt="Logo"
-                  width={32}
-                  height={32}
-                  className="rounded-md object-contain w-8 h-8 lg:w-10 lg:h-10"
+                  width={40}
+                  height={40}
+                  className="rounded-xl object-contain"
                   priority
-                  sizes="(max-width: 1024px) 32px, 40px"
                 />
+              ) : (
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
+                  {tenant.businessName?.charAt(0) || 'J'}
+                </div>
               )}
-              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground truncate leading-tight">
-                {tenant.businessName || 'Dashboard'}
-              </h1>
+              <div className="flex flex-col">
+                <h1 className="text-lg font-bold text-foreground truncate leading-none">
+                  {tenant.businessName || 'Dashboard'}
+                </h1>
+                <span className="text-xs text-muted-foreground mt-1">Enterprise</span>
+              </div>
             </div>
           )}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 rounded-md hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring touch-manipulation"
+            className="p-2 rounded-lg hover:bg-accent text-muted-foreground transition-colors lg:hidden"
           >
-            <Bars3Icon className="h-6 w-6 text-muted-foreground" />
+            <XMarkIcon className="h-6 w-6" />
           </button>
         </div>
 
-        {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between p-4 border-b border-border">
-          <div className="flex items-center gap-3">
-            {tenant.logoUrl && (
-              <Image
-                src={tenant.logoUrl}
-                alt="Logo"
-                width={28}
-                height={28}
-                className="rounded-md object-contain w-7 h-7"
-                priority
-                sizes="28px"
-              />
-            )}
-            <h1 className="text-base sm:text-lg font-bold text-foreground truncate leading-tight">
-              {tenant.businessName || 'Dashboard'}
-            </h1>
-          </div>
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="p-2 rounded-md hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring touch-manipulation"
-          >
-            <XMarkIcon className="h-6 w-6 text-muted-foreground" />
-          </button>
-        </div>
-        <nav className="flex-grow space-y-1 px-4 mt-4 overflow-y-auto">
+        <nav className="flex-grow space-y-1 px-4 overflow-y-auto scrollbar-thin">
           {(userRole === 'ADMIN' || userPermissions.includes('VIEW_DASHBOARD')) &&
             <NavLink
               href="/dashboard"
@@ -275,8 +223,12 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
 
           {(userRole === 'ADMIN' || userPermissions.includes('VIEW_REPORTS') || userPermissions.includes('MANAGE_USERS') || userPermissions.includes('MANAGE_SETTINGS')) && (
             <>
-              <div className="pt-4 pb-2 px-4 text-xs font-semibold text-gray-500 uppercase">
-                {(isSidebarOpen || isMobile) && 'Admin'}
+              <div className="mt-8 mb-4 px-4">
+                {(isSidebarOpen || isMobile) && (
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Management
+                  </span>
+                )}
               </div>
               {(userRole === 'ADMIN' || userPermissions.includes('VIEW_REPORTS')) &&
                 <NavLink
@@ -311,14 +263,10 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
             </>
           )}
         </nav>
-        <div className="p-4 mt-auto border-t border-border space-y-2">
-          <div className={`flex items-center ${!isSidebarOpen && !isMobile ? 'justify-center' : 'justify-between px-4'}`}>
-            {(isSidebarOpen || isMobile) && <span className="text-sm font-medium text-muted-foreground">Theme</span>}
-            <ThemeToggle />
-          </div>
+        <div className="p-4 mt-auto border-t border-border/40 space-y-2">
           <button
             onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-            className={`flex w-full items-center space-x-4 rounded-lg px-4 py-3 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground active:bg-accent/50 touch-manipulation ${!isSidebarOpen && !isMobile && 'justify-center'
+            className={`flex w-full items-center space-x-3 rounded-xl px-4 py-3 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 active:bg-red-100 touch-manipulation ${!isSidebarOpen && !isMobile && 'justify-center'
               }`}
           >
             <ArrowRightOnRectangleIcon className="h-6 w-6" />
@@ -327,11 +275,12 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
         </div>
       </aside>
 
-      <main className={`flex-1 overflow-x-hidden ${isMobile ? 'pt-16' : ''}`}>
-        <div className="p-4 sm:p-6 lg:p-8 xl:p-10">
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        <Header tenant={tenant} userName={session.user.name} />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background/50 p-6">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

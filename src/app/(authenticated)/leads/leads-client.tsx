@@ -1,5 +1,3 @@
-// src/app/(authenticated)/leads/leads-client.tsx
-
 'use client';
 
 import { useState } from 'react';
@@ -9,12 +7,37 @@ import { LeadActions } from '@/components/leads/lead-actions';
 import { SearchLeads } from '@/components/leads/search-leads';
 import type { LeadWithDetails } from './page';
 import { User } from 'next-auth';
+import { motion } from 'framer-motion';
+import {
+  ClockIcon,
+  PhoneXMarkIcon,
+  XCircleIcon,
+  CheckCircleIcon,
+  PlusIcon,
+  ArrowUpTrayIcon
+} from '@heroicons/react/24/outline';
 
 const STATUS_CONFIG = {
-  PENDING: { label: 'Pending', border: 'border-yellow-500/50', text: 'text-yellow-700 dark:text-yellow-300', icon: '🕒' },
-  NO_ANSWER: { label: 'No Answer', border: 'border-orange-500/50', text: 'text-orange-700 dark:text-orange-300', icon: '📞' },
-  REJECTED: { label: 'Rejected', border: 'border-red-500/50', text: 'text-red-700 dark:text-red-300', icon: '❌' },
-  CONFIRMED: { label: 'Converted', border: 'border-green-500/50', text: 'text-green-700 dark:text-green-300', icon: '✅' },
+  PENDING: {
+    label: 'Pending',
+    color: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20',
+    icon: ClockIcon
+  },
+  NO_ANSWER: {
+    label: 'No Answer',
+    color: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 ring-orange-500/20',
+    icon: PhoneXMarkIcon
+  },
+  REJECTED: {
+    label: 'Rejected',
+    color: 'bg-red-500/10 text-red-600 dark:text-red-400 ring-red-500/20',
+    icon: XCircleIcon
+  },
+  CONFIRMED: {
+    label: 'Converted',
+    color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20',
+    icon: CheckCircleIcon
+  },
 };
 
 export function LeadsClient({
@@ -85,70 +108,141 @@ export function LeadsClient({
 
 
   return (
-    <div className="space-y-8 p-4 sm:p-6 lg:p-8 bg-background text-foreground">
-      <div className="flex justify-between items-start">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Leads</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Manage your leads and track their status.</p>
-          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:space-x-4">
-            <div className="flex space-x-2">
-              <Link href={`/leads?timeFilter=daily${searchQuery ? `&query=${searchQuery}` : ''}`} className={`px-3 py-1.5 rounded-md text-sm font-medium ${timeFilter === 'daily' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground bg-muted hover:bg-accent'}`}>Daily</Link>
-              <Link href={`/leads?timeFilter=weekly${searchQuery ? `&query=${searchQuery}` : ''}`} className={`px-3 py-1.5 rounded-md text-sm font-medium ${timeFilter === 'weekly' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground bg-muted hover:bg-accent'}`}>Weekly</Link>
-              <Link href={`/leads?timeFilter=monthly${searchQuery ? `&query=${searchQuery}` : ''}`} className={`px-3 py-1.5 rounded-md text-sm font-medium ${timeFilter === 'monthly' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground bg-muted hover:bg-accent'}`}>Monthly</Link>
-            </div>
-            <div className="mt-4 sm:mt-0"><SearchLeads /></div>
-          </div>
+          <h1 className="text-2xl font-bold text-foreground">Leads</h1>
+          <p className="text-sm text-muted-foreground">Manage and track your potential customers</p>
         </div>
 
-        {/* --- PERMISSION-BASED BUTTONS --- */}
-        {canCreate && (
-          <div className="flex gap-4 flex-shrink-0">
-            <Link href="/leads/import" className="inline-flex items-center px-4 py-2 border border-input rounded-md ring-1 ring-border text-sm font-medium text-muted-foreground bg-card hover:bg-accent hover:text-accent-foreground">Import CSV</Link>
-            <Link href="/leads/new" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md ring-1 ring-border text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90">Add Lead</Link>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {canCreate && (
+            <>
+              <Link
+                href="/leads/import"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-muted border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors shadow-sm"
+              >
+                <ArrowUpTrayIcon className="h-4 w-4" />
+                Import CSV
+              </Link>
+              <Link
+                href="/leads/new"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm shadow-primary/20"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add Lead
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-card p-2 rounded-2xl border border-border/50 shadow-sm">
+        <div className="flex p-1 bg-muted/50 rounded-xl">
+          {['daily', 'weekly', 'monthly'].map((filter) => (
+            <Link
+              key={filter}
+              href={`/leads?timeFilter=${filter}${searchQuery ? `&query=${searchQuery}` : ''}`}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${timeFilter === filter
+                ? 'bg-white dark:bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+                }`}
+            >
+              {filter.charAt(0).toUpperCase() + filter.slice(1)}
+            </Link>
+          ))}
+        </div>
+        <SearchLeads />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-2">
         {Object.entries(STATUS_CONFIG).map(([status, config]) => (
-          <div key={status} className={`rounded-lg ring-1 ring-border overflow-hidden bg-card border ${config.border}`}>
-            <div className="px-6 py-4 border-b border-border">
-              <h2 className={`text-lg font-medium flex items-center space-x-2 ${config.text}`}>
-                <span>{config.icon}</span>
-                <span>{config.label} ({leadsByStatus[status]?.length || 0})</span>
-              </h2>
+          <motion.div
+            key={status}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col h-full bg-white dark:bg-card rounded-3xl border border-border/50 shadow-sm overflow-hidden"
+          >
+            <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${config.color} ring-1 inset-0`}>
+                  <config.icon className="h-5 w-5" />
+                </div>
+                <h2 className="font-semibold text-foreground">
+                  {config.label}
+                </h2>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                {leadsByStatus[status]?.length || 0}
+              </span>
             </div>
-            <ul className="divide-y divide-border">
-              {(leadsByStatus[status] || []).map((lead) => (
-                <li key={lead.id} className="p-4 hover:bg-accent/50">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-grow">
-                      <Link href={`/leads/${lead.id}`} className="text-sm font-medium text-primary hover:text-primary/80">
-                        {(lead.csvData as any).name || 'Unnamed Lead'}
-                      </Link>
-                      <p className="mt-1 text-sm text-muted-foreground">{lead.product.name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">📞 {(lead.csvData as any).phone}</p>
+
+            <div className="flex-1 p-4 overflow-y-auto max-h-[600px] custom-scrollbar">
+              <ul className="space-y-3">
+                {(leadsByStatus[status] || []).map((lead, index) => (
+                  <motion.li
+                    key={lead.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="group p-4 rounded-2xl bg-muted/30 hover:bg-muted/60 border border-transparent hover:border-border/50 transition-all duration-200"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-grow min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Link href={`/leads/${lead.id}`} className="text-sm font-semibold text-foreground hover:text-primary truncate">
+                            {(lead.csvData as any).name || 'Unnamed Lead'}
+                          </Link>
+                          <span className="text-xs text-muted-foreground">•</span>
+                          <span className="text-xs text-muted-foreground">{format(new Date(lead.createdAt), 'MMM d')}</span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary/50"></span>
+                            {lead.product.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></span>
+                            {(lead.csvData as any).phone}
+                          </p>
+                        </div>
+
+                        {lead.assignedTo && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-medium text-primary">
+                              {lead.assignedTo.name?.[0] || 'U'}
+                            </div>
+                            <span className="text-xs text-muted-foreground">Assigned to {lead.assignedTo.name}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col items-end gap-2">
+                        {lead.status === 'CONFIRMED' && lead.order && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-lg bg-green-500/10 text-green-600 text-[10px] font-medium ring-1 ring-green-500/20">
+                            Order #{lead.order.number || lead.order.id.slice(0, 8)}
+                          </span>
+                        )}
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} />
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right flex-shrink-0 ml-4">
-                      <p className="text-sm text-muted-foreground">{format(new Date(lead.createdAt), 'MMM d, p')}</p>
-                      {lead.assignedTo && <p className="mt-1 text-xs text-muted-foreground">To: {lead.assignedTo.name}</p>}
+                  </motion.li>
+                ))}
+                {(!leadsByStatus[status] || leadsByStatus[status].length === 0) && (
+                  <li className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className={`p-3 rounded-full bg-muted/50 mb-3 ${config.color.split(' ')[1]}`}>
+                      <config.icon className="h-6 w-6 opacity-50" />
                     </div>
-                  </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    {lead.status === 'CONFIRMED' && lead.order ?
-                      (<p className="text-sm text-green-600 dark:text-green-400">🛍️ Order #{lead.order.id}</p>) :
-                      (<div />) // Placeholder for alignment
-                    }
-                    {/* --- PASS PROPS TO ACTION COMPONENT --- */}
-                    <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} />
-                  </div>
-                </li>
-              ))}
-              {(!leadsByStatus[status] || leadsByStatus[status].length === 0) && (
-                <li><div className="px-6 py-8 text-center text-sm text-muted-foreground">No {config.label.toLowerCase()} leads.</div></li>
-              )}
-            </ul>
-          </div>
+                    <p className="text-sm text-muted-foreground">No {config.label.toLowerCase()} leads found</p>
+                  </li>
+                )}
+              </ul>
+            </div>
+          </motion.div>
         ))}
       </div>
     </div>

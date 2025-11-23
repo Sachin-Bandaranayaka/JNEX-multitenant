@@ -7,6 +7,8 @@ import { redirect } from 'next/navigation';
 import { PrintClient } from './print-client';
 import { Tenant } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 // --- FIX: The page now accepts `searchParams` to read the URL ---
 interface PrintPageProps {
     searchParams: Promise<{
@@ -67,8 +69,8 @@ export default async function PrintPage({ searchParams }: PrintPageProps) {
     }
 
     return (
-        <PrintClient 
-            initialOrders={orders} 
+        <PrintClient
+            initialOrders={orders}
             tenant={tenant as Tenant}
         />
     );

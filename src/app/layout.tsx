@@ -20,6 +20,15 @@ export const metadata: Metadata = {
     default: 'J-nex Holdings Sales Management'
   },
   description: 'Sales management system for J-nex Holdings',
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Jnex",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default function RootLayout({

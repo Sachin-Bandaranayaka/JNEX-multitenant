@@ -1,3 +1,10 @@
+const withPWA = require("@ducanh2912/next-pwa").default({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+  register: true,
+  skipWaiting: true,
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -38,13 +45,13 @@ const nextConfig = {
         zlib: false,
       };
     }
-    
+
     // Add resolver for lucide-react
     config.resolve.alias = {
       ...config.resolve.alias,
       'lucide-react': require.resolve('lucide-react'),
     };
-    
+
     // Fix for missing @tailwindcss/forms in production build
     if (!isServer) {
       config.resolve.fallback = {
@@ -52,9 +59,9 @@ const nextConfig = {
         '@tailwindcss/forms': require.resolve('@tailwindcss/forms'),
       };
     }
-    
+
     return config;
   },
 };
 
-module.exports = nextConfig;
+module.exports = withPWA(nextConfig);

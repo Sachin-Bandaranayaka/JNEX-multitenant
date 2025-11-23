@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { UserList } from '@/components/users/user-list';
 import { AddUserButton } from '@/components/users/add-user-button';
-import { UserForm } from '@/components/users/user-form'; // Import the new form
-import { useSession } from 'next-auth/react';
+import { UserForm } from '@/components/users/user-form';
 import { toast } from 'sonner';
 
 interface User {
@@ -19,18 +18,16 @@ interface User {
 }
 
 export function UsersClient({ initialUsers, currentUserId }: { initialUsers: User[], currentUserId: string }) {
-    
+
     const [users, setUsers] = useState<User[]>(initialUsers);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
     const handleUserChange = async () => {
-        // This function refreshes the user list from the API
         const response = await fetch('/api/users');
         if (response.ok) {
             const data = await response.json();
-            // Ensure data is an array before setting
-            if(Array.isArray(data)) {
+            if (Array.isArray(data)) {
                 setUsers(data);
             }
         }
@@ -60,30 +57,27 @@ export function UsersClient({ initialUsers, currentUserId }: { initialUsers: Use
                 const data = await response.json();
                 throw new Error(data.error || 'Failed to delete user.');
             }
-            
+
             toast.success('User deleted successfully.');
-            await handleUserChange(); // Refresh the list
+            await handleUserChange();
         } catch (error) {
             toast.error(error instanceof Error ? error.message : 'An error occurred.');
         }
     };
-    
-    
 
     return (
-        <div className="container mx-auto px-4 py-8 space-y-6">
-            <div className="flex justify-between items-center">
+        <div className="container mx-auto px-4 py-8 space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-semibold text-white">Users</h1>
-                    <p className="mt-2 text-sm text-gray-400">Manage users and their permissions.</p>
+                    <h1 className="text-3xl font-bold text-foreground tracking-tight">Users</h1>
+                    <p className="mt-1 text-sm text-muted-foreground">Manage users and their permissions.</p>
                 </div>
-                {/* Update the AddUserButton to open the form */}
                 <AddUserButton onAddUser={openFormForCreate} />
             </div>
 
-            <div className="bg-gray-800 rounded-lg ring-1 ring-white/10 overflow-hidden">
-                <UserList 
-                    users={users} 
+            <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
+                <UserList
+                    users={users}
                     currentUserId={currentUserId}
                     onEdit={openFormForEdit}
                     onDelete={handleDelete}
@@ -92,16 +86,23 @@ export function UsersClient({ initialUsers, currentUserId }: { initialUsers: Use
 
             {/* Modal for Creating/Editing Users */}
             {isFormOpen && (
-                <div className="fixed inset-0 bg-gray-900/80 flex items-center justify-center z-50">
-                    <div className="bg-gray-800 rounded-lg p-6 w-full max-w-lg ring-1 ring-white/10">
-                        <UserForm
-                            user={editingUser}
-                            onSuccess={() => {
-                                setIsFormOpen(false);
-                                handleUserChange();
-                            }}
-                            onCancel={() => setIsFormOpen(false)}
-                        />
+                <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-card rounded-3xl border border-border shadow-lg w-full max-w-lg overflow-hidden">
+                        <div className="p-6 border-b border-border">
+                            <h2 className="text-xl font-bold text-foreground">
+                                {editingUser ? 'Edit User' : 'Add New User'}
+                            </h2>
+                        </div>
+                        <div className="p-6">
+                            <UserForm
+                                user={editingUser}
+                                onSuccess={() => {
+                                    setIsFormOpen(false);
+                                    handleUserChange();
+                                }}
+                                onCancel={() => setIsFormOpen(false)}
+                            />
+                        </div>
                     </div>
                 </div>
             )}

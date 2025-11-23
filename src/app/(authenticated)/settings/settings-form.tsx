@@ -2,166 +2,215 @@
 
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-// --- NEW: Import the password update action ---
 import { updateTenantSettings, updateUserPassword } from './actions';
 import { Tenant, ShippingProvider } from '@prisma/client';
+import { motion } from 'framer-motion';
+import {
+    BuildingOfficeIcon,
+    TruckIcon,
+    KeyIcon,
+    ShieldCheckIcon
+} from '@heroicons/react/24/outline';
 
-// Submit button for the main settings form
 function SettingsSubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" disabled={pending} className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50">
-      {pending ? 'Saving...' : 'Save Settings'}
-    </button>
-  );
+    const { pending } = useFormStatus();
+    return (
+        <button
+            type="submit"
+            disabled={pending}
+            className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
+        >
+            {pending ? (
+                <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span>Saving...</span>
+                </div>
+            ) : (
+                'Save Settings'
+            )}
+        </button>
+    );
 }
 
-// --- NEW: Submit button for the password form ---
 function PasswordSubmitButton() {
     const { pending } = useFormStatus();
     return (
-      <button 
-        type="submit" 
-        disabled={pending}
-        className="rounded-md bg-rose-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {pending ? 'Updating...' : 'Update Password'}
-      </button>
+        <button
+            type="submit"
+            disabled={pending}
+            className="inline-flex items-center justify-center rounded-full bg-destructive px-6 py-2.5 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors shadow-sm disabled:opacity-50"
+        >
+            {pending ? (
+                <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span>Updating...</span>
+                </div>
+            ) : (
+                'Update Password'
+            )}
+        </button>
     );
 }
 
 export function SettingsForm({ tenant }: { tenant: Tenant }) {
-  // State for the main settings form
-  const [settingsState, settingsDispatch] = useActionState(updateTenantSettings, undefined);
-  // --- NEW: State for the password form ---
-  const [passwordState, passwordDispatch] = useActionState(updateUserPassword, undefined);
+    const [settingsState, settingsDispatch] = useActionState(updateTenantSettings, undefined);
+    const [passwordState, passwordDispatch] = useActionState(updateUserPassword, undefined);
 
-  return (
-    // This component now returns a single div wrapping both forms
-    <div className="space-y-12">
-        {/* --- FORM 1: Business Profile & API Keys --- */}
-        <form action={settingsDispatch} className="space-y-8 divide-y divide-gray-700">
-            {/* Business Profile Section */}
-            <div>
-                <h3 className="text-lg font-medium text-white">Business Profile</h3>
-                <p className="mt-1 text-sm text-gray-400">Update your company's branding and invoice details.</p>
-                <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                    <div className="sm:col-span-4">
-                        <label htmlFor="businessName" className="block text-sm font-medium text-gray-300">Business Name</label>
-                        <input type="text" name="businessName" id="businessName" defaultValue={tenant.businessName || ''} className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm"/>
+    return (
+        <div className="space-y-8">
+            {/* --- FORM 1: Business Profile & API Keys --- */}
+            <form action={settingsDispatch} className="space-y-8">
+                {/* Business Profile Section */}
+                <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-border bg-muted/30 flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                            <BuildingOfficeIcon className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-foreground">Business Profile</h3>
+                            <p className="text-sm text-muted-foreground">Update your company's branding and invoice details.</p>
+                        </div>
                     </div>
-                    <div className="sm:col-span-6">
-                        <label htmlFor="businessAddress" className="block text-sm font-medium text-gray-300">Business Address</label>
-                        <textarea name="businessAddress" id="businessAddress" rows={3} defaultValue={tenant.businessAddress || ''} className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm"></textarea>
-                    </div>
-                    <div className="sm:col-span-3">
-                        <label htmlFor="businessPhone" className="block text-sm font-medium text-gray-300">Business Phone</label>
-                        <input type="text" name="businessPhone" id="businessPhone" defaultValue={tenant.businessPhone || ''} className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm"/>
-                    </div>
-                    <div className="sm:col-span-3">
-                        <label htmlFor="invoicePrefix" className="block text-sm font-medium text-gray-300">Invoice Prefix</label>
-                        <input type="text" name="invoicePrefix" id="invoicePrefix" defaultValue={tenant.invoicePrefix || ''} placeholder="e.g., INV-" className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm"/>
-                    </div>
-                </div>
-            </div>
 
-            {/* Shipping Settings Section */}
-            <div className="pt-8">
-                <div>
-                    <h3 className="text-lg font-medium leading-6 text-white">Shipping Settings</h3>
-                    <p className="mt-1 text-sm text-gray-400">Configure your default shipping options.</p>
-                </div>
-                <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                    <div className="sm:col-span-3">
-                        <label htmlFor="defaultShippingProvider" className="block text-sm font-medium text-gray-300">Default Shipping Provider</label>
-                        <select
-                            id="defaultShippingProvider"
-                            name="defaultShippingProvider"
-                            defaultValue={tenant.defaultShippingProvider || ''}
-                            className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        >
-                            {Object.values(ShippingProvider).map((provider) => (
-                                <option key={provider} value={provider}>
-                                    {provider.replace('_', ' ')}
-                                </option>
-                            ))}
-                        </select>
+                    <div className="p-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div className="sm:col-span-2">
+                            <label htmlFor="businessName" className="block text-sm font-medium text-muted-foreground mb-2">Business Name</label>
+                            <input type="text" name="businessName" id="businessName" defaultValue={tenant.businessName || ''} className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                        </div>
+                        <div className="sm:col-span-2">
+                            <label htmlFor="businessAddress" className="block text-sm font-medium text-muted-foreground mb-2">Business Address</label>
+                            <textarea name="businessAddress" id="businessAddress" rows={3} defaultValue={tenant.businessAddress || ''} className="w-full p-4 rounded-3xl border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none transition-all"></textarea>
+                        </div>
+                        <div>
+                            <label htmlFor="businessPhone" className="block text-sm font-medium text-muted-foreground mb-2">Business Phone</label>
+                            <input type="text" name="businessPhone" id="businessPhone" defaultValue={tenant.businessPhone || ''} className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                        </div>
+                        <div>
+                            <label htmlFor="invoicePrefix" className="block text-sm font-medium text-muted-foreground mb-2">Invoice Prefix</label>
+                            <input type="text" name="invoicePrefix" id="invoicePrefix" defaultValue={tenant.invoicePrefix || ''} placeholder="e.g., INV-" className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            {/* API Keys Section */}
-            <div className="pt-8">
-                <div>
-                    <h3 className="text-lg font-medium leading-6 text-white">Shipping API Keys</h3>
-                    <p className="mt-1 text-sm text-gray-400">Enter your own API keys for shipping providers.</p>
-                </div>
-                <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                    <div className="sm:col-span-3">
-                        <label htmlFor="fardaExpressClientId" className="block text-sm font-medium text-gray-300">Farda Express Client ID</label>
-                        <p className="mt-1 text-xs text-gray-400">Your Farda Express client identifier</p>
-                        <input type="text" name="fardaExpressClientId" id="fardaExpressClientId" defaultValue={tenant.fardaExpressClientId || ''} className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
-                    </div>
-                    <div className="sm:col-span-3">
-                        <label htmlFor="fardaExpressApiKey" className="block text-sm font-medium text-gray-300">Farda Express API Key</label>
-                        <p className="mt-1 text-xs text-gray-400">Your Farda Express API key</p>
-                        <input type="password" name="fardaExpressApiKey" id="fardaExpressApiKey" defaultValue={tenant.fardaExpressApiKey || ''} className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
-                    </div>
-                    <div className="sm:col-span-6">
-                        <label htmlFor="transExpressApiKey" className="block text-sm font-medium text-gray-300">Trans Express API Key</label>
-                        <p className="mt-1 text-xs text-gray-400">Enter your single API key for Trans Express</p>
-                        <input type="password" name="transExpressApiKey" id="transExpressApiKey" defaultValue={tenant.transExpressApiKey || ''} className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
-                    </div>
-                    <div className="sm:col-span-6">
-                        <label htmlFor="royalExpressApiKey" className="block text-sm font-medium text-gray-300">Royal Express Credentials</label>
-                        <p className="mt-1 text-xs text-gray-400">Enter in format: email:password (e.g., user@example.com:yourpassword)</p>
-                        <input type="password" name="royalExpressApiKey" id="royalExpressApiKey" defaultValue={tenant.royalExpressApiKey || ''} placeholder="email:password" className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
-                    </div>
-                    <div className="sm:col-span-3">
-                        <label htmlFor="royalExpressOrderPrefix" className="block text-sm font-medium text-gray-300">Royal Express Order Prefix</label>
-                        <p className="mt-1 text-xs text-gray-400">Custom prefix for Royal Express order numbers (default: JNEX)</p>
-                        <input type="text" name="royalExpressOrderPrefix" id="royalExpressOrderPrefix" defaultValue={tenant.royalExpressOrderPrefix || 'JNEX'} placeholder="JNEX" className="mt-1 block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" />
-                    </div>
-                </div>
-            </div>
 
-            <div className="pt-5">
-                <div className="flex justify-end gap-x-3">
-                    {settingsState?.status === 'error' && <p className="text-sm text-red-400 self-center">{settingsState.message}</p>}
-                    {settingsState?.status === 'success' && <p className="text-sm text-green-400 self-center">{settingsState.message}</p>}
+                {/* Shipping Settings Section */}
+                <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-border bg-muted/30 flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                            <TruckIcon className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-foreground">Shipping Settings</h3>
+                            <p className="text-sm text-muted-foreground">Configure your default shipping options.</p>
+                        </div>
+                    </div>
+
+                    <div className="p-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div>
+                            <label htmlFor="defaultShippingProvider" className="block text-sm font-medium text-muted-foreground mb-2">Default Shipping Provider</label>
+                            <div className="relative">
+                                <select
+                                    id="defaultShippingProvider"
+                                    name="defaultShippingProvider"
+                                    defaultValue={tenant.defaultShippingProvider || ''}
+                                    className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none transition-all"
+                                >
+                                    {Object.values(ShippingProvider).map((provider) => (
+                                        <option key={provider} value={provider}>
+                                            {provider.replace('_', ' ')}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-muted-foreground">
+                                    <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* API Keys Section */}
+                <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-border bg-muted/30 flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
+                            <KeyIcon className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-foreground">Shipping API Keys</h3>
+                            <p className="text-sm text-muted-foreground">Enter your own API keys for shipping providers.</p>
+                        </div>
+                    </div>
+
+                    <div className="p-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <div>
+                            <label htmlFor="fardaExpressClientId" className="block text-sm font-medium text-muted-foreground mb-2">Farda Express Client ID</label>
+                            <input type="text" name="fardaExpressClientId" id="fardaExpressClientId" defaultValue={tenant.fardaExpressClientId || ''} className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                        </div>
+                        <div>
+                            <label htmlFor="fardaExpressApiKey" className="block text-sm font-medium text-muted-foreground mb-2">Farda Express API Key</label>
+                            <input type="password" name="fardaExpressApiKey" id="fardaExpressApiKey" defaultValue={tenant.fardaExpressApiKey || ''} className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                        </div>
+                        <div className="sm:col-span-2">
+                            <label htmlFor="transExpressApiKey" className="block text-sm font-medium text-muted-foreground mb-2">Trans Express API Key</label>
+                            <input type="password" name="transExpressApiKey" id="transExpressApiKey" defaultValue={tenant.transExpressApiKey || ''} className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                        </div>
+                        <div className="sm:col-span-2">
+                            <label htmlFor="royalExpressApiKey" className="block text-sm font-medium text-muted-foreground mb-2">Royal Express Credentials</label>
+                            <p className="text-xs text-muted-foreground mb-2">Format: email:password (e.g., user@example.com:yourpassword)</p>
+                            <input type="password" name="royalExpressApiKey" id="royalExpressApiKey" defaultValue={tenant.royalExpressApiKey || ''} placeholder="email:password" className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                        </div>
+                        <div>
+                            <label htmlFor="royalExpressOrderPrefix" className="block text-sm font-medium text-muted-foreground mb-2">Royal Express Order Prefix</label>
+                            <input type="text" name="royalExpressOrderPrefix" id="royalExpressOrderPrefix" defaultValue={tenant.royalExpressOrderPrefix || 'JNEX'} placeholder="JNEX" className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-x-3 items-center pt-4">
+                    {settingsState?.status === 'error' && (
+                        <motion.p initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="text-sm text-destructive font-medium">{settingsState.message}</motion.p>
+                    )}
+                    {settingsState?.status === 'success' && (
+                        <motion.p initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="text-sm text-green-600 dark:text-green-400 font-medium">{settingsState.message}</motion.p>
+                    )}
                     <SettingsSubmitButton />
                 </div>
-            </div>
-        </form>
-
-        {/* --- FORM 2: Change Password --- */}
-        <div className="pt-8">
-            <div>
-                <h3 className="text-lg font-medium leading-6 text-white">Security</h3>
-                <p className="mt-1 text-sm text-gray-400">Change your account password.</p>
-            </div>
-            <form action={passwordDispatch} className="mt-6 max-w-xl">
-                <div className="space-y-6">
-                    <div>
-                        <label htmlFor="password" className="block text-sm font-medium leading-6 text-gray-300">New Password</label>
-                        <div className="mt-2">
-                            <input type="password" name="password" id="password" className="block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" required minLength={8} />
-                        </div>
-                    </div>
-                    <div>
-                        <label htmlFor="confirmPassword" className="block text-sm font-medium leading-6 text-gray-300">Confirm New Password</label>
-                        <div className="mt-2">
-                            <input type="password" name="confirmPassword" id="confirmPassword" className="block w-full rounded-md bg-gray-700 border-gray-600 text-white shadow-sm" required />
-                        </div>
-                    </div>
-                </div>
-                <div className="mt-6 flex items-center justify-end gap-x-3">
-                    {passwordState?.status === 'error' && <p className="text-sm text-red-400 self-center">{passwordState.message}</p>}
-                    {passwordState?.status === 'success' && <p className="text-sm text-green-400 self-center">{passwordState.message}</p>}
-                    <PasswordSubmitButton />
-                </div>
             </form>
+
+            {/* --- FORM 2: Change Password --- */}
+            <div className="bg-card rounded-3xl border border-destructive/20 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-border bg-destructive/5 flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-destructive/10 text-destructive">
+                        <ShieldCheckIcon className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-foreground">Security</h3>
+                        <p className="text-sm text-muted-foreground">Change your account password.</p>
+                    </div>
+                </div>
+
+                <div className="p-6">
+                    <form action={passwordDispatch} className="max-w-xl space-y-6">
+                        <div>
+                            <label htmlFor="password" className="block text-sm font-medium text-muted-foreground mb-2">New Password</label>
+                            <input type="password" name="password" id="password" className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-destructive/20 focus:border-destructive transition-all" required minLength={8} />
+                        </div>
+                        <div>
+                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-muted-foreground mb-2">Confirm New Password</label>
+                            <input type="password" name="confirmPassword" id="confirmPassword" className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-destructive/20 focus:border-destructive transition-all" required />
+                        </div>
+
+                        <div className="flex items-center justify-end gap-x-3 pt-2">
+                            {passwordState?.status === 'error' && (
+                                <motion.p initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="text-sm text-destructive font-medium">{passwordState.message}</motion.p>
+                            )}
+                            {passwordState?.status === 'success' && (
+                                <motion.p initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="text-sm text-green-600 dark:text-green-400 font-medium">{passwordState.message}</motion.p>
+                            )}
+                            <PasswordSubmitButton />
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-    </div>
-  );
+    );
 }

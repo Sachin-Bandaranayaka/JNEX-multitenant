@@ -13,13 +13,13 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 import { motion } from 'framer-motion';
+import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 
-// --- FIX: Update props to accept the permission flag ---
 interface SalesReportProps {
     startDate: string;
     endDate: string;
     totalOrders: number;
-    canExport?: boolean; // This prop is passed from report-tabs.tsx
+    canExport?: boolean;
 }
 
 interface SalesData {
@@ -58,8 +58,7 @@ export function SalesReport({ startDate, endDate, totalOrders, canExport }: Sale
         fetchData();
     }, [startDate, endDate]);
 
-    // --- FIX: Simplified and corrected export handler ---
-    const handleExport = (format: 'excel' | 'csv' | 'pdf') => { // Add 'pdf' back to the type
+    const handleExport = (format: 'excel' | 'csv' | 'pdf') => {
         const url = `/api/reports/sales/export?startDate=${startDate}&endDate=${endDate}&format=${format}`;
         window.open(url, '_blank');
     };
@@ -67,14 +66,14 @@ export function SalesReport({ startDate, endDate, totalOrders, canExport }: Sale
     if (isLoading) {
         return (
             <div className="flex h-64 items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-500"></div>
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="rounded-lg bg-red-900/50 p-4 text-sm text-red-400 ring-1 ring-red-500">
+            <div className="rounded-2xl bg-destructive/10 p-4 text-sm text-destructive ring-1 ring-destructive/20">
                 {error}
             </div>
         );
@@ -86,20 +85,24 @@ export function SalesReport({ startDate, endDate, totalOrders, canExport }: Sale
 
     return (
         <div className="space-y-6">
-            {/* --- FIX: Conditionally render the export buttons based on permission --- */}
             {canExport && (
-                <div className="flex justify-end space-x-4">
+                <div className="flex justify-end space-x-3">
                     <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => handleExport('excel')}
-                        className="inline-flex items-center rounded-md bg-green-900/50 px-4 py-2 text-sm font-medium text-green-400 hover:bg-green-800/50"
+                        className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
                     >
+                        <ArrowDownTrayIcon className="h-4 w-4" />
                         Export Excel
                     </motion.button>
-                    {/* --- FIX: ADDED PDF BUTTON BACK --- */}
                     <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => handleExport('pdf')}
-                        className="inline-flex items-center rounded-md bg-red-900/50 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-800/50"
+                        className="inline-flex items-center gap-2 rounded-full bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors"
                     >
+                        <ArrowDownTrayIcon className="h-4 w-4" />
                         Export PDF
                     </motion.button>
                 </div>
@@ -107,44 +110,66 @@ export function SalesReport({ startDate, endDate, totalOrders, canExport }: Sale
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                <div className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10">
-                    <div className="text-sm font-medium text-gray-400">Total Orders</div>
-                    <div className="mt-2 text-3xl font-semibold text-white">{totalOrders}</div>
+                <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
+                    <div className="text-sm font-medium text-muted-foreground">Total Orders</div>
+                    <div className="mt-2 text-3xl font-bold text-foreground">{totalOrders}</div>
                 </div>
-                <div className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10">
-                    <div className="text-sm font-medium text-gray-400">Total Revenue</div>
-                    <div className="mt-2 text-3xl font-semibold text-white">
+                <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
+                    <div className="text-sm font-medium text-muted-foreground">Total Revenue</div>
+                    <div className="mt-2 text-3xl font-bold text-foreground">
                         LKR {data.totalRevenue.toLocaleString()}
                     </div>
                 </div>
-                <div className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10">
-                    <div className="text-sm font-medium text-gray-400">Average Order Value</div>
-                    <div className="mt-2 text-3xl font-semibold text-white">
+                <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
+                    <div className="text-sm font-medium text-muted-foreground">Average Order Value</div>
+                    <div className="mt-2 text-3xl font-bold text-foreground">
                         LKR {data.averageOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                 </div>
             </div>
 
             {/* Revenue Chart */}
-            <div className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10">
-                <h3 className="text-lg font-medium text-white">Daily Revenue</h3>
-                <div className="mt-4" style={{ height: 400 }}>
+            <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
+                <h3 className="text-lg font-bold text-foreground mb-6">Daily Revenue</h3>
+                <div className="h-[400px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={data.dailyRevenue}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                            <XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} />
-                            <YAxis stroke="#9CA3AF" tick={{ fill: '#9CA3AF' }} tickFormatter={(value) => `LKR ${value.toLocaleString()}`} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-border opacity-50" />
+                            <XAxis
+                                dataKey="date"
+                                stroke="currentColor"
+                                className="text-muted-foreground text-xs"
+                                tickLine={false}
+                                axisLine={false}
+                                dy={10}
+                            />
+                            <YAxis
+                                stroke="currentColor"
+                                className="text-muted-foreground text-xs"
+                                tickLine={false}
+                                axisLine={false}
+                                tickFormatter={(value) => `LKR ${value.toLocaleString()}`}
+                                dx={-10}
+                            />
                             <Tooltip
                                 contentStyle={{
-                                    backgroundColor: '#1F2937',
-                                    border: '1px solid #374151',
-                                    borderRadius: '0.5rem',
+                                    backgroundColor: 'var(--card)',
+                                    borderColor: 'var(--border)',
+                                    borderRadius: '1rem',
+                                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                                    color: 'var(--foreground)'
                                 }}
-                                labelStyle={{ color: '#F3F4F6' }}
-                                itemStyle={{ color: '#6366F1' }}
-                                formatter={(value: number) => `LKR ${value.toLocaleString()}`}
+                                itemStyle={{ color: 'var(--primary)' }}
+                                formatter={(value: number) => [`LKR ${value.toLocaleString()}`, 'Revenue']}
                             />
-                            <Line type="monotone" dataKey="revenue" stroke="#6366F1" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 8 }} />
+                            <Line
+                                type="monotone"
+                                dataKey="revenue"
+                                stroke="var(--primary)"
+                                strokeWidth={3}
+                                dot={{ r: 4, fill: 'var(--background)', strokeWidth: 2 }}
+                                activeDot={{ r: 6, fill: 'var(--primary)' }}
+                            />
                         </LineChart>
                     </ResponsiveContainer>
                 </div>

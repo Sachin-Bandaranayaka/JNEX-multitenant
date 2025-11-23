@@ -3,6 +3,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 
 interface Product {
   id: string;
@@ -51,8 +52,13 @@ export function StockAdjustmentForm({ product, onSuccess, onCancel }: StockAdjus
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <p className="text-sm sm:text-base text-muted-foreground mb-4">Current stock for {product.name}: <span className="font-semibold text-foreground">{product.stock}</span></p>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="p-4 rounded-2xl bg-muted/30 border border-border">
+        <p className="text-sm text-muted-foreground text-center">
+          Current stock for <span className="font-semibold text-foreground">{product.name}</span>
+        </p>
+        <p className="text-3xl font-bold text-center text-foreground mt-1">{product.stock}</p>
+      </div>
 
       <div className="space-y-4">
         <div>
@@ -64,8 +70,11 @@ export function StockAdjustmentForm({ product, onSuccess, onCancel }: StockAdjus
             onChange={(e) => setQuantity(e.target.value)}
             required
             placeholder="e.g., -5 or 10"
-            className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary text-base sm:text-sm px-4 py-3 sm:py-2 touch-manipulation"
+            className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
+          <p className="mt-1.5 text-xs text-muted-foreground px-2">
+            Use negative numbers to decrease stock (e.g. -5)
+          </p>
         </div>
 
         <div>
@@ -77,38 +86,39 @@ export function StockAdjustmentForm({ product, onSuccess, onCancel }: StockAdjus
             onChange={(e) => setReason(e.target.value)}
             required
             placeholder="e.g., Damaged goods, Stock count correction"
-            className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary text-base sm:text-sm px-4 py-3 sm:py-2 touch-manipulation"
+            className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           />
         </div>
       </div>
 
       {error && (
-        <div className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive ring-1 ring-destructive/20">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl bg-destructive/10 p-4 text-sm text-destructive ring-1 ring-destructive/20 text-center"
+        >
           {error}
-        </div>
+        </motion.div>
       )}
 
-      <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-4">
+      <div className="flex flex-col sm:flex-row justify-end gap-3 pt-2">
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex items-center justify-center rounded-md border border-input px-6 py-3 sm:px-4 sm:py-2 text-base sm:text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 touch-manipulation min-h-[44px]"
+          className="h-12 px-6 rounded-full border border-input text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isLoading}
-          className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 sm:px-4 sm:py-2 text-base sm:text-sm font-medium text-primary-foreground ring-1 ring-border hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 touch-manipulation min-h-[44px]"
+          className="h-12 px-8 rounded-full bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50 transition-all shadow-sm"
         >
           {isLoading ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Adjusting...
-            </>
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              <span>Adjusting...</span>
+            </div>
           ) : (
             'Adjust Stock'
           )}

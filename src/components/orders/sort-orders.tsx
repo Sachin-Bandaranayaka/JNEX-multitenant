@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useState } from 'react';
+import { ChevronDownIcon, ArrowsUpDownIcon } from '@heroicons/react/24/outline';
 
 type SortOption = {
     label: string;
@@ -53,30 +54,25 @@ export function SortOrders() {
         <div className="relative">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-100 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-gray-600"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-white dark:bg-muted border border-border rounded-full hover:bg-accent transition-colors shadow-sm"
             >
-                <span>Sort: {currentSortOption.label}</span>
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                <ArrowsUpDownIcon className="h-4 w-4 text-muted-foreground" />
+                <span>{currentSortOption.label}</span>
+                <ChevronDownIcon
+                    className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                />
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-md ring-1 ring-white/10 z-10">
+                <div className="absolute right-0 mt-2 w-56 bg-popover border border-border rounded-xl shadow-lg z-50 overflow-hidden">
                     <ul className="py-1">
                         {sortOptions.map((option) => (
                             <li key={`${option.value}:${option.direction}`}>
                                 <button
                                     onClick={() => handleSort(option)}
-                                    className={`block w-full text-left px-4 py-2 text-sm hover:bg-gray-700 ${`${option.value}:${option.direction}` === currentSort
-                                            ? 'bg-indigo-500/20 text-indigo-300'
-                                            : 'text-gray-300'
+                                    className={`block w-full text-left px-4 py-2 text-sm transition-colors ${`${option.value}:${option.direction}` === currentSort
+                                        ? 'bg-primary/10 text-primary font-medium'
+                                        : 'text-foreground hover:bg-accent'
                                         }`}
                                 >
                                     {option.label}

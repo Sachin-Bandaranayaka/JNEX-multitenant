@@ -8,6 +8,7 @@ import {
 } from 'recharts';
 import { motion } from 'framer-motion';
 import { ShippingProvider } from '@prisma/client';
+import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 
 // FIX: Add canExport to the props interface
 interface ShippingReportProps {
@@ -66,28 +67,28 @@ export function ShippingReport({ startDate, endDate, canExport, shippingStats, t
     };
 
     if (isLoading) {
-        return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-b-2 border-indigo-600"></div></div>;
+        return <div className="flex h-64 items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div></div>;
     }
 
     if (error) {
-        return <div className="rounded-lg bg-red-900/50 p-4 text-sm text-red-400 ring-1 ring-red-500">{error}</div>;
+        return <div className="rounded-2xl bg-destructive/10 p-4 text-sm text-destructive ring-1 ring-destructive/20">{error}</div>;
     }
 
     // This guard clause is still useful in case the API returns an empty response
     if (!data) {
-        return <div className="text-center py-12 text-gray-500">No shipping data available for this period.</div>;
+        return <div className="text-center py-12 text-muted-foreground">No shipping data available for this period.</div>;
     }
 
     return (
-        <div className="space-y-6 p-4 sm:p-6">
+        <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <label htmlFor="provider-select" className="block text-sm font-medium text-gray-400">Filter by Provider</label>
+                    <label htmlFor="provider-select" className="block text-sm font-medium text-muted-foreground mb-1">Filter by Provider</label>
                     <select
                         id="provider-select"
                         value={provider}
                         onChange={(e) => setProvider(e.target.value as ShippingProvider | 'ALL')}
-                        className="mt-1 block w-full sm:w-auto pl-3 pr-10 py-2 text-base border-gray-600 bg-gray-700 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        className="block w-full sm:w-auto pl-3 pr-10 py-2 text-sm border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary rounded-full"
                     >
                         <option value="ALL">All Providers</option>
                         {Object.keys(shippingStats).map(p => (
@@ -98,24 +99,106 @@ export function ShippingReport({ startDate, endDate, canExport, shippingStats, t
 
                 {/* FIX: Conditionally render export buttons */}
                 {canExport && (
-                    <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-400">Export as:</span>
-                        <motion.button whileHover={{ scale: 1.05 }} onClick={() => handleExport('excel')} className="inline-flex items-center rounded-md bg-green-900/50 px-3 py-2 text-sm font-semibold text-green-300 hover:bg-green-800/50">Excel</motion.button>
-                        <motion.button whileHover={{ scale: 1.05 }} onClick={() => handleExport('pdf')} className="inline-flex items-center rounded-md bg-red-900/50 px-3 py-2 text-sm font-semibold text-red-300 hover:bg-red-800/50">PDF</motion.button>
+                    <div className="flex items-center space-x-3">
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => handleExport('excel')}
+                            className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                        >
+                            <ArrowDownTrayIcon className="h-4 w-4" />
+                            Excel
+                        </motion.button>
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => handleExport('pdf')}
+                            className="inline-flex items-center gap-2 rounded-full bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors"
+                        >
+                            <ArrowDownTrayIcon className="h-4 w-4" />
+                            PDF
+                        </motion.button>
                     </div>
                 )}
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                <div className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10"><div className="text-sm font-medium text-gray-400">Total Shipments</div><div className="mt-2 text-3xl font-semibold text-white">{totalShipments}</div></div>
+                <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
+                    <div className="text-sm font-medium text-muted-foreground">Total Shipments</div>
+                    <div className="mt-2 text-3xl font-bold text-foreground">{totalShipments}</div>
+                </div>
                 {/* FIX: Added safety checks to prevent crashes */}
-                <div className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10"><div className="text-sm font-medium text-gray-400">On-Time Delivery Rate</div><div className="mt-2 text-3xl font-semibold text-white">{(data?.onTimeDeliveryRate ?? 0 * 100).toFixed(1)}%</div></div>
-                <div className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10"><div className="text-sm font-medium text-gray-400">Avg. Delivery Time</div><div className="mt-2 text-3xl font-semibold text-white">{(data?.averageDeliveryTime ?? 0).toFixed(1)} days</div></div>
+                <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
+                    <div className="text-sm font-medium text-muted-foreground">On-Time Delivery Rate</div>
+                    <div className="mt-2 text-3xl font-bold text-foreground">{(data?.onTimeDeliveryRate ?? 0 * 100).toFixed(1)}%</div>
+                </div>
+                <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
+                    <div className="text-sm font-medium text-muted-foreground">Avg. Delivery Time</div>
+                    <div className="mt-2 text-3xl font-bold text-foreground">{(data?.averageDeliveryTime ?? 0).toFixed(1)} days</div>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <div className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10"><h3 className="text-lg font-medium text-white">Daily Shipments</h3><div className="mt-4" style={{ height: 300 }}><ResponsiveContainer width="100%" height="100%"><LineChart data={data.dailyShipments}><CartesianGrid strokeDasharray="3 3" stroke="#374151" /><XAxis dataKey="date" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 12 }} /><YAxis stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 12 }} allowDecimals={false} /><Tooltip contentStyle={{ backgroundColor: '#1F2937' }} /><Legend /><Line type="monotone" dataKey="count" name="Shipments" stroke="#4f46e5" strokeWidth={2} /></LineChart></ResponsiveContainer></div></div>
-                <div className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10"><h3 className="text-lg font-medium text-white">Provider Performance</h3><div className="mt-4" style={{ height: 300 }}><ResponsiveContainer width="100%" height="100%"><BarChart data={data.providerPerformance} layout="vertical"><CartesianGrid strokeDasharray="3 3" stroke="#374151" /><XAxis type="number" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 12 }} /><YAxis type="category" dataKey="provider" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 12 }} width={100} /><Tooltip contentStyle={{ backgroundColor: '#1F2937' }} /><Legend /><Bar dataKey="shipments" name="Total Shipments" fill="#4f46e5" /></BarChart></ResponsiveContainer></div></div>
+                <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
+                    <h3 className="text-lg font-bold text-foreground mb-6">Daily Shipments</h3>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={data.dailyShipments}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-border opacity-50" />
+                                <XAxis
+                                    dataKey="date"
+                                    stroke="currentColor"
+                                    className="text-muted-foreground text-xs"
+                                    tickLine={false}
+                                    axisLine={false}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    stroke="currentColor"
+                                    className="text-muted-foreground text-xs"
+                                    tickLine={false}
+                                    axisLine={false}
+                                    allowDecimals={false}
+                                    dx={-10}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: 'var(--card)',
+                                        borderColor: 'var(--border)',
+                                        borderRadius: '1rem',
+                                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                                        color: 'var(--foreground)'
+                                    }}
+                                />
+                                <Legend />
+                                <Line type="monotone" dataKey="count" name="Shipments" stroke="var(--primary)" strokeWidth={2} dot={{ r: 4 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+                <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
+                    <h3 className="text-lg font-bold text-foreground mb-6">Provider Performance</h3>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={data.providerPerformance} layout="vertical" margin={{ left: 20 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-border opacity-50" />
+                                <XAxis type="number" stroke="currentColor" className="text-muted-foreground text-xs" tickLine={false} axisLine={false} />
+                                <YAxis type="category" dataKey="provider" stroke="currentColor" className="text-muted-foreground text-xs" tickLine={false} axisLine={false} width={100} />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: 'var(--card)',
+                                        borderColor: 'var(--border)',
+                                        borderRadius: '1rem',
+                                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                                        color: 'var(--foreground)'
+                                    }}
+                                />
+                                <Legend />
+                                <Bar dataKey="shipments" name="Total Shipments" fill="var(--primary)" radius={[0, 4, 4, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
             </div>
         </div>
     );

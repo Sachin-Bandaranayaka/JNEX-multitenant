@@ -3,7 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { notFound, redirect } from 'next/navigation';
 import { ShippingForm } from '@/components/orders/shipping-form';
-import { OrderJourney } from '@/components/orders/order-journey';
+import { OrderJourneyHeader } from '@/components/orders/order-journey-header';
+import { OrderSummaryCard } from '@/components/orders/order-summary-card';
 import { Invoice } from '@/components/orders/invoice';
 import { PrintButton } from '@/components/orders/print-button';
 import { CancelOrderButton } from '@/components/orders/cancel-order-button';
@@ -86,16 +87,19 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                     </div>
                     <div className="flex items-center gap-3">
                         <span className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold shadow-sm ${order.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 ring-1 ring-yellow-500/20' :
-                                order.status === 'SHIPPED' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20' :
-                                    order.status === 'DELIVERED' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20' :
-                                        order.status === 'RETURNED' ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/20' :
-                                            'bg-gray-500/10 text-gray-600 dark:text-gray-400 ring-1 ring-gray-500/20'
+                            order.status === 'SHIPPED' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20' :
+                                order.status === 'DELIVERED' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20' :
+                                    order.status === 'RETURNED' ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/20' :
+                                        'bg-gray-500/10 text-gray-600 dark:text-gray-400 ring-1 ring-gray-500/20'
                             }`}>
                             {order.status}
                         </span>
                         <PrintButton />
                     </div>
                 </div>
+
+                {/* Order Journey Header (New Horizontal Layout) */}
+                <OrderJourneyHeader order={order} />
 
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
                     {/* Left Column: Invoice/Order Details */}
@@ -143,15 +147,8 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                             </div>
                         )}
 
-                        {/* Order Journey Card */}
-                        <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
-                            <div className="px-6 py-4 border-b border-border bg-muted/30">
-                                <h3 className="text-lg font-bold text-foreground">Order Journey</h3>
-                            </div>
-                            <div className="p-6">
-                                <OrderJourney order={order} />
-                            </div>
-                        </div>
+                        {/* Order Summary Card (Replaces old Journey) */}
+                        <OrderSummaryCard order={order} />
 
                         {/* Cancel Order Card */}
                         {order.status === 'CONFIRMED' && canDeleteOrders && (

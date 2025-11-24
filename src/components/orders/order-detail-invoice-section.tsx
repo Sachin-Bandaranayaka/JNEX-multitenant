@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import { Invoice } from './invoice';
-import { FormatSelector } from '@/components/invoice/format-selector';
 import { InvoiceFormat, InvoiceData, BatchInvoiceRequest } from '@/types/invoice';
 import { Button } from '@/components/ui/button';
-import { Download, Printer } from 'lucide-react';
+import { Download, Printer, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { InvoicePrintButton } from './invoice-print-button';
 
@@ -48,14 +47,13 @@ export function OrderDetailInvoiceSection({
   tenant,
   invoiceNumber,
 }: OrderDetailInvoiceSectionProps) {
-  const [selectedFormat, setSelectedFormat] = useState<InvoiceFormat>(InvoiceFormat.FULL_PAGE);
+  const [selectedFormat] = useState<InvoiceFormat>(InvoiceFormat.FULL_PAGE);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const handleGeneratePDF = async () => {
     setIsGeneratingPDF(true);
 
     try {
-      // Convert order to InvoiceData format
       const invoiceData: InvoiceData = {
         invoiceNumber,
         businessName: tenant.businessName,
@@ -80,7 +78,6 @@ export function OrderDetailInvoiceSection({
         format: selectedFormat,
       };
 
-      // Call the API endpoint to generate PDF
       const response = await fetch('/api/invoices/generate', {
         method: 'POST',
         headers: {
@@ -94,7 +91,6 @@ export function OrderDetailInvoiceSection({
         throw new Error(errorData.error || 'Failed to generate PDF');
       }
 
-      // Download the PDF
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -119,55 +115,65 @@ export function OrderDetailInvoiceSection({
   };
 
   return (
-    <>
-      <h2 className="font-semibold text-xl mb-6 text-foreground">Invoice Preview</h2>
-      
-      {/* Format Selector */}
-      <div className="mb-4 bg-card rounded-lg p-4 ring-1 ring-border">
-        <FormatSelector 
-          selectedFormat={selectedFormat}
-          onFormatChange={setSelectedFormat}
-        />
+    <div className="flex flex-col h-full">
+      {/* Header with Title and Actions */}
+      <div className="px-6 py-4 border-b border-border bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+          <FileText className="h-5 w-5 text-primary" />
+          Invoice Preview
+        </h2>
+
+        <div className="flex items-center gap-2">
+          <InvoicePrintButton
+            orderId={order.id}
+            isPrinted={order.invoicePrinted || false}
+          />
+
+          <div className="h-6 w-px bg-border mx-2 hidden sm:block" />
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGeneratePDF}
+            disabled={isGeneratingPDF}
+            className="h-9"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            {isGeneratingPDF ? 'Generating...' : 'PDF'}
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handlePrint}
+            className="h-9 bg-primary hover:bg-primary/90"
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            Print
+          </Button>
+        </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="mb-4 flex gap-2">
-        <Button
-          onClick={handleGeneratePDF}
-          disabled={isGeneratingPDF}
-          className="bg-green-600 hover:bg-green-700 flex-1"
-        >
-          <Download className="h-4 w-4 mr-2" />
-          {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
-        </Button>
-        <Button
-          onClick={handlePrint}
-          className="bg-blue-600 hover:bg-blue-700 flex-1"
-        >
-          <Printer className="h-4 w-4 mr-2" />
-          Print
-        </Button>
-      </div>
+      {/* Preview Area */}
+      <div className="p-6 sm:p-8 bg-muted/10 flex-1 flex justify-center items-start min-h-[500px]">
+        <div className="relative group">
+          {/* Paper Shadow Effect */}
+          <div className="absolute -inset-0.5 bg-gradient-to-b from-black/5 to-black/10 rounded-lg blur opacity-50 transition duration-500 group-hover:opacity-75" />
 
-      {/* Invoice Preview */}
-      <div className="bg-white text-black p-4 rounded-md border border-border shadow-sm">
-        <Invoice
-          businessName={tenant.businessName}
-          businessAddress={tenant.businessAddress}
-          businessPhone={tenant.businessPhone}
-          invoiceNumber={invoiceNumber}
-          order={order}
-          showPrintControls={false}
-        />
+          {/* The Invoice Paper */}
+          <div className="relative bg-white text-black rounded-sm shadow-xl ring-1 ring-black/5 max-w-[210mm] w-full mx-auto transition-transform duration-500 ease-out group-hover:scale-[1.005]">
+            <div className="p-1">
+              <Invoice
+                businessName={tenant.businessName}
+                businessAddress={tenant.businessAddress}
+                businessPhone={tenant.businessPhone}
+                invoiceNumber={invoiceNumber}
+                order={order}
+                showPrintControls={false}
+              />
+            </div>
+          </div>
+        </div>
       </div>
-
-      {/* Print Status Button */}
-      <div className="mt-4">
-        <InvoicePrintButton
-          orderId={order.id}
-          isPrinted={order.invoicePrinted || false}
-        />
-      </div>
-    </>
+    </div>
   );
 }

@@ -1,14 +1,20 @@
-// src/components/orders/shipping-form.tsx
-
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { ArrowTopRightOnSquareIcon as ExternalLinkIcon } from '@heroicons/react/24/outline';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    TruckIcon,
+    ScaleIcon,
+    MapPinIcon,
+    BuildingOfficeIcon,
+    ArrowTopRightOnSquareIcon,
+    CheckCircleIcon,
+    ExclamationCircleIcon
+} from '@heroicons/react/24/outline';
 import { FardaExpressService } from '@/lib/shipping/farda-express';
 import { TransExpressProvider } from '@/lib/shipping/trans-express';
-import { getAllDistricts, getCitiesByDistrict, getAllCities, TransExpressCity } from '@/lib/shipping/trans-express-cities';
+import { getAllDistricts, getCitiesByDistrict, TransExpressCity } from '@/lib/shipping/trans-express-cities';
 import { RoyalExpressProvider } from '@/lib/shipping/royal-express';
 import { getAllStates, getCitiesByState, RoyalExpressCity, RoyalExpressState } from '@/lib/shipping/royal-express-locations';
 import { ShippingProvider } from '@prisma/client';
@@ -63,8 +69,8 @@ export function ShippingForm({
 
     // For Trans Express
     const [districts, setDistricts] = useState<string[]>([]);
-    const [selectedDistrict, setSelectedDistrict] = useState<string>('Colombo'); // Default to Colombo
-    const [selectedCity, setSelectedCity] = useState<number>(864); // Default to Colombo 01
+    const [selectedDistrict, setSelectedDistrict] = useState<string>('Colombo');
+    const [selectedCity, setSelectedCity] = useState<number>(864);
     const [citiesInDistrict, setCitiesInDistrict] = useState<TransExpressCity[]>([]);
     const [isLoadingLocations, setIsLoadingLocations] = useState(false);
     const [citySearchTerm, setCitySearchTerm] = useState('');
@@ -73,8 +79,8 @@ export function ShippingForm({
 
     // For Royal Express
     const [states, setStates] = useState<RoyalExpressState[]>([]);
-    const [selectedState, setSelectedState] = useState<string>('Colombo'); // Default to Colombo
-    const [selectedRoyalCity, setSelectedRoyalCity] = useState<number>(1001); // Default to Colombo 01
+    const [selectedState, setSelectedState] = useState<string>('Colombo');
+    const [selectedRoyalCity, setSelectedRoyalCity] = useState<number>(1001);
     const [citiesInState, setCitiesInState] = useState<RoyalExpressCity[]>([]);
     const [isLoadingRoyalLocations, setIsLoadingRoyalLocations] = useState(false);
     const [royalCitySearchTerm, setRoyalCitySearchTerm] = useState('');
@@ -88,21 +94,16 @@ export function ShippingForm({
 
             setIsLoadingLocations(true);
             try {
-                console.log('Fetching Trans Express districts...');
                 const allDistricts = await getAllDistricts();
-                console.log('Districts loaded:', allDistricts);
                 setDistricts(allDistricts);
-
-                // Set default district to Colombo
                 setSelectedDistrict('Colombo');
             } catch (err) {
                 console.error('Failed to load districts:', err);
-                setDistricts(['Colombo', 'Gampaha', 'Kandy']); // Fallback data
+                setDistricts(['Colombo', 'Gampaha', 'Kandy']);
             } finally {
                 setIsLoadingLocations(false);
             }
         };
-
         loadDistricts();
     }, [provider]);
 
@@ -113,34 +114,26 @@ export function ShippingForm({
 
             setIsLoadingRoyalLocations(true);
             try {
-                console.log('Fetching Royal Express states...');
                 if (!royalExpressApiKey) {
-                    console.warn('Royal Express API key not provided, skipping state fetch.');
                     setIsLoadingRoyalLocations(false);
                     return;
                 }
                 const royalExpressService = new RoyalExpressProvider(royalExpressApiKey);
                 const allStates = await getAllStates(royalExpressService);
-                console.log('States loaded:', allStates);
                 setStates(allStates);
-
-                // Set default state to Colombo
                 setSelectedState('Colombo');
             } catch (err) {
                 console.error('Failed to load Royal Express states:', err);
-                // Use fallback data with valid state names only
                 setStates([
                     { id: 1, name: 'Colombo' },
                     { id: 3, name: 'Galle' },
                     { id: 4, name: 'Gampaha' }
                 ]);
-                // Set default to a known valid state
                 setSelectedState('Colombo');
             } finally {
                 setIsLoadingRoyalLocations(false);
             }
         };
-
         loadRoyalExpressStates();
     }, [provider]);
 
@@ -151,43 +144,29 @@ export function ShippingForm({
 
             setIsLoadingLocations(true);
             try {
-                console.log(`Fetching cities for district: ${selectedDistrict}`);
                 const cities = await getCitiesByDistrict(selectedDistrict);
-                console.log('Cities loaded:', cities);
                 setCitiesInDistrict(cities);
 
-                // Set default city if available
                 if (cities.length > 0) {
-                    console.log(`Setting default city to: ${cities[0].name} (${cities[0].id})`);
                     setSelectedCity(cities[0].id);
-                    // Set the search term to the selected city name
                     setCitySearchTerm(cities[0].name);
                 } else {
-                    console.warn(`No cities found for district ${selectedDistrict}, using fallback cities`);
-                    // If no cities are found, use the fallback cities from Colombo
                     const fallbackCities = await getCitiesByDistrict('Colombo');
                     if (fallbackCities.length > 0) {
-                        console.log('Using fallback cities from Colombo');
-                        setCitiesInDistrict([
-                            { id: fallbackCities[0].id, name: fallbackCities[0].name, district: selectedDistrict }
-                        ]);
+                        setCitiesInDistrict([{ id: fallbackCities[0].id, name: fallbackCities[0].name, district: selectedDistrict }]);
                         setSelectedCity(fallbackCities[0].id);
-                        // Set the search term to the selected city name
                         setCitySearchTerm(fallbackCities[0].name);
                     }
                 }
             } catch (err) {
                 console.error('Failed to load cities for district:', err);
-                // Use a default city from the fallback data
                 setCitiesInDistrict([{ id: 864, name: 'Colombo 01', district: selectedDistrict }]);
                 setSelectedCity(864);
-                // Set the search term to the default city name
                 setCitySearchTerm('Colombo 01');
             } finally {
                 setIsLoadingLocations(false);
             }
         };
-
         updateCities();
     }, [selectedDistrict, provider]);
 
@@ -199,34 +178,23 @@ export function ShippingForm({
             setIsLoadingRoyalLocations(true);
             try {
                 if (!royalExpressApiKey) {
-                    console.warn('Royal Express API key not provided, skipping city fetch.');
                     setIsLoadingRoyalLocations(false);
                     return;
                 }
                 const royalExpressService = new RoyalExpressProvider(royalExpressApiKey);
-                console.log(`Fetching cities for state: ${selectedState}`);
                 const cities = await getCitiesByState(royalExpressService, selectedState);
-                console.log('Royal Express cities loaded:', cities);
                 setCitiesInState(cities);
 
-                // Set default city if available
                 if (cities.length > 0) {
-                    console.log(`Setting default Royal Express city to: ${cities[0].name} (${cities[0].id})`);
                     setSelectedRoyalCity(cities[0].id);
-                    // Set the search term to the selected city name
                     setRoyalCitySearchTerm(cities[0].name);
                 } else {
-                    console.warn(`No cities found for state ${selectedState}, using fallback cities`);
-                    // Use hardcoded fallback cities
-                    setCitiesInState([
-                        { id: 1001, name: 'Colombo 01', state: selectedState }
-                    ]);
+                    setCitiesInState([{ id: 1001, name: 'Colombo 01', state: selectedState }]);
                     setSelectedRoyalCity(1001);
                     setRoyalCitySearchTerm('Colombo 01');
                 }
             } catch (err) {
                 console.error(`Failed to load cities for state ${selectedState}:`, err);
-                // Use a default city from the fallback data
                 setCitiesInState([{ id: 1001, name: 'Colombo 01', state: selectedState }]);
                 setSelectedRoyalCity(1001);
                 setRoyalCitySearchTerm('Colombo 01');
@@ -234,7 +202,6 @@ export function ShippingForm({
                 setIsLoadingRoyalLocations(false);
             }
         };
-
         updateRoyalCities();
     }, [selectedState, provider]);
 
@@ -266,11 +233,9 @@ export function ShippingForm({
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
-            // Close Trans Express city dropdown
             if (!target.closest('.city-dropdown-container')) {
                 setShowCityDropdown(false);
             }
-            // Close Royal Express city dropdown
             if (!target.closest('.royal-city-dropdown-container')) {
                 setShowRoyalCityDropdown(false);
             }
@@ -285,7 +250,6 @@ export function ShippingForm({
     // Clear city search term when state changes
     useEffect(() => {
         if (provider === 'ROYAL_EXPRESS' && selectedState) {
-            // Reset the search term when state changes
             setRoyalCitySearchTerm('');
             setShowRoyalCityDropdown(false);
         }
@@ -305,31 +269,15 @@ export function ShippingForm({
                 const timestamp = new Date().getTime().toString().slice(-6);
                 const uniqueId = orderId.slice(0, 4).toUpperCase();
                 const formattedOrderId = `JH${timestamp}${uniqueId}`;
-
-                // Calculate the discounted amount for COD (Cash on Delivery)
                 const codAmount = (order.product.price * order.quantity) - (order.discount || 0);
-
-                console.log('Farda Express config:', {
-                    clientId: process.env.NEXT_PUBLIC_FARDA_EXPRESS_CLIENT_ID,
-                    apiEndpoint: 'https://www.fdedomestic.com/api/parcel/new_api_v1.php',
-                    orderId: formattedOrderId,
-                    weight,
-                    customerDetails: {
-                        name: order.customerName,
-                        phone: order.customerPhone,
-                        address: order.customerAddress,
-                        city: city || order.customerCity || '',
-                    },
-                    codAmount,
-                });
 
                 const result = await fardaService.createShipment(
                     {
                         name: order.customerName,
                         street: order.customerAddress,
                         city: city || order.customerCity || '',
-                        state: '',  // Add state if available in order
-                        postalCode: '',  // Add postal code if available in order
+                        state: '',
+                        postalCode: '',
                         country: 'LK',
                         phone: order.customerPhone,
                     },
@@ -337,241 +285,116 @@ export function ShippingForm({
                         name: order.customerName,
                         street: order.customerAddress,
                         city: city || order.customerCity || '',
-                        state: '',  // Add state if available in order
-                        postalCode: '',  // Add postal code if available in order
+                        state: '',
+                        postalCode: '',
                         country: 'LK',
                         phone: order.customerPhone,
                     },
                     {
                         weight: parseFloat(weight),
-                        length: 1,  // Default values, update if you have actual dimensions
+                        length: 1,
                         width: 1,
                         height: 1,
                         description: `${order.product.name} x${order.quantity}`,
                     },
-                    formattedOrderId,  // Using order ID as service reference
-                    codAmount  // Pass the calculated COD amount
+                    formattedOrderId,
+                    codAmount
                 );
 
                 setTrackingNumber(result.trackingNumber);
+                await updateShippingInfo(provider, result.trackingNumber);
 
-                const response = await fetch(`/api/orders/${orderId}/shipping`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        shippingProvider: provider,
-                        trackingNumber: result.trackingNumber,
-                    }),
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to update shipping information');
-                }
             } else if (provider === ShippingProvider.TRANS_EXPRESS) {
-                try {
-                    console.log('Creating Trans Express shipment...');
-                    if (!transExpressApiKey) {
-                        throw new Error('Trans Express API key not provided.');
-                    }
-                    const transExpressService = new TransExpressProvider(transExpressApiKey);
-
-                    // Generate a unique order number
-                    const orderNo = parseInt(`${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 100)}`);
-                    console.log('Trans Express order number:', orderNo);
-                    console.log('Selected city ID:', selectedCity);
-
-                    console.log('Trans Express provider created, sending shipment request...');
-                    const result = await transExpressService.createShipment(
-                        // Origin address (not directly used by Trans Express API but needed for our interface)
-                        {
-                            name: 'JNEX Warehouse',
-                            street: '123 Warehouse St',
-                            city: 'Colombo',
-                            state: 'Western',
-                            postalCode: '10300',
-                            country: 'LK',
-                            phone: '+9477123456',
-                        },
-                        // Destination address
-                        {
-                            name: order.customerName,
-                            street: order.customerAddress,
-                            city: order.customerCity || 'Colombo',
-                            state: '',
-                            postalCode: '',
-                            country: 'LK',
-                            phone: order.customerPhone,
-                        },
-                        // Package details
-                        {
-                            weight: parseFloat(weight),
-                            length: 10,
-                            width: 10,
-                            height: 10,
-                        },
-                        // Service type - note this is not directly used by Trans Express API
-                        'Standard',
-                        // Pass the selected city ID
-                        selectedCity,
-                        // Pass the district ID if available (optional)
-                        undefined,
-                        // Pass the order total (price × quantity - discount)
-                        (order.product.price * order.quantity) - (order.discount || 0)
-                    );
-
-                    console.log('Trans Express shipment created:', result);
-
-                    setTrackingNumber(result.trackingNumber);
-
-                    const response = await fetch(`/api/orders/${orderId}/shipping`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            shippingProvider: provider,
-                            trackingNumber: result.trackingNumber,
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Failed to update shipping information');
-                    }
-                } catch (err) {
-                    console.error('Trans Express error:', err);
-                    if (err instanceof TypeError && err.message.includes('fetch')) {
-                        throw new Error('Unable to connect to Trans Express API. Check network connection and API URL.');
-                    }
-                    throw err;
+                if (!transExpressApiKey) {
+                    throw new Error('Trans Express API key not provided.');
                 }
-            } else if (provider === ShippingProvider.ROYAL_EXPRESS) {
-                try {
-                    console.log('Creating Royal Express (Curfox) shipment...');
-                    if (!royalExpressApiKey) {
-                        throw new Error('Royal Express API key not provided.');
-                    }
-                    const royalExpressService = new RoyalExpressProvider(royalExpressApiKey);
-
-                    // Calculate the COD amount
-                    const codAmount = (order.product.price * order.quantity) - (order.discount || 0);
-
-                    console.log('Royal Express provider created, sending shipment request...');
-
-                    // First verify we can connect to the API
-                    try {
-                        const userInfo = await royalExpressService.getUserInfo();
-                        console.log('Curfox user info retrieved:', userInfo);
-                    } catch (authError) {
-                        console.error('Failed to authenticate with Curfox API:', authError);
-                        throw new Error('Failed to authenticate with Curfox API. Please check your credentials.');
-                    }
-
-                    // Log valid state names for debugging
-                    try {
-                        const validStateNames = await royalExpressService.getStates();
-                        console.log('Valid Royal Express states for this account:', validStateNames.data.map((s: any) => s.name));
-                    } catch (stateError) {
-                        console.error('Failed to fetch valid state names:', stateError);
-                    }
-
-                    // Use "Colombo" for origin state instead of "Colombo Suburbs"
-                    const originState = "Colombo";
-                    const destinationState = selectedState;
-
-                    console.log(`Using origin state: "${originState}" and destination state: "${destinationState}"`);
-
-                    const result = await royalExpressService.createShipment(
-                        // Origin address
-                        {
-                            name: 'JNEX Warehouse',
-                            street: '123 Warehouse St',
-                            city: 'Kotte', // This should match the rate card
-                            state: originState, // Using "Colombo" from valid state list
-                            postalCode: '10300',
-                            country: 'LK',
-                            phone: '+9477123456',
-                        },
-                        // Destination address
-                        {
-                            name: order.customerName,
-                            street: order.customerAddress,
-                            city: citiesInState.find(c => c.id === selectedRoyalCity)?.name || 'Colombo 02',
-                            state: destinationState,
-                            postalCode: '',
-                            country: 'LK',
-                            phone: order.customerPhone,
-                            alternatePhone: order.customerSecondPhone || '',
-                        },
-                        // Package details
-                        {
-                            weight: parseFloat(weight),
-                            length: 10,
-                            width: 10,
-                            height: 10,
-                        },
-                        // Service type
-                        'Standard',
-                        // City ID
-                        selectedRoyalCity,
-                        // State ID
-                        states.find(s => s.name === selectedState)?.id,
-                        // COD amount
-                        codAmount,
-                        // Order prefix
-                        royalExpressOrderPrefix
-                    );
-
-                    console.log('Royal Express (Curfox) shipment created:', result);
-
-                    setTrackingNumber(result.trackingNumber);
-
-                    const response = await fetch(`/api/orders/${orderId}/shipping`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            shippingProvider: provider,
-                            trackingNumber: result.trackingNumber,
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error('Failed to update shipping information');
-                    }
-                } catch (err) {
-                    console.error('Royal Express (Curfox) error:', err);
-                    if (err instanceof TypeError && err.message.includes('fetch')) {
-                        throw new Error('Unable to connect to Curfox API. Check network connection and API URL.');
-                    } else if (err instanceof Error && err.message.includes('authenticate')) {
-                        throw new Error('Authentication with Curfox failed. Please check your email and password.');
-                    }
-                    throw err;
-                }
-            } else {
-                const response = await fetch(`/api/orders/${orderId}/shipping`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
+                const transExpressService = new TransExpressProvider(transExpressApiKey);
+                const result = await transExpressService.createShipment(
+                    {
+                        name: 'JNEX Warehouse',
+                        street: '123 Warehouse St',
+                        city: 'Colombo',
+                        state: 'Western',
+                        postalCode: '10300',
+                        country: 'LK',
+                        phone: '+9477123456',
                     },
-                    body: JSON.stringify({
-                        shippingProvider: provider,
-                        trackingNumber,
-                    }),
-                });
+                    {
+                        name: order.customerName,
+                        street: order.customerAddress,
+                        city: order.customerCity || 'Colombo',
+                        state: '',
+                        postalCode: '',
+                        country: 'LK',
+                        phone: order.customerPhone,
+                    },
+                    {
+                        weight: parseFloat(weight),
+                        length: 10,
+                        width: 10,
+                        height: 10,
+                    },
+                    'Standard',
+                    selectedCity,
+                    undefined,
+                    (order.product.price * order.quantity) - (order.discount || 0)
+                );
 
-                if (!response.ok) {
-                    throw new Error('Failed to update shipping information');
+                setTrackingNumber(result.trackingNumber);
+                await updateShippingInfo(provider, result.trackingNumber);
+
+            } else if (provider === ShippingProvider.ROYAL_EXPRESS) {
+                if (!royalExpressApiKey) {
+                    throw new Error('Royal Express API key not provided.');
                 }
+                const royalExpressService = new RoyalExpressProvider(royalExpressApiKey);
+                const codAmount = (order.product.price * order.quantity) - (order.discount || 0);
+                const originState = "Colombo";
+                const destinationState = selectedState;
+
+                const result = await royalExpressService.createShipment(
+                    {
+                        name: 'JNEX Warehouse',
+                        street: '123 Warehouse St',
+                        city: 'Kotte',
+                        state: originState,
+                        postalCode: '10300',
+                        country: 'LK',
+                        phone: '+9477123456',
+                    },
+                    {
+                        name: order.customerName,
+                        street: order.customerAddress,
+                        city: citiesInState.find(c => c.id === selectedRoyalCity)?.name || 'Colombo 02',
+                        state: destinationState,
+                        postalCode: '',
+                        country: 'LK',
+                        phone: order.customerPhone,
+                        alternatePhone: order.customerSecondPhone || '',
+                    },
+                    {
+                        weight: parseFloat(weight),
+                        length: 10,
+                        width: 10,
+                        height: 10,
+                    },
+                    'Standard',
+                    selectedRoyalCity,
+                    states.find(s => s.name === selectedState)?.id,
+                    codAmount,
+                    royalExpressOrderPrefix
+                );
+
+                setTrackingNumber(result.trackingNumber);
+                await updateShippingInfo(provider, result.trackingNumber);
+
+            } else {
+                await updateShippingInfo(provider, trackingNumber);
             }
 
-            // Call onSuccess callback if provided (for modal usage)
             if (onSuccess) {
                 onSuccess();
             } else {
-                // Check if we should redirect back to leads page
                 const returnTo = searchParams.get('returnTo');
                 if (returnTo === 'leads') {
                     router.push('/leads');
@@ -583,6 +406,23 @@ export function ShippingForm({
             setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const updateShippingInfo = async (provider: string, trackingNumber: string) => {
+        const response = await fetch(`/api/orders/${orderId}/shipping`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                shippingProvider: provider,
+                trackingNumber,
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update shipping information');
         }
     };
 
@@ -601,109 +441,137 @@ export function ShippingForm({
         }
     };
 
+    // Manage overflow state for dropdown visibility
+    const [isAnimating, setIsAnimating] = useState(false);
+
+    const providers = [
+        { id: ShippingProvider.FARDA_EXPRESS, name: 'Farda Express', logo: 'FE' },
+        { id: ShippingProvider.TRANS_EXPRESS, name: 'Trans Express', logo: 'TE' },
+        { id: ShippingProvider.ROYAL_EXPRESS, name: 'Royal Express', logo: 'RE' },
+        { id: ShippingProvider.SL_POST, name: 'SL Post', logo: 'SL' },
+    ];
+
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Provider Selection */}
             <div>
-                <label htmlFor="provider" className="block text-sm font-medium text-muted-foreground">
-                    Shipping Provider
+                <label className="block text-sm font-medium text-muted-foreground mb-3">
+                    Select Shipping Provider
                 </label>
-                <select
-                    id="provider"
-                    value={provider}
-                    onChange={(e) => setProvider(e.target.value)}
-                    className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary sm:text-sm"
-                    required
-                >
-                    <option key="empty" value="">Select a provider</option>
-                    <option key="farda" value={ShippingProvider.FARDA_EXPRESS}>Farda Express</option>
-                    <option key="trans" value={ShippingProvider.TRANS_EXPRESS}>Trans Express</option>
-                    <option key="royal" value={ShippingProvider.ROYAL_EXPRESS}>Royal Express</option>
-                    <option key="slpost" value={ShippingProvider.SL_POST}>SL Post</option>
-                </select>
+                <div className="grid grid-cols-2 gap-3">
+                    {providers.map((p) => (
+                        <div
+                            key={p.id}
+                            onClick={() => setProvider(p.id)}
+                            className={`
+                                cursor-pointer rounded-xl border p-4 flex items-center gap-3 transition-all
+                                ${provider === p.id
+                                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                                    : 'border-border bg-card hover:bg-muted/50 hover:border-primary/50'
+                                }
+                            `}
+                        >
+                            <div className={`
+                                w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
+                                ${provider === p.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}
+                            `}>
+                                {p.logo}
+                            </div>
+                            <span className={`font-medium ${provider === p.id ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                {p.name}
+                            </span>
+                            {provider === p.id && (
+                                <CheckCircleIcon className="w-5 h-5 text-primary ml-auto" />
+                            )}
+                        </div>
+                    ))}
+                </div>
             </div>
 
-            {(provider === ShippingProvider.FARDA_EXPRESS || provider === ShippingProvider.TRANS_EXPRESS || provider === ShippingProvider.ROYAL_EXPRESS) && (
-                <>
-                    <div>
-                        <label htmlFor="weight" className="block text-sm font-medium text-muted-foreground">
-                            Parcel Weight (kg)
-                        </label>
-                        <input
-                            type="number"
-                            id="weight"
-                            value={weight}
-                            onChange={(e) => setWeight(e.target.value)}
-                            className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary sm:text-sm"
-                            required
-                            min="0.1"
-                            step="0.1"
-                        />
-                    </div>
-
-                    {provider === ShippingProvider.FARDA_EXPRESS && (
-                        <div>
-                            <label htmlFor="city" className="block text-sm font-medium text-muted-foreground">
-                                Recipient City
-                            </label>
-                            <input
-                                type="text"
-                                id="city"
-                                value={city}
-                                onChange={(e) => setCity(e.target.value)}
-                                className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary sm:text-sm"
-                                required
-                            />
-                        </div>
-                    )}
-
-                    {provider === ShippingProvider.TRANS_EXPRESS && (
-                        <>
-                            <div style={{ position: 'relative', zIndex: 50 }}>
-                                <label htmlFor="district" className="block text-sm font-medium text-muted-foreground">
-                                    District
-                                </label>
-                                <select
-                                    id="district"
-                                    value={selectedDistrict}
-                                    onChange={(e) => setSelectedDistrict(e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary sm:text-sm"
-                                    required
-                                    disabled={isLoadingLocations}
-                                    style={{ zIndex: 50 }}
-                                >
-                                    {/* Always show at least Colombo as fallback */}
-                                    {(districts.length === 0 || !districts.includes('Colombo')) && (
-                                        <option key="default-colombo" value="Colombo">Colombo</option>
-                                    )}
-                                    {/* Show Gampaha as fallback option if not in districts list */}
-                                    {(districts.length === 0 || !districts.includes('Gampaha')) && (
-                                        <option key="default-gampaha" value="Gampaha">Gampaha</option>
-                                    )}
-                                    {/* Show Kandy as fallback option if not in districts list */}
-                                    {(districts.length === 0 || !districts.includes('Kandy')) && (
-                                        <option key="default-kandy" value="Kandy">Kandy</option>
-                                    )}
-                                    {/* Map loaded districts */}
-                                    {districts.map((district) => (
-                                        <option key={district} value={district}>
-                                            {district}
-                                        </option>
-                                    ))}
-                                </select>
-                                {isLoadingLocations && <div className="text-xs text-muted-foreground mt-1">Loading districts...</div>}
-                            </div>
-
-                            <div style={{ position: 'relative', zIndex: 40 }}>
-                                <label htmlFor="city_id" className="block text-sm font-medium text-muted-foreground">
-                                    City
-                                </label>
-                                <div className="relative city-dropdown-container">
+            <AnimatePresence mode="wait" onExitComplete={() => setIsAnimating(false)}>
+                {provider && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        onAnimationStart={() => setIsAnimating(true)}
+                        onAnimationComplete={() => setIsAnimating(false)}
+                        className={`space-y-6 ${isAnimating ? 'overflow-hidden' : 'overflow-visible'}`}
+                    >
+                        {/* Common Fields */}
+                        {(provider === ShippingProvider.FARDA_EXPRESS || provider === ShippingProvider.TRANS_EXPRESS || provider === ShippingProvider.ROYAL_EXPRESS) && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="weight" className="block text-sm font-medium text-muted-foreground mb-1.5">
+                                        Parcel Weight (kg)
+                                    </label>
                                     <div className="relative">
-                                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                                            <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
+                                        <ScaleIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <input
+                                            type="number"
+                                            id="weight"
+                                            value={weight}
+                                            onChange={(e) => setWeight(e.target.value)}
+                                            className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2"
+                                            required
+                                            min="0.1"
+                                            step="0.1"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Farda Express Specific */}
+                        {provider === ShippingProvider.FARDA_EXPRESS && (
+                            <div>
+                                <label htmlFor="city" className="block text-sm font-medium text-muted-foreground mb-1.5">
+                                    Recipient City
+                                </label>
+                                <div className="relative">
+                                    <BuildingOfficeIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <input
+                                        type="text"
+                                        id="city"
+                                        value={city}
+                                        onChange={(e) => setCity(e.target.value)}
+                                        className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Trans Express Specific */}
+                        {provider === ShippingProvider.TRANS_EXPRESS && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="district" className="block text-sm font-medium text-muted-foreground mb-1.5">
+                                        District
+                                    </label>
+                                    <div className="relative">
+                                        <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <select
+                                            id="district"
+                                            value={selectedDistrict}
+                                            onChange={(e) => setSelectedDistrict(e.target.value)}
+                                            className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2 appearance-none"
+                                            required
+                                            disabled={isLoadingLocations}
+                                        >
+                                            {districts.map((district) => (
+                                                <option key={district} value={district}>{district}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="relative city-dropdown-container">
+                                    <label htmlFor="city_id" className="block text-sm font-medium text-muted-foreground mb-1.5">
+                                        City
+                                    </label>
+                                    <div className="relative">
+                                        <BuildingOfficeIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                         <input
                                             type="text"
                                             id="city_id"
@@ -712,243 +580,155 @@ export function ShippingForm({
                                                 setCitySearchTerm(e.target.value);
                                                 setShowCityDropdown(true);
                                             }}
-                                            onClick={() => setShowCityDropdown(true)}
                                             onFocus={() => setShowCityDropdown(true)}
-                                            placeholder={isLoadingLocations ? "Loading cities..." : "Search for a city..."}
-                                            className="mt-1 block w-full pl-10 pr-10 rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary sm:text-sm"
+                                            onClick={() => setShowCityDropdown(true)}
+                                            placeholder={isLoadingLocations ? "Loading..." : "Search city..."}
+                                            className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2"
                                             required
                                             disabled={isLoadingLocations}
+                                            autoComplete="off"
                                         />
-                                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                                            {isLoadingLocations ? (
-                                                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                            ) : (
-                                                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M10 3a.75.75 0 01.55.24l3.25 3.5a.75.75 0 11-1.1 1.02L10 4.852 7.3 7.76a.75.75 0 01-1.1-1.02l3.25-3.5A.75.75 0 0110 3z" clipRule="evenodd" />
-                                                    <path fillRule="evenodd" d="M10 17a.75.75 0 01-.55-.24l-3.25-3.5a.75.75 0 111.1-1.02L10 15.148l2.7-2.908a.75.75 0 111.1 1.02l-3.25 3.5A.75.75 0 0110 17z" clipRule="evenodd" />
-                                                </svg>
-                                            )}
-                                        </div>
                                     </div>
                                     {showCityDropdown && !isLoadingLocations && (
-                                        <div className="absolute z-50 mt-1 w-full bg-card rounded-md ring-1 ring-border max-h-60 overflow-y-auto border border-border">
+                                        <div className="absolute z-50 mt-1 w-full bg-popover rounded-lg border border-border shadow-lg max-h-60 overflow-y-auto">
                                             {filteredCities.length > 0 ? filteredCities.map((city) => (
                                                 <button
                                                     key={city.id}
+                                                    type="button"
                                                     onClick={() => {
                                                         setSelectedCity(city.id);
                                                         setCitySearchTerm(city.name);
                                                         setShowCityDropdown(false);
                                                     }}
-                                                    className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent"
+                                                    className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
                                                 >
                                                     {city.name}
                                                 </button>
                                             )) : (
-                                                <div className="px-4 py-2 text-sm text-muted-foreground">
-                                                    No cities match your search
-                                                </div>
+                                                <div className="px-4 py-2 text-sm text-muted-foreground">No cities found</div>
                                             )}
                                         </div>
                                     )}
                                 </div>
-                                {/* Display the selected city name below the dropdown */}
-                                {selectedCity && citiesInDistrict.length > 0 && !showCityDropdown && (
-                                    <div className="mt-1 text-xs text-muted-foreground">
-                                        Selected: {citiesInDistrict.find(c => c.id === selectedCity)?.name || "Unknown City"}
-                                    </div>
-                                )}
                             </div>
-                        </>
-                    )}
+                        )}
 
-                    {provider === ShippingProvider.ROYAL_EXPRESS && (
-                        <>
-                            <div style={{ position: 'relative', zIndex: 50 }}>
-                                <label htmlFor="royalState" className="block text-sm font-medium text-muted-foreground">
-                                    State
-                                </label>
-                                <select
-                                    id="royalState"
-                                    value={selectedState}
-                                    onChange={(e) => setSelectedState(e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-input bg-background text-foreground ring-1 ring-border focus:border-primary focus:ring-primary sm:text-sm"
-                                    required
-                                    disabled={isLoadingRoyalLocations}
-                                    style={{ zIndex: 50 }}
-                                >
-                                    {/* Fallback states if none loaded */}
-                                    {(states.length === 0 || !states.some(s => s.name === 'Colombo')) && (
-                                        <option key="default-colombo" value="Colombo">Colombo</option>
-                                    )}
-                                    {(states.length === 0 || !states.some(s => s.name === 'Kandy')) && (
-                                        <option key="default-kandy" value="Kandy">Kandy</option>
-                                    )}
-                                    {(states.length === 0 || !states.some(s => s.name === 'Colombo Suburbs')) && (
-                                        <option key="default-colombo-suburbs" value="Colombo Suburbs">Colombo Suburbs</option>
-                                    )}
-                                    {/* Map loaded states */}
-                                    {states.map((state) => (
-                                        <option key={state.id} value={state.name}>
-                                            {state.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {isLoadingRoyalLocations && <div className="text-xs text-muted-foreground mt-1">Loading states...</div>}
-                            </div>
-
-                            <div style={{ position: 'relative', zIndex: 30 }}>
-                                <label htmlFor="royalCity" className="block text-sm font-medium text-gray-400">
-                                    City
-                                </label>
-                                <div className="relative royal-city-dropdown-container">
+                        {/* Royal Express Specific */}
+                        {provider === ShippingProvider.ROYAL_EXPRESS && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="royalState" className="block text-sm font-medium text-muted-foreground mb-1.5">
+                                        State
+                                    </label>
                                     <div className="relative">
-                                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                            <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                        <div className="flex">
-                                            <input
-                                                type="text"
-                                                id="royalCity"
-                                                value={royalCitySearchTerm}
-                                                onChange={(e) => {
-                                                    setRoyalCitySearchTerm(e.target.value);
-                                                    setShowRoyalCityDropdown(true);
-                                                }}
-                                                onClick={() => setShowRoyalCityDropdown(true)}
-                                                onFocus={() => setShowRoyalCityDropdown(true)}
-                                                placeholder={isLoadingRoyalLocations ? "Loading cities..." : "Search for a city..."}
-                                                className="mt-1 block w-full pl-10 pr-10 rounded-md border-gray-600 bg-gray-700 text-gray-100 ring-1 ring-white/10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                                required
-                                                disabled={isLoadingRoyalLocations}
-                                            />
-                                            <button
-                                                type="button"
-                                                className="ml-2 mt-1 inline-flex items-center rounded border border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-400 ring-1 ring-white/10 hover:bg-gray-700"
-                                                onClick={() => {
-                                                    if (selectedState) {
-                                                        // Force refresh cities for the selected state
-                                                        const updateRoyalCities = async () => {
-                                                            setIsLoadingRoyalLocations(true);
-                                                            try {
-                                                                const response = await fetch(`/api/shipping/royal-express/locations?state=${encodeURIComponent(selectedState)}`);
-                                                                if (!response.ok) {
-                                                                    throw new Error(`Failed to fetch cities for state ${selectedState}`);
-                                                                }
+                                        <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <select
+                                            id="royalState"
+                                            value={selectedState}
+                                            onChange={(e) => setSelectedState(e.target.value)}
+                                            className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2 appearance-none"
+                                            required
+                                            disabled={isLoadingRoyalLocations}
+                                        >
+                                            {states.map((state) => (
+                                                <option key={state.id} value={state.name}>{state.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
 
-                                                                const data = await response.json();
-                                                                const cities = data.cities || [];
-
-                                                                console.log('Royal Express cities reloaded:', cities);
-                                                                setCitiesInState(cities);
-
-                                                                if (cities.length > 0) {
-                                                                    setSelectedRoyalCity(cities[0].id);
-                                                                    setRoyalCitySearchTerm(cities[0].name);
-                                                                }
-                                                            } catch (err) {
-                                                                console.error(`Failed to reload cities for state ${selectedState}:`, err);
-                                                            } finally {
-                                                                setIsLoadingRoyalLocations(false);
-                                                            }
-                                                        };
-
-                                                        updateRoyalCities();
-                                                    }
-                                                }}
-                                                disabled={isLoadingRoyalLocations}
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                            <svg className={`h-4 w-4 transition-transform ${showRoyalCityDropdown ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                        {isLoadingRoyalLocations && (
-                                            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                                                <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                            </div>
-                                        )}
+                                <div className="relative royal-city-dropdown-container">
+                                    <label htmlFor="royalCity" className="block text-sm font-medium text-muted-foreground mb-1.5">
+                                        City
+                                    </label>
+                                    <div className="relative">
+                                        <BuildingOfficeIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <input
+                                            type="text"
+                                            id="royalCity"
+                                            value={royalCitySearchTerm}
+                                            onChange={(e) => {
+                                                setRoyalCitySearchTerm(e.target.value);
+                                                setShowRoyalCityDropdown(true);
+                                            }}
+                                            onFocus={() => setShowRoyalCityDropdown(true)}
+                                            onClick={() => setShowRoyalCityDropdown(true)}
+                                            placeholder={isLoadingRoyalLocations ? "Loading..." : "Search city..."}
+                                            className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2"
+                                            required
+                                            disabled={isLoadingRoyalLocations}
+                                            autoComplete="off"
+                                        />
                                     </div>
                                     {showRoyalCityDropdown && !isLoadingRoyalLocations && (
-                                        <div className="absolute z-50 mt-1 w-full bg-gray-800 rounded-md ring-1 ring-white/10 max-h-60 overflow-y-auto border border-gray-700">
+                                        <div className="absolute z-50 mt-1 w-full bg-popover rounded-lg border border-border shadow-lg max-h-60 overflow-y-auto">
                                             {filteredRoyalCities.length > 0 ? filteredRoyalCities.map((city) => (
                                                 <button
                                                     key={city.id}
+                                                    type="button"
                                                     onClick={() => {
                                                         setSelectedRoyalCity(city.id);
                                                         setRoyalCitySearchTerm(city.name);
                                                         setShowRoyalCityDropdown(false);
                                                     }}
-                                                    className="block w-full text-left px-4 py-2 text-sm text-gray-100 hover:bg-gray-700"
+                                                    className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
                                                 >
                                                     {city.name}
                                                 </button>
                                             )) : (
-                                                <div className="px-4 py-2 text-sm text-gray-400">
-                                                    No cities match your search in {selectedState}
-                                                </div>
+                                                <div className="px-4 py-2 text-sm text-muted-foreground">No cities found</div>
                                             )}
                                         </div>
                                     )}
                                 </div>
-                                {/* Display the selected city name below the dropdown */}
-                                {selectedRoyalCity && citiesInState.length > 0 && !showRoyalCityDropdown && (
-                                    <div className="mt-1 text-xs text-gray-400">
-                                        Selected: {citiesInState.find(c => c.id === selectedRoyalCity)?.name || "Unknown City"}
-                                    </div>
-                                )}
                             </div>
-                        </>
-                    )}
-                </>
-            )}
+                        )}
 
-            {provider !== ShippingProvider.FARDA_EXPRESS && provider !== ShippingProvider.TRANS_EXPRESS && provider !== ShippingProvider.ROYAL_EXPRESS && (
-                <div>
-                    <label htmlFor="tracking" className="block text-sm font-medium text-gray-400">
-                        Tracking Number
-                    </label>
-                    <input
-                        type="text"
-                        id="tracking"
-                        value={trackingNumber}
-                        onChange={(e) => setTrackingNumber(e.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-gray-100 ring-1 ring-white/10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                        required
-                    />
-                </div>
-            )}
+                        {/* Manual Tracking Number Input */}
+                        {!['FARDA_EXPRESS', 'TRANS_EXPRESS', 'ROYAL_EXPRESS'].includes(provider) && (
+                            <div>
+                                <label htmlFor="tracking" className="block text-sm font-medium text-muted-foreground mb-1.5">
+                                    Tracking Number
+                                </label>
+                                <div className="relative">
+                                    <TruckIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <input
+                                        type="text"
+                                        id="tracking"
+                                        value={trackingNumber}
+                                        onChange={(e) => setTrackingNumber(e.target.value)}
+                                        className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {error && (
-                <div className="rounded-lg bg-red-900/50 p-4 text-sm text-red-400 ring-1 ring-red-500">
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive flex items-center gap-2"
+                >
+                    <ExclamationCircleIcon className="w-5 h-5" />
                     {error}
-                </div>
+                </motion.div>
             )}
 
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <motion.button
                     type="submit"
-                    disabled={isLoading}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white ring-1 ring-white/10 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                    disabled={isLoading || !provider}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    className="flex-1 inline-flex justify-center items-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                     {isLoading ? (
                         <>
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
@@ -958,19 +738,6 @@ export function ShippingForm({
                         'Save Shipping Info'
                     )}
                 </motion.button>
-
-                {trackingNumber && provider && getTrackingUrl() && (
-                    <motion.a
-                        href={getTrackingUrl()!}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="inline-flex items-center rounded-md bg-gray-700 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                        Track on Carrier Site →
-                    </motion.a>
-                )}
             </div>
         </form>
     );

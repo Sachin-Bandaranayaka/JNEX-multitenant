@@ -4,6 +4,17 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+    CheckCircleIcon,
+    TruckIcon,
+    CubeIcon,
+    MapPinIcon,
+    ExclamationTriangleIcon,
+    CurrencyDollarIcon,
+    ChartBarIcon,
+    ArrowPathIcon,
+    ArrowTopRightOnSquareIcon
+} from '@heroicons/react/24/outline';
 
 interface EnhancedOrderTimelineProps {
     order: {
@@ -70,20 +81,28 @@ interface EnhancedOrderTimelineProps {
 
 // Helper function to get Royal Express specific status icons
 const getRoyalExpressStatusIcon = (status: string, statusCode: string) => {
-    if (statusCode === 'EXCEPTION') return '⚠️';
-    
+    if (statusCode === 'EXCEPTION') return <ExclamationTriangleIcon className="h-5 w-5" />;
+
     switch (status) {
-        case 'DELIVERED': return '✅';
-        case 'OUT_FOR_DELIVERY': return '🚛';
-        case 'IN_TRANSIT': return '🚚';
-        case 'PICKED_UP': return '📦';
-        case 'PROCESSING': return '⚙️';
-        case 'PENDING': return '⏳';
-        case 'CANCELLED': return '❌';
-        case 'RETURNED': return '↩️';
-        default: return '📍';
+        case 'DELIVERED': return <CheckCircleIcon className="h-5 w-5" />;
+        case 'OUT_FOR_DELIVERY': return <TruckIcon className="h-5 w-5" />;
+        case 'IN_TRANSIT': return <TruckIcon className="h-5 w-5" />;
+        case 'PICKED_UP': return <CubeIcon className="h-5 w-5" />;
+        case 'PROCESSING': return <ArrowPathIcon className="h-5 w-5" />;
+        case 'PENDING': return <ClockIcon className="h-5 w-5" />;
+        case 'CANCELLED': return <ExclamationTriangleIcon className="h-5 w-5" />;
+        case 'RETURNED': return <ArrowPathIcon className="h-5 w-5" />;
+        default: return <MapPinIcon className="h-5 w-5" />;
     }
 };
+
+function ClockIcon({ className }: { className?: string }) {
+    return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+    );
+}
 
 export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
     const router = useRouter();
@@ -134,7 +153,7 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
     // Parse Royal Express tracking history
     const getRoyalExpressHistory = () => {
         if (!order.statusHistory?.length) return [];
-        
+
         return order.statusHistory.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     };
 
@@ -149,7 +168,7 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
                 description: 'Order has been created from lead',
                 date: format(new Date(order.createdAt), 'PPp'),
                 status: 'complete',
-                icon: '📋',
+                icon: <CubeIcon className="h-5 w-5" />,
                 type: 'order'
             },
             {
@@ -160,7 +179,7 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
                     : 'Waiting for shipping details',
                 date: order.shippedAt ? format(new Date(order.shippedAt), 'PPp') : undefined,
                 status: order.shippingProvider ? 'complete' : 'current',
-                icon: '📦',
+                icon: <TruckIcon className="h-5 w-5" />,
                 type: 'shipping'
             }
         ];
@@ -192,7 +211,7 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
                 location: order.trackingUpdates[0].location,
                 date: format(new Date(order.trackingUpdates[0].timestamp), 'PPp'),
                 status: 'complete',
-                icon: '🚚',
+                icon: <TruckIcon className="h-5 w-5" />,
                 type: 'tracking'
             });
         }
@@ -210,7 +229,7 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
                     ? format(new Date(order.trackingUpdates.find(u => u.status === 'DELIVERED')!.timestamp), 'PPp')
                     : undefined,
                 status: order.status === 'DELIVERED' ? 'complete' : 'upcoming',
-                icon: '✅',
+                icon: <CheckCircleIcon className="h-5 w-5" />,
                 type: 'delivery'
             });
         }
@@ -228,61 +247,63 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10"
+                    className="rounded-xl bg-card p-6 border border-border shadow-sm"
                 >
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
-                            <h4 className="text-lg font-medium text-indigo-400">
+                            <h4 className="text-lg font-semibold text-primary flex items-center gap-2">
                                 {order.shippingProvider?.replace('_', ' ')} Tracking
-                                {isRoyalExpress && <span className="ml-2 text-xs bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded">Enhanced</span>}
+                                {isRoyalExpress && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">Enhanced</span>}
                             </h4>
-                            <p className="mt-1 text-sm text-gray-400">#{order.trackingNumber}</p>
-                            {order.royalExpressTracking?.lastLocationUpdate && (
-                                <p className="mt-1 text-sm text-green-400">
-                                    📍 Current Location: {order.royalExpressTracking.lastLocationUpdate}
-                                </p>
-                            )}
-                            {order.royalExpressTracking?.estimatedDelivery && (
-                                <p className="mt-1 text-sm text-blue-400">
-                                    🕒 Estimated Delivery: {format(new Date(order.royalExpressTracking.estimatedDelivery), 'PPp')}
-                                </p>
-                            )}
-                            {order.royalExpressTracking?.isException && order.royalExpressTracking?.exceptionDetails && (
-                                <p className="mt-1 text-sm text-red-400">
-                                    ⚠️ Exception: {order.royalExpressTracking.exceptionDetails}
-                                </p>
-                            )}
+                            <p className="mt-1 text-sm text-muted-foreground font-mono">#{order.trackingNumber}</p>
+
+                            <div className="mt-2 space-y-1">
+                                {order.royalExpressTracking?.lastLocationUpdate && (
+                                    <p className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                                        <MapPinIcon className="h-4 w-4" />
+                                        Current Location: {order.royalExpressTracking.lastLocationUpdate}
+                                    </p>
+                                )}
+                                {order.royalExpressTracking?.estimatedDelivery && (
+                                    <p className="text-sm text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                                        <ClockIcon className="h-4 w-4" />
+                                        Estimated Delivery: {format(new Date(order.royalExpressTracking.estimatedDelivery), 'PPp')}
+                                    </p>
+                                )}
+                                {order.royalExpressTracking?.isException && order.royalExpressTracking?.exceptionDetails && (
+                                    <p className="text-sm text-destructive flex items-center gap-1.5">
+                                        <ExclamationTriangleIcon className="h-4 w-4" />
+                                        Exception: {order.royalExpressTracking.exceptionDetails}
+                                    </p>
+                                )}
+                            </div>
                         </div>
-                        <div className="flex space-x-4">
+                        <div className="flex gap-3 w-full sm:w-auto">
                             <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={checkTracking}
                                 disabled={isLoading}
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md ring-1 ring-white/10 text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                                className="flex-1 sm:flex-none inline-flex justify-center items-center px-4 py-2 text-sm font-medium rounded-xl text-primary-foreground bg-primary hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm"
                             >
                                 {isLoading ? (
-                                    <>
-                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Checking...
-                                    </>
+                                    <ArrowPathIcon className="animate-spin -ml-1 mr-2 h-4 w-4" />
                                 ) : (
-                                    'Check Updates'
+                                    <ArrowPathIcon className="-ml-1 mr-2 h-4 w-4" />
                                 )}
+                                {isLoading ? 'Checking...' : 'Update Status'}
                             </motion.button>
                             {getTrackingUrl() && (
                                 <motion.a
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
                                     href={getTrackingUrl()!}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center px-4 py-2 border border-gray-600 text-sm font-medium rounded-md ring-1 ring-white/10 text-gray-300 bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    className="flex-1 sm:flex-none inline-flex justify-center items-center px-4 py-2 text-sm font-medium rounded-xl border border-border bg-card hover:bg-accent hover:text-accent-foreground transition-colors shadow-sm"
                                 >
-                                    Track on Carrier Site →
+                                    <span className="mr-2">Track</span>
+                                    <ArrowTopRightOnSquareIcon className="h-4 w-4" />
                                 </motion.a>
                             )}
                         </div>
@@ -290,29 +311,35 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
 
                     {/* Enhanced Royal Express Controls */}
                     {hasEnhancedData && (
-                        <div className="mt-4 pt-4 border-t border-gray-700">
-                            <div className="flex space-x-4">
-                                {order.financialInfo && (
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => setShowFinancialInfo(!showFinancialInfo)}
-                                        className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ring-1 ring-white/10 text-gray-300 bg-gray-700 hover:bg-gray-600"
-                                    >
-                                        💰 Financial Info
-                                    </motion.button>
-                                )}
-                                {royalExpressHistory.length > 0 && (
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => setShowDetailedTracking(!showDetailedTracking)}
-                                        className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md ring-1 ring-white/10 text-gray-300 bg-gray-700 hover:bg-gray-600"
-                                    >
-                                        📊 Detailed Tracking
-                                    </motion.button>
-                                )}
-                            </div>
+                        <div className="mt-6 pt-4 border-t border-border flex gap-3">
+                            {order.financialInfo && (
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setShowFinancialInfo(!showFinancialInfo)}
+                                    className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${showFinancialInfo
+                                            ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+                                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                        }`}
+                                >
+                                    <CurrencyDollarIcon className="h-4 w-4 mr-2" />
+                                    Financial Info
+                                </motion.button>
+                            )}
+                            {royalExpressHistory.length > 0 && (
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setShowDetailedTracking(!showDetailedTracking)}
+                                    className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${showDetailedTracking
+                                            ? 'bg-primary/10 text-primary ring-1 ring-primary/20'
+                                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                        }`}
+                                >
+                                    <ChartBarIcon className="h-4 w-4 mr-2" />
+                                    Detailed Tracking
+                                </motion.button>
+                            )}
                         </div>
                     )}
                 </motion.div>
@@ -320,16 +347,14 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
 
             {error && (
                 <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="rounded-md bg-red-900/50 p-4 ring-1 ring-red-500"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-xl bg-destructive/10 p-4 border border-destructive/20"
                 >
-                    <div className="flex">
-                        <div className="ml-3">
-                            <h3 className="text-sm font-medium text-red-400">{error}</h3>
-                        </div>
-                    </div>
+                    <p className="text-sm font-medium text-destructive flex items-center gap-2">
+                        <ExclamationTriangleIcon className="h-5 w-5" />
+                        {error}
+                    </p>
                 </motion.div>
             )}
 
@@ -340,50 +365,54 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10"
+                        className="overflow-hidden"
                     >
-                        <h4 className="text-lg font-medium text-green-400 mb-4">💰 Financial Information</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div>
-                                <dt className="text-sm font-medium text-gray-400">Total Amount</dt>
-                                <dd className="mt-1 text-lg font-semibold text-gray-100">
-                                    {order.financialInfo.currency} {order.financialInfo.totalAmount.toLocaleString()}
-                                </dd>
+                        <div className="rounded-xl bg-card p-6 border border-border shadow-sm mb-4">
+                            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <CurrencyDollarIcon className="h-4 w-4" />
+                                Financial Information
+                            </h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                <div>
+                                    <dt className="text-xs font-medium text-muted-foreground uppercase">Total Amount</dt>
+                                    <dd className="mt-1 text-lg font-bold text-foreground">
+                                        {order.financialInfo.currency} {order.financialInfo.totalAmount.toLocaleString()}
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt className="text-xs font-medium text-muted-foreground uppercase">Shipping Cost</dt>
+                                    <dd className="mt-1 text-lg font-semibold text-blue-600 dark:text-blue-400">
+                                        {order.financialInfo.currency} {order.financialInfo.shippingCost.toLocaleString()}
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt className="text-xs font-medium text-muted-foreground uppercase">Tax Amount</dt>
+                                    <dd className="mt-1 text-lg font-semibold text-amber-600 dark:text-amber-400">
+                                        {order.financialInfo.currency} {order.financialInfo.taxAmount.toLocaleString()}
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt className="text-xs font-medium text-muted-foreground uppercase">Payment Status</dt>
+                                    <dd className="mt-1">
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.financialInfo.paymentStatus === 'PAID'
+                                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                                : order.financialInfo.paymentStatus === 'PENDING'
+                                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                                                    : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
+                                            }`}>
+                                            {order.financialInfo.paymentStatus}
+                                        </span>
+                                    </dd>
+                                </div>
                             </div>
-                            <div>
-                                <dt className="text-sm font-medium text-gray-400">Shipping Cost</dt>
-                                <dd className="mt-1 text-lg font-semibold text-blue-400">
-                                    {order.financialInfo.currency} {order.financialInfo.shippingCost.toLocaleString()}
-                                </dd>
-                            </div>
-                            <div>
-                                <dt className="text-sm font-medium text-gray-400">Tax Amount</dt>
-                                <dd className="mt-1 text-lg font-semibold text-yellow-400">
-                                    {order.financialInfo.currency} {order.financialInfo.taxAmount.toLocaleString()}
-                                </dd>
-                            </div>
-                            <div>
-                                <dt className="text-sm font-medium text-gray-400">Payment Status</dt>
-                                <dd className="mt-1">
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                        order.financialInfo.paymentStatus === 'PAID' 
-                                            ? 'bg-green-100 text-green-800' 
-                                            : order.financialInfo.paymentStatus === 'PENDING'
-                                            ? 'bg-yellow-100 text-yellow-800'
-                                            : 'bg-red-100 text-red-800'
-                                    }`}>
-                                        {order.financialInfo.paymentStatus}
-                                    </span>
-                                </dd>
-                            </div>
+                            {order.financialInfo.paymentMethod && (
+                                <div className="mt-4 pt-4 border-t border-border">
+                                    <p className="text-sm text-muted-foreground">
+                                        Payment Method: <span className="font-medium text-foreground">{order.financialInfo.paymentMethod}</span>
+                                    </p>
+                                </div>
+                            )}
                         </div>
-                        {order.financialInfo.paymentMethod && (
-                            <div className="mt-4 pt-4 border-t border-gray-700">
-                                <p className="text-sm text-gray-400">
-                                    Payment Method: {order.financialInfo.paymentMethod}
-                                </p>
-                            </div>
-                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -395,99 +424,109 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="rounded-lg bg-gray-800 p-6 ring-1 ring-white/10"
+                        className="overflow-hidden"
                     >
-                        <h4 className="text-lg font-medium text-blue-400 mb-4">📊 Detailed Tracking History</h4>
-                        <div className="space-y-3">
-                            {royalExpressHistory.map((event, index) => (
-                                <div key={index} className="flex items-start space-x-3 p-3 bg-gray-700/50 rounded-lg">
-                                    <div className="flex-shrink-0">
-                                        <span className="text-lg">{event.status === 'DELIVERED' ? '✅' : '📍'}</span>
+                        <div className="rounded-xl bg-card p-6 border border-border shadow-sm mb-4">
+                            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <ChartBarIcon className="h-4 w-4" />
+                                Detailed Tracking History
+                            </h4>
+                            <div className="space-y-4">
+                                {royalExpressHistory.map((event, index) => (
+                                    <div key={index} className="flex items-start gap-4 p-4 bg-muted/30 rounded-xl border border-border/50">
+                                        <div className="flex-shrink-0 mt-0.5">
+                                            {event.status === 'DELIVERED'
+                                                ? <CheckCircleIcon className="h-5 w-5 text-emerald-500" />
+                                                : <MapPinIcon className="h-5 w-5 text-primary" />
+                                            }
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-foreground">
+                                                {event.status?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                                            </p>
+                                            {event.description && (
+                                                <p className="text-sm text-muted-foreground mt-0.5">{event.description}</p>
+                                            )}
+                                            {event.location && (
+                                                <p className="text-xs text-primary mt-1 flex items-center gap-1">
+                                                    <MapPinIcon className="h-3 w-3" />
+                                                    {event.location}
+                                                </p>
+                                            )}
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                {format(new Date(event.timestamp), 'PPp')}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-100">
-                                            {event.status?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                                        </p>
-                                        {event.description && (
-                                            <p className="text-sm text-gray-400">{event.description}</p>
-                                        )}
-                                        {event.location && (
-                                            <p className="text-sm text-blue-400">📍 {event.location}</p>
-                                        )}
-                                        <p className="text-xs text-gray-500">
-                                            {format(new Date(event.timestamp), 'PPp')}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
             {/* Enhanced Journey Timeline */}
-            <div className="flow-root">
-                <ul role="list" className="-mb-8">
-                    {steps.map((step, stepIdx) => (
-                        <motion.li
-                            key={step.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: stepIdx * 0.1 }}
-                        >
-                            <div className="relative pb-8">
-                                {stepIdx !== steps.length - 1 ? (
-                                    <span
-                                        className={`absolute top-4 left-4 -ml-px h-full w-0.5 ${
-                                            step.status === 'complete' ? 'bg-indigo-500' : 'bg-gray-700'
-                                        }`}
-                                        aria-hidden="true"
-                                    />
-                                ) : null}
-                                <div className="relative flex space-x-3">
-                                    <div>
-                                        <span
-                                            className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-gray-900 text-lg ${
-                                                step.status === 'complete'
-                                                    ? (step as any).isException ? 'bg-yellow-500' : 'bg-indigo-500'
-                                                    : step.status === 'current'
-                                                    ? 'bg-indigo-200'
-                                                    : 'bg-gray-700'
-                                            }`}
-                                        >
-                                            {step.icon}
-                                        </span>
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="text-sm font-medium text-gray-100">
+            <div className="relative pl-4">
+                <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-border" aria-hidden="true" />
+
+                <div className="space-y-8">
+                    {steps.map((step, stepIdx) => {
+                        const isComplete = step.status === 'complete';
+                        const isCurrent = step.status === 'current';
+                        const isException = (step as any).isException;
+
+                        return (
+                            <motion.div
+                                key={step.id}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: stepIdx * 0.1 }}
+                                className="relative flex gap-6"
+                            >
+                                <div className={`
+                                    relative z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-[3px] shadow-sm transition-colors duration-300
+                                    ${isException
+                                        ? 'bg-destructive border-destructive text-destructive-foreground'
+                                        : isComplete
+                                            ? 'bg-primary border-primary text-primary-foreground'
+                                            : isCurrent
+                                                ? 'bg-background border-primary text-primary'
+                                                : 'bg-muted/50 border-border text-muted-foreground'
+                                    }
+                                `}>
+                                    {step.icon}
+                                </div>
+
+                                <div className={`flex-1 pt-1.5 ${!isComplete && !isCurrent && 'opacity-60'}`}>
+                                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
+                                        <h3 className={`text-base font-semibold flex items-center gap-2 ${isComplete || isCurrent ? 'text-foreground' : 'text-muted-foreground'}`}>
                                             {step.name}
-                                            {(step as any).isException && (
-                                                <span className="ml-2 text-xs bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded">
+                                            {isException && (
+                                                <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full font-medium">
                                                     Exception
                                                 </span>
                                             )}
-                                        </div>
-                                        <div className="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
-                                            <div className="mt-2 text-sm text-gray-400">
-                                                {step.description}
-                                            </div>
-                                            {(step as any).location && (
-                                                <div className="mt-2 text-sm text-blue-400">
-                                                    📍 {(step as any).location}
-                                                </div>
-                                            )}
-                                            {step.date && (
-                                                <div className="mt-2 text-sm text-gray-400">
-                                                    {step.date}
-                                                </div>
-                                            )}
-                                        </div>
+                                        </h3>
+                                        {step.date && (
+                                            <time className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md whitespace-nowrap">
+                                                {step.date}
+                                            </time>
+                                        )}
                                     </div>
+                                    <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                                        {step.description}
+                                    </p>
+                                    {(step as any).location && (
+                                        <p className="mt-1 text-xs text-primary flex items-center gap-1">
+                                            <MapPinIcon className="h-3 w-3" />
+                                            {(step as any).location}
+                                        </p>
+                                    )}
                                 </div>
-                            </div>
-                        </motion.li>
-                    ))}
-                </ul>
+                            </motion.div>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Order Summary Card */}
@@ -495,41 +534,37 @@ export function EnhancedOrderTimeline({ order }: EnhancedOrderTimelineProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="rounded-lg bg-gray-800 ring-1 ring-white/10 overflow-hidden"
+                className="rounded-xl bg-card border border-border shadow-sm overflow-hidden mt-8"
             >
-                <div className="px-4 py-5 sm:p-6">
-                    <h4 className="text-lg font-medium text-indigo-400">Order Summary</h4>
-                    <div className="mt-6 border-t border-gray-700 pt-6">
+                <div className="px-6 py-5">
+                    <h4 className="text-lg font-medium text-primary mb-4">Order Summary</h4>
+                    <div className="border-t border-border pt-6">
                         <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
                             <div>
-                                <dt className="text-sm font-medium text-gray-400">Customer</dt>
-                                <dd className="mt-1 text-sm text-gray-100">
+                                <dt className="text-sm font-medium text-muted-foreground">Customer</dt>
+                                <dd className="mt-1 text-sm text-foreground">
                                     <div className="space-y-1">
                                         <p className="font-medium">{order.customerName}</p>
                                         <p>{order.customerPhone}</p>
-                                        <p className="text-xs">{order.customerAddress}</p>
+                                        <p className="text-xs text-muted-foreground">{order.customerAddress}</p>
                                     </div>
                                 </dd>
                             </div>
                             <div>
-                                <dt className="text-sm font-medium text-gray-400">Product Details</dt>
-                                <dd className="mt-1 text-sm text-gray-100">
+                                <dt className="text-sm font-medium text-muted-foreground">Product Details</dt>
+                                <dd className="mt-1 text-sm text-foreground">
                                     <div className="space-y-1">
                                         <p className="font-medium">{order.product.name}</p>
-                                        <p className="text-xs">Code: {order.product.code}</p>
-                                        <p>Quantity: {order.quantity}</p>
-                                        {order.discount && order.discount > 0 && (
-                                            <p>Discount: {new Intl.NumberFormat('en-LK', {
-                                                style: 'currency',
-                                                currency: 'LKR',
-                                            }).format(order.discount)}</p>
-                                        )}
-                                        <p className="font-medium text-indigo-400">
-                                            Total: {new Intl.NumberFormat('en-LK', {
-                                                style: 'currency',
-                                                currency: 'LKR',
-                                            }).format((order.product.price * order.quantity) - (order.discount || 0))}
-                                        </p>
+                                        <p className="text-xs text-muted-foreground">Code: {order.product.code}</p>
+                                        <div className="flex justify-between items-center pr-4">
+                                            <span>Quantity: {order.quantity}</span>
+                                            <span className="font-bold text-primary">
+                                                {new Intl.NumberFormat('en-LK', {
+                                                    style: 'currency',
+                                                    currency: 'LKR',
+                                                }).format((order.product.price * order.quantity) - (order.discount || 0))}
+                                            </span>
+                                        </div>
                                     </div>
                                 </dd>
                             </div>

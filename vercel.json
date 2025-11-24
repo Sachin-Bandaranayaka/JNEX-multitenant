@@ -1,4 +1,3 @@
 {
-  "_comment": "Cron jobs now handled by cron-job.org - see docs/CRON_SETUP.md",
   "crons": []
 }

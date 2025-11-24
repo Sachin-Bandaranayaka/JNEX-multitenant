@@ -113,15 +113,26 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
     };
   }, [activeTab, selectedOrderIds]);
 
+  // --- FIX: Use useEffect to trigger print when ordersToPrint changes ---
+  useEffect(() => {
+    if (ordersToPrint.length > 0) {
+      // Use requestAnimationFrame to ensure DOM has painted, then delay to be extra sure
+      requestAnimationFrame(() => {
+        const timer = setTimeout(() => {
+          window.print();
+        }, 1000); // Increased delay for safety
+        return () => clearTimeout(timer);
+      });
+    }
+  }, [ordersToPrint]);
+
   const handlePrint = () => {
     if (selectedOrderIds.length === 0) {
       toast.warning('Please select at least one invoice to print.');
       return;
     }
     setOrdersToPrint(orders.filter(o => selectedOrderIds.includes(o.id)));
-    setTimeout(() => {
-      window.print();
-    }, 100);
+    // The useEffect above will trigger window.print() once state updates
   };
 
   const handleGeneratePDF = async () => {
@@ -201,23 +212,33 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
   return (
     <>
       <style jsx global>{`
+        @media screen {
+          .print-only {
+            display: none !important;
+          }
+        }
         @media print {
+          .print-only {
+            display: block !important;
+          }
           @page {
             size: A4 portrait;
-            margin: 0;
+            margin: 0 !important;
           }
           * {
-            -webkit-print-color-adjust: none !important;
-            print-color-adjust: none !important;
-            color-adjust: none !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
           body {
-            margin: 0;
-            padding: 0;
+            margin: 0 !important;
+            padding: 0 !important;
             background-color: #fff !important;
             background: #fff !important;
           }
           html {
+            margin: 0 !important;
+            padding: 0 !important;
             background-color: #fff !important;
             background: #fff !important;
           }
@@ -225,12 +246,17 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
           .bg-gray-900, .bg-gray-800, .bg-gray-700 {
             background-color: #fff !important;
             background: #fff !important;
+            color: #000 !important;
           }
           /* This container for each page of invoices forces a page break after it */
           .print-page-container {
             page-break-after: always;
             background-color: #fff !important;
             background: #fff !important;
+            width: 100%;
+            height: 100%;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           .print-page-container:last-child {
             page-break-after: auto;
@@ -240,9 +266,13 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             padding: 0mm;
             box-sizing: border-box;
             overflow: hidden;
-            color: #000;
+            color: #000 !important;
             background-color: #fff !important;
             background: #fff !important;
+          }
+          /* Ensure text is visible */
+          p, h1, h2, h3, span, div {
+            color: #000 !important;
           }
         }
       `}</style>
@@ -256,9 +286,9 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
               <SelectTrigger className="w-[180px] bg-card border-border"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="newest">Newest First</SelectItem><SelectItem value="oldest">Oldest First</SelectItem></SelectContent>
             </Select>
-            <Button 
-              onClick={handleGeneratePDF} 
-              disabled={selectedOrderIds.length === 0 || isGeneratingPDF} 
+            <Button
+              onClick={handleGeneratePDF}
+              disabled={selectedOrderIds.length === 0 || isGeneratingPDF}
               className="bg-green-600 hover:bg-green-700"
             >
               <Download className="h-4 w-4 mr-2" />
@@ -272,7 +302,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
 
         {/* Format Selector */}
         <div className="bg-card rounded-lg p-4 ring-1 ring-border">
-          <FormatSelector 
+          <FormatSelector
             selectedFormat={selectedFormat}
             onFormatChange={setSelectedFormat}
           />
@@ -320,7 +350,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
       </div>
 
       {/* --- UPDATED: Print view now uses chunking for pagination --- */}
-      <div className="hidden print:block bg-white text-black">
+      <div className="print-only bg-white text-black">
         {chunk(ordersToPrint, 8).map((pageOfOrders, pageIndex) => (
           <div key={pageIndex} className="print-page-container">
             <div className="grid grid-cols-2 grid-rows-4 w-full h-full">

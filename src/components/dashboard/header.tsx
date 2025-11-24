@@ -7,7 +7,7 @@ import Image from 'next/image';
 
 export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; userName?: string | null; onMenuClick?: () => void }) {
     return (
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/40 bg-background/80 px-4 sm:px-6 backdrop-blur-xl transition-all">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/40 bg-background/80 px-4 sm:px-6 backdrop-blur-xl transition-all print:hidden">
             <div className="flex items-center gap-4 flex-1">
                 <button
                     onClick={onMenuClick}

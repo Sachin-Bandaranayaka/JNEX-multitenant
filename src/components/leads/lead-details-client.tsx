@@ -29,28 +29,28 @@ export function LeadDetailsClient({ initialLead, products, user }: LeadDetailsCl
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
+        <div className="max-w-5xl mx-auto space-y-8 p-4 sm:p-6 lg:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-semibold text-white">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">
                         {isEditing ? 'Edit Lead' : 'Lead Details'}
                     </h1>
-                    <p className="mt-2 text-sm text-gray-400">
-                        {isEditing ? 'Update the lead information below.' : `Viewing lead for ${(lead.csvData as unknown as LeadData).name}`}
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        {isEditing ? 'Update the lead information below.' : `Viewing details for ${(lead.csvData as unknown as LeadData).name}`}
                     </p>
                 </div>
                 {/* --- PERMISSION-BASED UI --- */}
                 {canEdit && !isEditing && (
                     <button
                         onClick={() => setIsEditing(true)}
-                        className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white ring-1 ring-white/10 hover:bg-indigo-700"
+                        className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
                     >
                         Edit Lead
                     </button>
                 )}
             </div>
 
-            <div className="rounded-lg bg-gray-800 overflow-hidden ring-1 ring-white/10 p-6">
+            <div className={isEditing ? "rounded-xl border border-border bg-card shadow-sm p-6 sm:p-8" : ""}>
                 {isEditing ? (
                     <LeadEditForm
                         lead={lead as unknown as Lead}
@@ -59,7 +59,6 @@ export function LeadDetailsClient({ initialLead, products, user }: LeadDetailsCl
                         onCancel={() => setIsEditing(false)}
                     />
                 ) : (
-                    // Assuming LeadDetails is primarily for display. If it needs the user object, pass it down.
                     <LeadDetails lead={lead as unknown as LeadDetailsType} />
                 )}
             </div>

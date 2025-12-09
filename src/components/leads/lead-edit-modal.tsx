@@ -59,7 +59,7 @@ export function LeadEditModal({ isOpen, onClose, lead, products }: LeadEditModal
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-gray-900/80 z-40"
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
                     />
 
                     {/* Modal */}
@@ -67,26 +67,29 @@ export function LeadEditModal({ isOpen, onClose, lead, products }: LeadEditModal
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 pointer-events-none"
                     >
-                        <div className="relative w-full max-w-3xl rounded-lg bg-gray-800 p-6 ring-1 ring-white/10 overflow-y-auto max-h-[90vh]">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-semibold text-white">Edit Lead</h2>
+                        <div className="pointer-events-auto relative w-full max-w-4xl rounded-xl bg-card border border-border shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
+                                <h2 className="text-xl font-semibold text-foreground">Edit Lead</h2>
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="text-gray-400 hover:text-gray-100"
+                                    className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                                 >
-                                    <XMarkIcon className="h-6 w-6" />
+                                    <XMarkIcon className="h-5 w-5" />
                                 </button>
                             </div>
 
-                            <LeadEditForm
-                                lead={lead}
-                                products={products}
-                                onSuccess={onClose}
-                                onCancel={onClose}
-                            />
+                            <div className="p-6 overflow-y-auto">
+                                <LeadEditForm
+                                    lead={lead}
+                                    products={products}
+                                    onSuccess={onClose}
+                                    onCancel={onClose}
+                                    isModal={true}
+                                />
+                            </div>
                         </div>
                     </motion.div>
                 </>

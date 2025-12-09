@@ -1,6 +1,7 @@
 'use client';
 
-import { MagnifyingGlassIcon, BellIcon, Bars3Icon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, Bars3Icon } from '@heroicons/react/24/outline';
+import { Notifications } from './notifications';
 import { Tenant } from '@prisma/client';
 import { ThemeToggle } from '@/components/theme-toggle';
 import Image from 'next/image';
@@ -27,10 +28,7 @@ export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; user
                 </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
-                <button className="relative rounded-full p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
-                    <BellIcon className="h-5 w-5" />
-                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" />
-                </button>
+                <Notifications />
                 <div className="h-8 w-px bg-border/40 hidden sm:block" />
                 <div className="flex items-center gap-3">
                     <ThemeToggle />

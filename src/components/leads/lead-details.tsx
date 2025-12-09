@@ -1,13 +1,26 @@
-// src/components/leads/lead-details.tsx
-
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { LeadEditModal } from './lead-edit-modal';
-import { PencilIcon } from '@heroicons/react/24/solid';
+import {
+    PencilIcon,
+    UserIcon,
+    PhoneIcon,
+    MapPinIcon,
+    CalendarIcon,
+    TagIcon,
+    CubeIcon,
+    CurrencyDollarIcon,
+    ClipboardDocumentListIcon,
+    CheckCircleIcon,
+    XCircleIcon,
+    NoSymbolIcon,
+    ShoppingCartIcon,
+    ExclamationTriangleIcon
+} from '@heroicons/react/24/outline';
 
 // --- Reusable Interfaces ---
 interface Product {
@@ -65,9 +78,10 @@ interface PotentialDuplicate {
 }
 
 const STATUS_OPTIONS = [
-    { value: 'PENDING', label: 'Pending' },
-    { value: 'NO_ANSWER', label: 'No Answer' },
-    { value: 'REJECTED', label: 'Rejected' },
+    { value: 'PENDING', label: 'Pending', color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
+    { value: 'NO_ANSWER', label: 'No Answer', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' },
+    { value: 'REJECTED', label: 'Rejected', color: 'bg-destructive/10 text-destructive border-destructive/20' },
+    { value: 'CONFIRMED', label: 'Confirmed', color: 'bg-green-500/10 text-green-500 border-green-500/20' },
 ];
 
 
@@ -88,41 +102,61 @@ function ConfirmationModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-            <div className="w-full max-w-2xl rounded-lg bg-gray-800 p-6 shadow-xl ring-1 ring-white/10">
-                <h2 className="text-xl font-bold text-white">Potential Duplicate Leads Found</h2>
-                <p className="mt-2 text-sm text-gray-400">
-                    This customer has recently purchased similar products from other companies.
-                </p>
-                <div className="mt-4 h-64 max-h-[50vh] overflow-y-auto rounded-md border border-gray-700">
-                    <table className="min-w-full divide-y divide-gray-700">
-                        <thead className="bg-gray-700/50 sticky top-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="w-full max-w-2xl rounded-xl bg-card p-6 shadow-xl ring-1 ring-border"
+            >
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-full bg-yellow-500/10 text-yellow-500">
+                        <ExclamationTriangleIcon className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-foreground">Potential Duplicate Leads Found</h2>
+                        <p className="text-sm text-muted-foreground">
+                            This customer has recently purchased similar products from other companies.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-4 max-h-[50vh] overflow-y-auto rounded-lg border border-border">
+                    <table className="min-w-full divide-y divide-border">
+                        <thead className="bg-muted/50 sticky top-0">
                             <tr>
-                                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-300">Product Name</th>
-                                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-300">Customer Name</th>
-                                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-300">Confirmed Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Product Name</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Customer Name</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">Confirmed Date</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-700 bg-gray-800">
+                        <tbody className="divide-y divide-border bg-card">
                             {duplicates.map((lead, index) => (
-                                <tr key={index}>
-                                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-300">{lead.productName}</td>
-                                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-300">{lead.customerName}</td>
-                                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-300">{format(new Date(lead.confirmedDate), 'MMM d, yyyy')}</td>
+                                <tr key={index} className="hover:bg-muted/50 transition-colors">
+                                    <td className="whitespace-nowrap px-4 py-3 text-sm text-foreground">{lead.productName}</td>
+                                    <td className="whitespace-nowrap px-4 py-3 text-sm text-foreground">{lead.customerName}</td>
+                                    <td className="whitespace-nowrap px-4 py-3 text-sm text-muted-foreground">{format(new Date(lead.confirmedDate), 'MMM d, yyyy')}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
-                <div className="mt-6 flex justify-end space-x-4">
-                    <button onClick={onClose} disabled={isCreating} className="rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-white hover:bg-gray-500 disabled:opacity-50">
+                <div className="mt-6 flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        disabled={isCreating}
+                        className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50"
+                    >
                         Cancel
                     </button>
-                    <button onClick={onConfirm} disabled={isCreating} className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
+                    <button
+                        onClick={onConfirm}
+                        disabled={isCreating}
+                        className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    >
                         {isCreating ? 'Creating...' : 'Proceed Anyway'}
                     </button>
                 </div>
-            </div>
+            </motion.div>
         </div>
     );
 }
@@ -214,214 +248,277 @@ export function LeadDetails({ lead }: LeadDetailsProps) {
         }
     };
 
+    const StatusBadge = ({ status }: { status: string }) => {
+        const option = STATUS_OPTIONS.find(o => o.value === status) || { label: status, color: 'bg-muted text-muted-foreground' };
+        return (
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${option.color}`}>
+                {option.label}
+            </span>
+        );
+    };
+
     return (
         <>
-            <div className="space-y-6">
-                {/* Status Update */}
-                {lead.status !== 'CONFIRMED' && (
-                    <div>
-                        <h3 className="text-lg font-medium text-white mb-4">Lead Status</h3>
-                        <div className="flex items-center space-x-4">
-                            <select
-                                value={lead.status}
-                                onChange={(e) => handleStatusChange(e.target.value)}
-                                disabled={isLoading}
-                                className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-gray-100 ring-1 ring-white/10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            >
-                                {STATUS_OPTIONS.map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                            {isLoading && (
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column: Customer & Product Info */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Customer Information Card */}
+                    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b border-border flex items-center gap-2">
+                            <UserIcon className="w-5 h-5 text-primary" />
+                            <h3 className="font-semibold text-foreground">Customer Information</h3>
+                        </div>
+                        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <dt className="text-sm font-medium text-muted-foreground mb-1">Name</dt>
+                                <dd className="text-base font-medium text-foreground flex items-center gap-2">
+                                    {(lead.csvData as any).name || (lead.csvData as any).customer_name || 'Unnamed Lead'}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-sm font-medium text-muted-foreground mb-1">Phone</dt>
+                                <dd className="text-base font-medium text-foreground flex items-center gap-2">
+                                    <PhoneIcon className="w-4 h-4 text-muted-foreground" />
+                                    {lead.csvData.phone}
+                                </dd>
+                            </div>
+                            {lead.csvData.secondPhone && (
+                                <div>
+                                    <dt className="text-sm font-medium text-muted-foreground mb-1">Second Phone</dt>
+                                    <dd className="text-base font-medium text-foreground flex items-center gap-2">
+                                        <PhoneIcon className="w-4 h-4 text-muted-foreground" />
+                                        {lead.csvData.secondPhone}
+                                    </dd>
+                                </div>
+                            )}
+                            {((lead.csvData as any).email) && (
+                                <div>
+                                    <dt className="text-sm font-medium text-muted-foreground mb-1">Email</dt>
+                                    <dd className="text-base font-medium text-foreground">{(lead.csvData as any).email}</dd>
+                                </div>
+                            )}
+                            <div className="sm:col-span-2">
+                                <dt className="text-sm font-medium text-muted-foreground mb-1">Address</dt>
+                                <dd className="text-base font-medium text-foreground flex items-start gap-2">
+                                    <MapPinIcon className="w-4 h-4 text-muted-foreground mt-0.5" />
+                                    <span>
+                                        {lead.csvData.address}
+                                        {((lead.csvData as any).city || (lead.csvData as any).customer_city) && `, ${(lead.csvData as any).city || (lead.csvData as any).customer_city}`}
+                                    </span>
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-sm font-medium text-muted-foreground mb-1">Source</dt>
+                                <dd className="text-base font-medium text-foreground flex items-center gap-2">
+                                    <TagIcon className="w-4 h-4 text-muted-foreground" />
+                                    {(lead.csvData as any).source || (lead.csvData as any).customer_source || 'N/A'}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-sm font-medium text-muted-foreground mb-1">Created</dt>
+                                <dd className="text-base font-medium text-foreground flex items-center gap-2">
+                                    <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                                    {format(new Date(lead.createdAt), 'PPp')}
+                                </dd>
+                            </div>
+                            {((lead.csvData as any).notes || (lead.csvData as any).customer_notes) && (
+                                <div className="sm:col-span-2">
+                                    <dt className="text-sm font-medium text-muted-foreground mb-1">Notes</dt>
+                                    <dd className="text-sm text-foreground bg-muted/50 p-3 rounded-lg border border-border">
+                                        {(lead.csvData as any).notes || (lead.csvData as any).customer_notes}
+                                    </dd>
+                                </div>
                             )}
                         </div>
                     </div>
-                )}
 
-                {/* Customer Information */}
-                <div>
-                    <h3 className="text-lg font-medium text-white mb-4">Customer Information</h3>
-                    <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div>
-                            <dt className="text-sm font-medium text-gray-400">Name</dt>
-                            <dd className="mt-1 text-sm text-gray-100">
-                                {(lead.csvData as any).name || (lead.csvData as any).customer_name || 'Unnamed Lead'}
-                            </dd>
+                    {/* Product Information Card */}
+                    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b border-border flex items-center gap-2">
+                            <CubeIcon className="w-5 h-5 text-primary" />
+                            <h3 className="font-semibold text-foreground">Product Information</h3>
                         </div>
-                        <div>
-                            <dt className="text-sm font-medium text-gray-400">Phone</dt>
-                            <dd className="mt-1 text-sm text-gray-100">{lead.csvData.phone}</dd>
-                        </div>
-                        {lead.csvData.secondPhone && (
+                        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div>
-                                <dt className="text-sm font-medium text-gray-400">Second Phone</dt>
-                                <dd className="mt-1 text-sm text-gray-100">{lead.csvData.secondPhone}</dd>
+                                <dt className="text-sm font-medium text-muted-foreground mb-1">Product Name</dt>
+                                <dd className="text-lg font-medium text-foreground">{lead.product.name}</dd>
                             </div>
-                        )}
-                        {((lead.csvData as any).email) && (
                             <div>
-                                <dt className="text-sm font-medium text-gray-400">Email</dt>
-                                <dd className="mt-1 text-sm text-gray-100">{(lead.csvData as any).email}</dd>
-                            </div>
-                        )}
-                        <div>
-                            <dt className="text-sm font-medium text-gray-400">City</dt>
-                            <dd className="mt-1 text-sm text-gray-100">
-                                {(lead.csvData as any).city || (lead.csvData as any).customer_city || ''}
-                            </dd>
-                        </div>
-                        <div className="sm:col-span-2">
-                            <dt className="text-sm font-medium text-gray-400">Address</dt>
-                            <dd className="mt-1 text-sm text-gray-100">{lead.csvData.address}</dd>
-                        </div>
-                        <div>
-                            <dt className="text-sm font-medium text-gray-400">Source</dt>
-                            <dd className="mt-1 text-sm text-gray-100">
-                                {(lead.csvData as any).source || (lead.csvData as any).customer_source || ''}
-                            </dd>
-                        </div>
-                        <div>
-                            <dt className="text-sm font-medium text-gray-400">Created</dt>
-                            <dd className="mt-1 text-sm text-gray-100">
-                                {format(new Date(lead.createdAt), 'PPp')}
-                            </dd>
-                        </div>
-                        <div>
-                            <dt className="text-sm font-medium text-gray-400">Quantity</dt>
-                            <dd className="mt-1 text-sm text-gray-100">
-                                {(lead.csvData as any).quantity || 1}
-                            </dd>
-                        </div>
-                        <div>
-                            <dt className="text-sm font-medium text-gray-400">Discount</dt>
-                            <dd className="mt-1 text-sm text-gray-100">
-                                {(lead.csvData as any).discount ? `LKR ${(lead.csvData as any).discount.toLocaleString()}` : 'LKR 0'}
-                            </dd>
-                        </div>
-                        {((lead.csvData as any).notes || (lead.csvData as any).customer_notes) && (
-                            <div className="sm:col-span-2">
-                                <dt className="text-sm font-medium text-gray-400">Notes</dt>
-                                <dd className="mt-1 text-sm text-gray-100">
-                                    {(lead.csvData as any).notes || (lead.csvData as any).customer_notes}
+                                <dt className="text-sm font-medium text-muted-foreground mb-1">Product Code</dt>
+                                <dd className="text-base font-mono text-foreground bg-muted/50 px-2 py-1 rounded inline-block">
+                                    {lead.product.code}
                                 </dd>
                             </div>
-                        )}
-                    </dl>
-                </div>
-
-                {/* Product Information */}
-                <div>
-                    <h3 className="text-lg font-medium text-white mb-4">Product Information</h3>
-                    <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div>
-                            <dt className="text-sm font-medium text-gray-400">Product</dt>
-                            <dd className="mt-1 text-sm text-gray-100">{lead.product.name}</dd>
-                        </div>
-                        <div>
-                            <dt className="text-sm font-medium text-gray-400">Code</dt>
-                            <dd className="mt-1 text-sm text-gray-100">{lead.product.code}</dd>
-                        </div>
-                        <div>
-                            <dt className="text-sm font-medium text-gray-400">Price</dt>
-                            <dd className="mt-1 text-sm text-gray-100">
-                                LKR {lead.product.price.toLocaleString()}
-                            </dd>
-                        </div>
-                    </dl>
-                </div>
-
-                {/* Order Information */}
-                {lead.order && (
-                    <div>
-                        <h3 className="text-lg font-medium text-white mb-4">Order Information</h3>
-                        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
-                                <dt className="text-sm font-medium text-gray-400">Order ID</dt>
-                                <dd className="mt-1 text-sm text-gray-100">{lead.order.id}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-sm font-medium text-gray-400">Status</dt>
-                                <dd className="mt-1 text-sm text-gray-100">{lead.order.status.toLowerCase()}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-sm font-medium text-gray-400">Quantity</dt>
-                                <dd className="mt-1 text-sm text-gray-100">{lead.order.quantity}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-sm font-medium text-gray-400">Created</dt>
-                                <dd className="mt-1 text-sm text-gray-100">
-                                    {format(new Date(lead.order.createdAt), 'PPp')}
+                                <dt className="text-sm font-medium text-muted-foreground mb-1">Price</dt>
+                                <dd className="text-lg font-medium text-foreground flex items-center gap-1">
+                                    <span className="text-muted-foreground text-sm">LKR</span>
+                                    {lead.product.price.toLocaleString()}
                                 </dd>
                             </div>
-                        </dl>
+                            <div>
+                                <dt className="text-sm font-medium text-muted-foreground mb-1">Quantity</dt>
+                                <dd className="text-lg font-medium text-foreground">
+                                    {(lead.csvData as any).quantity || 1}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt className="text-sm font-medium text-muted-foreground mb-1">Discount</dt>
+                                <dd className="text-lg font-medium text-foreground flex items-center gap-1">
+                                    <span className="text-muted-foreground text-sm">LKR</span>
+                                    {(lead.csvData as any).discount ? (lead.csvData as any).discount.toLocaleString() : '0'}
+                                </dd>
+                            </div>
+                        </div>
                     </div>
-                )}
+                </div>
 
-                {error && (
-                    <div className="rounded-lg bg-red-900/50 p-4 text-sm text-red-400 ring-1 ring-red-500">
-                        {error}
+                {/* Right Column: Status & Actions */}
+                <div className="space-y-6">
+                    {/* Status Card */}
+                    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b border-border flex items-center gap-2">
+                            <ClipboardDocumentListIcon className="w-5 h-5 text-primary" />
+                            <h3 className="font-semibold text-foreground">Lead Status</h3>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-muted-foreground">Current Status</span>
+                                <StatusBadge status={lead.status} />
+                            </div>
+
+                            {lead.status !== 'CONFIRMED' && (
+                                <div className="space-y-3 pt-4 border-t border-border">
+                                    <label className="text-sm font-medium text-foreground">Update Status</label>
+                                    <select
+                                        value={lead.status}
+                                        onChange={(e) => handleStatusChange(e.target.value)}
+                                        disabled={isLoading}
+                                        className="block w-full rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5"
+                                    >
+                                        {STATUS_OPTIONS.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                )}
 
-                {/* Actions */}
-                {lead.status === 'PENDING' && (
-                    <div className="flex justify-end space-x-4">
-                        <motion.button
-                            type="button"
-                            onClick={openEditModal}
-                            disabled={isLoading}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="inline-flex items-center rounded-md border border-indigo-700 px-4 py-2 text-sm font-medium text-indigo-300 hover:bg-indigo-900/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                        >
-                            <PencilIcon className="mr-2 h-4 w-4" />
-                            Edit Lead
-                        </motion.button>
-                        <motion.button
-                            type="button"
-                            onClick={() => handleStatusChange('NO_ANSWER')}
-                            disabled={isLoading}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="inline-flex items-center rounded-md border border-orange-700 px-4 py-2 text-sm font-medium text-orange-300 hover:bg-orange-900/50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
-                        >
-                            Mark as No Answer
-                        </motion.button>
-                        <motion.button
-                            type="button"
-                            onClick={() => handleStatusChange('REJECTED')}
-                            disabled={isLoading}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="inline-flex items-center rounded-md border border-red-700 px-4 py-2 text-sm font-medium text-red-300 hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                        >
-                            Reject Lead
-                        </motion.button>
-                        <motion.button
-                            type="button"
-                            onClick={() => handleCreateOrder(false)}
-                            disabled={isLoading}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="inline-flex items-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white ring-1 ring-white/10 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                        >
-                            {isLoading ? 'Processing...' : 'Create Order'}
-                        </motion.button>
-                    </div>
-                )}
+                    {/* Actions Card */}
+                    {lead.status === 'PENDING' && (
+                        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+                            <div className="px-6 py-4 border-b border-border">
+                                <h3 className="font-semibold text-foreground">Actions</h3>
+                            </div>
+                            <div className="p-6 space-y-3">
+                                <motion.button
+                                    type="button"
+                                    onClick={() => handleCreateOrder(false)}
+                                    disabled={isLoading}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="w-full flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50"
+                                >
+                                    <ShoppingCartIcon className="mr-2 h-4 w-4" />
+                                    {isLoading ? 'Processing...' : 'Create Order'}
+                                </motion.button>
 
-                {/* Edit Modal */}
-                <LeadEditModal
-                    isOpen={isEditModalOpen}
-                    onClose={() => setIsEditModalOpen(false)}
-                    lead={lead}
-                    products={products}
-                />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <motion.button
+                                        type="button"
+                                        onClick={() => handleStatusChange('NO_ANSWER')}
+                                        disabled={isLoading}
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="flex items-center justify-center rounded-lg border border-orange-500/20 bg-orange-500/10 px-4 py-2.5 text-sm font-medium text-orange-500 hover:bg-orange-500/20"
+                                    >
+                                        <NoSymbolIcon className="mr-2 h-4 w-4" />
+                                        No Answer
+                                    </motion.button>
+                                    <motion.button
+                                        type="button"
+                                        onClick={() => handleStatusChange('REJECTED')}
+                                        disabled={isLoading}
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className="flex items-center justify-center rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/20"
+                                    >
+                                        <XCircleIcon className="mr-2 h-4 w-4" />
+                                        Reject
+                                    </motion.button>
+                                </div>
+
+                                <motion.button
+                                    type="button"
+                                    onClick={openEditModal}
+                                    disabled={isLoading}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    className="w-full flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
+                                >
+                                    <PencilIcon className="mr-2 h-4 w-4" />
+                                    Edit Details
+                                </motion.button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Order Information Card (if exists) */}
+                    {lead.order && (
+                        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+                            <div className="px-6 py-4 border-b border-border flex items-center gap-2">
+                                <ShoppingCartIcon className="w-5 h-5 text-primary" />
+                                <h3 className="font-semibold text-foreground">Associated Order</h3>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Order ID</span>
+                                    <span className="text-sm font-mono text-foreground">{lead.order.id.slice(0, 8)}...</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Status</span>
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
+                                        {lead.order.status}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Created</span>
+                                    <span className="text-sm text-foreground">{format(new Date(lead.order.createdAt), 'PP')}</span>
+                                </div>
+                                <button
+                                    onClick={() => router.push(`/orders/${lead.order?.id}`)}
+                                    className="w-full mt-2 flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
+                                >
+                                    View Order
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
-            {/* --- NEW: Render the confirmation modal --- */}
+
+            {error && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="fixed bottom-4 right-4 z-50 rounded-lg bg-destructive text-destructive-foreground px-4 py-3 shadow-lg"
+                >
+                    {error}
+                </motion.div>
+            )}
+
+            {/* Edit Modal */}
+            <LeadEditModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                lead={lead}
+                products={products}
+            />
+
+            {/* Confirmation Modal */}
             <ConfirmationModal
                 isOpen={isConfirmationModalOpen}
                 onClose={() => setIsConfirmationModalOpen(false)}

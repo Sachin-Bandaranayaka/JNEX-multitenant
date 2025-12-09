@@ -30,6 +30,7 @@ enum OrderStatus {
   DELIVERED
   RETURNED
   CANCELLED
+  RESCHEDULED
 }
 
 enum ShippingProvider {
@@ -85,6 +86,10 @@ model Tenant {
   orderFinancialInfo  OrderFinancialInfo[]
   orderStatusHistory  OrderStatusHistory[]
   royalExpressTrackingDetails RoyalExpressTrackingDetail[]
+  notifications       Notification[]
+  
+  // Store relations
+  storePurchases      StorePurchase[]
 }
 
 model User {
@@ -100,6 +105,10 @@ model User {
   orders          Order[]
   leads           Lead[]
   stockAdjustments StockAdjustment[]
+
+  // Store relations
+  cart            Cart?
+  storePurchases  StorePurchase[]
 
   tenantId        String
   tenant          Tenant    @relation(fields: [tenantId], references: [id])
@@ -174,6 +183,7 @@ model Order {
   trackingUpdates     TrackingUpdate[]
   financialInfo       OrderFinancialInfo?
   statusHistory       OrderStatusHistory[]
+  notifications       Notification[]
   royalExpressTracking RoyalExpressTrackingDetail?
   product             Product     @relation(fields: [productId], references: [id])
   productId           String
@@ -322,4 +332,125 @@ model RoyalExpressTrackingDetail {
   @@index([isDelivered])
   @@index([isException])
   @@index([tenantId, isDelivered])
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  type        String   // DELIVERY, RETURN, SYSTEM
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  orderId     String?
+  order       Order?   @relation(fields: [orderId], references: [id])
+
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+// ============================================
+// STORE FEATURE MODELS (Super Admin Managed)
+// ============================================
+
+enum StorePurchaseStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+// Products managed by Super Admin for the store
+model StoreProduct {
+  id              String    @id @default(uuid())
+  name            String
+  description     String?
+  price           Float
+  stock           Int       @default(0)
+  sku             String    @unique
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  cartItems       CartItem[]
+  purchaseItems   StorePurchaseItem[]
+
+  @@index([sku])
+  @@index([isActive])
+}
+
+// Shopping cart for users
+model Cart {
+  id          String     @id @default(uuid())
+  userId      String     @unique
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       CartItem[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([userId])
+}
+
+model CartItem {
+  id              String       @id @default(uuid())
+  cartId          String
+  cart            Cart         @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  storeProductId  String
+  storeProduct    StoreProduct @relation(fields: [storeProductId], references: [id], onDelete: Cascade)
+  quantity        Int          @default(1)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([cartId, storeProductId])
+  @@index([cartId])
+  @@index([storeProductId])
+}
+
+// Purchase orders from users
+model StorePurchase {
+  id                  String              @id @default(uuid())
+  userId              String
+  user                User                @relation(fields: [userId], references: [id])
+  tenantId            String
+  tenant              Tenant              @relation(fields: [tenantId], references: [id])
+  
+  // Bank transfer details
+  bankReceiptNumber   String
+  whatsappNumber      String
+  transferTime        DateTime
+  
+  // Order details
+  totalAmount         Float
+  status              StorePurchaseStatus @default(PENDING)
+  
+  // Admin response
+  confirmedAt         DateTime?
+  confirmedBy         String?
+  rejectionReason     String?
+  
+  items               StorePurchaseItem[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model StorePurchaseItem {
+  id              String        @id @default(uuid())
+  purchaseId      String
+  purchase        StorePurchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  storeProductId  String
+  storeProduct    StoreProduct  @relation(fields: [storeProductId], references: [id])
+  quantity        Int
+  priceAtPurchase Float
+  createdAt       DateTime      @default(now())
+
+  @@index([purchaseId])
+  @@index([storeProductId])
 }

@@ -25,7 +25,9 @@ export async function GET() {
 
         const deliveredOrders = await prisma.order.findMany({
             where: {
-                status: 'DELIVERED',
+                status: {
+                    in: ['DELIVERED', 'RESCHEDULED']
+                },
                 deliveredAt: {
                     gte: thirtyDaysAgo,
                 },
@@ -53,7 +55,7 @@ export async function GET() {
         const transformedOrders = deliveredOrders.map(order => {
             // Extract customer data from lead's csvData if available
             const leadData = order.lead?.csvData as any;
-            
+
             return {
                 id: order.id,
                 orderNumber: order.number,
@@ -67,6 +69,7 @@ export async function GET() {
                 productName: order.product?.name || 'Unknown Product',
                 productCode: order.product?.code || '',
                 quantity: order.quantity,
+                status: order.status,
             };
         });
 

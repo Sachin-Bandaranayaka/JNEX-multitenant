@@ -4,6 +4,7 @@ import { FardaExpressService } from '@/lib/shipping/farda-express';
 import { TransExpressProvider } from '@/lib/shipping/trans-express';
 import { RoyalExpressProvider } from '@/lib/shipping/royal-express';
 import { ShipmentStatus } from '@/lib/shipping/types';
+import { createNotification } from '@/lib/notifications';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -17,7 +18,8 @@ const statusMap: Record<ShipmentStatus, OrderStatus> = {
     [ShipmentStatus.OUT_FOR_DELIVERY]: OrderStatus.SHIPPED,
     [ShipmentStatus.DELIVERED]: OrderStatus.DELIVERED,
     [ShipmentStatus.RETURNED]: OrderStatus.RETURNED,
-    [ShipmentStatus.EXCEPTION]: OrderStatus.SHIPPED
+    [ShipmentStatus.EXCEPTION]: OrderStatus.SHIPPED,
+    [ShipmentStatus.RESCHEDULED]: OrderStatus.RESCHEDULED
 };
 
 // This endpoint will be called by a cron job every hour
@@ -95,6 +97,25 @@ export async function GET(request: Request) {
                             },
                         });
 
+                        // Create notification for delivery
+                        if (shipmentStatus === ShipmentStatus.DELIVERED) {
+                            await createNotification(
+                                order.tenantId,
+                                'Order Delivered',
+                                `Order #${order.id} has been delivered via Farda Express.`,
+                                'DELIVERY',
+                                order.id
+                            );
+                        } else if (shipmentStatus === ShipmentStatus.RETURNED) {
+                            await createNotification(
+                                order.tenantId,
+                                'Order Returned',
+                                `Order #${order.id} has been returned via Farda Express.`,
+                                'RETURN',
+                                order.id
+                            );
+                        }
+
                         return {
                             orderId: order.id,
                             success: true,
@@ -131,6 +152,25 @@ export async function GET(request: Request) {
                                     },
                                 },
                             });
+
+                            // Create notification for delivery
+                            if (shipmentStatus === ShipmentStatus.DELIVERED) {
+                                await createNotification(
+                                    order.tenantId,
+                                    'Order Delivered',
+                                    `Order #${order.id} has been delivered via Trans Express.`,
+                                    'DELIVERY',
+                                    order.id
+                                );
+                            } else if (shipmentStatus === ShipmentStatus.RETURNED) {
+                                await createNotification(
+                                    order.tenantId,
+                                    'Order Returned',
+                                    `Order #${order.id} has been returned via Trans Express.`,
+                                    'RETURN',
+                                    order.id
+                                );
+                            }
 
                             return {
                                 orderId: order.id,
@@ -312,6 +352,33 @@ export async function GET(request: Request) {
                                         status: newStatus,
                                     },
                                 });
+                            }
+
+                            // Create notification for delivery
+                            if (shipmentStatus === ShipmentStatus.DELIVERED) {
+                                await createNotification(
+                                    order.tenantId,
+                                    'Order Delivered',
+                                    `Order #${order.id} has been delivered via Royal Express.`,
+                                    'DELIVERY',
+                                    order.id
+                                );
+                            } else if (shipmentStatus === ShipmentStatus.RETURNED) {
+                                await createNotification(
+                                    order.tenantId,
+                                    'Order Returned',
+                                    `Order #${order.id} has been returned via Royal Express.`,
+                                    'RETURN',
+                                    order.id
+                                );
+                            } else if (shipmentStatus === ShipmentStatus.RESCHEDULED) {
+                                await createNotification(
+                                    order.tenantId,
+                                    'Order Rescheduled',
+                                    `Order #${order.id} has been rescheduled.`,
+                                    'DELIVERY', // Using DELIVERY type for now, or could add RESCHEDULE type
+                                    order.id
+                                );
                             }
 
                             return {

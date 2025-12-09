@@ -2,6 +2,7 @@
 
 import { getScopedPrismaClient, prisma as unscopedPrisma } from './prisma';
 import { LeadStatus, OrderStatus, Prisma, ShippingProvider } from '@prisma/client';
+import { createNotification } from '@/lib/notifications';
 import { CreateOrderData } from '@/types/orders';
 
 const sendOrderConfirmationEmail = typeof window === 'undefined' ? require('./email').sendOrderConfirmationEmail : null;
@@ -20,9 +21,9 @@ export async function createOrderFromLead(data: CreateOrderData) {
       // --- FIX: Fetch the invoicePrefix along with other tenant settings ---
       unscopedPrisma.tenant.findUnique({
         where: { id: data.tenantId },
-        select: { 
-            defaultShippingProvider: true,
-            invoicePrefix: true, // <-- ADDED THIS LINE
+        select: {
+          defaultShippingProvider: true,
+          invoicePrefix: true, // <-- ADDED THIS LINE
         },
       })
     ]);
@@ -30,7 +31,7 @@ export async function createOrderFromLead(data: CreateOrderData) {
     if (!lead) throw new Error('Lead not found');
     if (!tenant) throw new Error('Tenant settings not found.');
     if (lead.status === LeadStatus.CONFIRMED) throw new Error('Lead already converted to order');
-    
+
     const csvData = lead.csvData as any;
     if (!csvData.name || !csvData.phone || !csvData.address) {
       throw new Error('Missing required customer information in lead data');
@@ -41,13 +42,13 @@ export async function createOrderFromLead(data: CreateOrderData) {
       const year = date.getFullYear().toString().slice(-2);
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const day = date.getDate().toString().padStart(2, '0');
-      
+
       const time = date.getTime().toString().slice(-5);
       const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-      
+
       // --- FIX: Use the tenant's invoicePrefix for the Order ID ---
       // If no prefix is set, it defaults to 'OD' to ensure an ID is always generated.
-      const prefix = tenant.invoicePrefix || 'OD'; 
+      const prefix = tenant.invoicePrefix || 'OD';
       const orderId = `${prefix}${year}${month}${day}${time}${random}`;
       // --- End of FIX ---
 
@@ -75,17 +76,17 @@ export async function createOrderFromLead(data: CreateOrderData) {
         },
       });
 
-      await tx.lead.update({ 
-        where: { id: data.leadId }, 
-        data: { status: LeadStatus.CONFIRMED } 
+      await tx.lead.update({
+        where: { id: data.leadId },
+        data: { status: LeadStatus.CONFIRMED }
       });
-      
+
       const currentProduct = await tx.product.findUnique({ where: { id: lead.product.id } });
       if (!currentProduct) throw new Error('Product not found when adjusting stock');
-      
+
       const newStock = Math.max(0, currentProduct.stock - data.quantity);
       await tx.product.update({ where: { id: lead.product.id }, data: { stock: newStock } });
-      
+
       await tx.stockAdjustment.create({
         data: {
           tenant: { connect: { id: data.tenantId } },
@@ -119,19 +120,19 @@ export async function createOrderFromLead(data: CreateOrderData) {
 // Enhanced order status update with business logic
 export async function updateOrderStatus(orderId: string, status: OrderStatus, tenantId: string, userId?: string) {
   const prisma = getScopedPrismaClient(tenantId);
-  
+
   return await prisma.$transaction(async (tx) => {
     // Get current order with product details
     const currentOrder = await tx.order.findUnique({
       where: { id: orderId },
       include: { product: true }
     });
-    
+
     if (!currentOrder) {
       throw new Error('Order not found');
     }
-    
-        // Validate status transitions with comprehensive business rules
+
+    // Validate status transitions with comprehensive business rules
     const validTransitions = {
       'PENDING': ['CONFIRMED', 'CANCELLED'],
       'CONFIRMED': ['SHIPPED', 'CANCELLED'],
@@ -140,23 +141,23 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus, te
       'CANCELLED': [], // Cannot transition from cancelled
       'RETURNED': []   // Cannot transition from returned
     };
-    
+
     const allowedStatuses = validTransitions[currentOrder.status as keyof typeof validTransitions] as OrderStatus[];
     if (!allowedStatuses.includes(status)) {
       throw new Error(`Invalid status transition from ${currentOrder.status} to ${status}`);
     }
-    
+
     // Business rule: Prevent cancellation of shipped, delivered, or returned orders
-    if (status === OrderStatus.CANCELLED && 
-        ['SHIPPED', 'DELIVERED', 'RETURNED'].includes(currentOrder.status)) {
+    if (status === OrderStatus.CANCELLED &&
+      ['SHIPPED', 'DELIVERED', 'RETURNED'].includes(currentOrder.status)) {
       throw new Error(`Cannot cancel order that has been ${currentOrder.status.toLowerCase()}. Please process a return instead.`);
     }
-    
+
     // Business rule: Only allow returns for delivered orders
     if (status === OrderStatus.RETURNED && currentOrder.status !== 'DELIVERED') {
       throw new Error(`Can only return orders that have been delivered. Current status: ${currentOrder.status}`);
     }
-    
+
     // Handle inventory restoration for cancellations
     if (status === OrderStatus.CANCELLED && currentOrder.status !== OrderStatus.CANCELLED) {
       // Restore inventory for cancelled orders
@@ -168,7 +169,7 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus, te
           }
         }
       });
-      
+
       // Create stock adjustment record
       if (userId) {
         await tx.stockAdjustment.create({
@@ -184,17 +185,36 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus, te
         });
       }
     }
-    
+
     // Update order status
     const updatedOrder = await tx.order.update({
       where: { id: orderId },
-      data: { 
+      data: {
         status,
         updatedAt: new Date()
       },
       include: { product: true }
     });
-    
+
+    // Create notification for delivery or return
+    if (status === OrderStatus.DELIVERED) {
+      await createNotification(
+        tenantId,
+        'Order Delivered',
+        `Order #${orderId} has been marked as delivered.`,
+        'DELIVERY',
+        orderId
+      );
+    } else if (status === OrderStatus.RETURNED) {
+      await createNotification(
+        tenantId,
+        'Order Returned',
+        `Order #${orderId} has been marked as returned.`,
+        'RETURN',
+        orderId
+      );
+    }
+
     return updatedOrder;
   });
 }

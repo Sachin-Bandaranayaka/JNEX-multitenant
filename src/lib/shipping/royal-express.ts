@@ -486,6 +486,13 @@ The state name must match exactly, including capitalization.`);
             'Return to Client': ShipmentStatus.RETURNED,
             'Received Failed Order': ShipmentStatus.RETURNED,
             'Canceled': ShipmentStatus.EXCEPTION,
+            'Rescheduled': ShipmentStatus.RESCHEDULED,
+            'Returned to Destination Warehouse': ShipmentStatus.EXCEPTION,
+            'Assigned to Destination Rider': ShipmentStatus.OUT_FOR_DELIVERY,
+            'Received at Destination Warehouse': ShipmentStatus.IN_TRANSIT,
+            'Dispatched to Destination Warehouse': ShipmentStatus.IN_TRANSIT,
+            'Received at Sorting Warehouse': ShipmentStatus.IN_TRANSIT,
+            'Confirmed': ShipmentStatus.PENDING,
         };
 
         return statusMap[statusName] || ShipmentStatus.EXCEPTION;

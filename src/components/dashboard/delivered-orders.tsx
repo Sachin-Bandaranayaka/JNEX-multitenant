@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, Package, Phone, MapPin, Calendar, Truck } from 'lucide-react';
+import { CheckCircle, Package, Phone, MapPin, Calendar, Truck, Clock } from 'lucide-react';
 import Link from 'next/link';
 
 interface DeliveredOrder {
@@ -18,6 +18,7 @@ interface DeliveredOrder {
     productName: string;
     productCode: string;
     quantity: number;
+    status: 'DELIVERED' | 'RESCHEDULED';
 }
 
 interface DeliveredOrdersData {
@@ -133,8 +134,15 @@ export function DeliveredOrders() {
                         className="group flex items-center justify-between p-4 rounded-2xl bg-muted/30 hover:bg-muted/60 transition-colors"
                     >
                         <div className="flex items-center gap-4 overflow-hidden">
-                            <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 flex-shrink-0">
-                                <CheckCircle className="h-5 w-5" />
+                            <div className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${order.status === 'RESCHEDULED'
+                                ? 'bg-orange-500/10 text-orange-600'
+                                : 'bg-emerald-500/10 text-emerald-600'
+                                }`}>
+                                {order.status === 'RESCHEDULED' ? (
+                                    <Clock className="h-5 w-5" />
+                                ) : (
+                                    <CheckCircle className="h-5 w-5" />
+                                )}
                             </div>
                             <div className="min-w-0">
                                 <Link

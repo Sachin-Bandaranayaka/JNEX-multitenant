@@ -191,7 +191,7 @@ export function LeadsClient({
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-grow min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <Link href={`/leads/${lead.id}`} className="text-sm font-semibold text-foreground hover:text-primary truncate">
+                          <Link href={`/leads/${lead.id}`} className="text-sm font-semibold text-foreground hover:text-primary break-words">
                             {(lead.csvData as any).name || 'Unnamed Lead'}
                           </Link>
                           <span className="text-xs text-muted-foreground">•</span>
@@ -206,6 +206,11 @@ export function LeadsClient({
                           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></span>
                             {(lead.csvData as any).phone}
+                          </p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5 break-words">
+                            <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"></span>
+                            {(lead.csvData as any).address}
+                            {((lead.csvData as any).city) && `, ${(lead.csvData as any).city}`}
                           </p>
                         </div>
 

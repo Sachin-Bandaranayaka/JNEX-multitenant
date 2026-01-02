@@ -2,14 +2,10 @@
 
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
-import { updateTenant } from './actions';
-import { Role } from '@prisma/client';
+import { updateTenant, updateTenantApiKeys } from './actions';
+import { Role, ShippingProvider } from '@prisma/client';
 
-interface EditTenantPageProps {
-  params: { tenantId: string };
-}
-
-// export default async function EditTenantPage({ params }: EditTenantPageProps) {
+// export default async function EditTenantPage({ params }: { params: { tenantId: string } }) {
 //   const { tenantId } = params;
 
 //   const tenant = await prisma.tenant.findUnique({
@@ -108,32 +104,111 @@ export default async function EditTenantPage({ params }: { params: Promise<{ ten
 
   const adminUser = tenant.users[0];
   const updateTenantWithIds = updateTenant.bind(null, tenant.id, adminUser.id);
+  const updateApiKeysWithId = updateTenantApiKeys.bind(null, tenant.id);
 
   return (
-    <div className="rounded-lg bg-gray-800/80 p-6 sm:p-8 ring-1 ring-white/10">
-      <h2 className="text-2xl font-bold text-white">Edit Tenant: {tenant.name}</h2>
-      <form action={updateTenantWithIds} className="mt-8 max-w-xl">
-        <div className="space-y-6">
-          {/* ... Tenant Name and Admin Email fields ... */}
-          
-          <div className="border-t border-white/10 pt-6">
-            <h3 className="text-base font-semibold text-white">Branding</h3>
-            <div className="mt-4 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                <div className="sm:col-span-6"><label htmlFor="businessName" className="block text-sm font-medium text-gray-200">Business Name</label><input type="text" name="businessName" id="businessName" defaultValue={tenant.businessName || ''} className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/></div>
-                {/* <div className="sm:col-span-6"><label htmlFor="logoUrl" className="block text-sm font-medium text-gray-200">Logo URL</label><input type="text" name="logoUrl" id="logoUrl" defaultValue={tenant.logoUrl || ''} className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/></div> */}
-                
-                {/* --- NEW COLOR FIELDS --- */}
-                {/* <div className="sm:col-span-2"><label htmlFor="backgroundColor" className="block text-sm font-medium text-gray-200">Background Color</label><input type="text" name="backgroundColor" id="backgroundColor" defaultValue={tenant.backgroundColor || ''} placeholder="#F9FAFB" className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10"/></div>
-                <div className="sm:col-span-2"><label htmlFor="cardColor" className="block text-sm font-medium text-gray-200">Card Color</label><input type="text" name="cardColor" id="cardColor" defaultValue={tenant.cardColor || ''} placeholder="#FFFFFF" className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10"/></div>
-                <div className="sm:col-span-2"><label htmlFor="fontColor" className="block text-sm font-medium text-gray-200">Font Color</label><input type="text" name="fontColor" id="fontColor" defaultValue={tenant.fontColor || ''} placeholder="#111827" className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10"/></div> */}
+    <div className="space-y-8">
+      {/* Tenant Details Section */}
+      <div className="rounded-lg bg-gray-800/80 p-6 sm:p-8 ring-1 ring-white/10">
+        <h2 className="text-2xl font-bold text-white">Edit Tenant: {tenant.name}</h2>
+        <form action={updateTenantWithIds} className="mt-8 max-w-xl">
+          <div className="space-y-6">
+            <div className="border-t border-white/10 pt-6">
+              <h3 className="text-base font-semibold text-white">Branding</h3>
+              <div className="mt-4 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                <div className="sm:col-span-6">
+                  <label htmlFor="businessName" className="block text-sm font-medium text-gray-200">Business Name</label>
+                  <input type="text" name="businessName" id="businessName" defaultValue={tenant.businessName || ''} className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-x-6">
+              <button type="submit" className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400">Save Changes</button>
             </div>
           </div>
+        </form>
+      </div>
 
-          <div className="mt-6 flex items-center justify-end gap-x-6">
-            <button type="submit" className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400">Save Changes</button>
+      {/* Courier API Keys Section - Super Admin Only */}
+      <div className="rounded-lg bg-gray-800/80 p-6 sm:p-8 ring-1 ring-yellow-500/20">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg bg-yellow-500/10">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-yellow-500">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-white">Courier API Keys</h3>
+            <p className="text-sm text-gray-400">Manage shipping provider credentials for this tenant</p>
           </div>
         </div>
-      </form>
+
+        <form action={updateApiKeysWithId} className="max-w-xl">
+          <div className="space-y-6">
+            {/* Default Shipping Provider */}
+            <div>
+              <label htmlFor="defaultShippingProvider" className="block text-sm font-medium text-gray-200">Default Shipping Provider</label>
+              <select
+                id="defaultShippingProvider"
+                name="defaultShippingProvider"
+                defaultValue={tenant.defaultShippingProvider || ''}
+                className="mt-2 block w-full rounded-md bg-white/5 py-2 px-3 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"
+              >
+                {Object.values(ShippingProvider).map((provider) => (
+                  <option key={provider} value={provider} className="bg-gray-800">
+                    {provider.replace('_', ' ')}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Farda Express */}
+            <div className="border-t border-white/10 pt-6">
+              <h4 className="text-sm font-semibold text-gray-300 mb-4">Farda Express</h4>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="fardaExpressClientId" className="block text-sm font-medium text-gray-200">Client ID</label>
+                  <input type="text" name="fardaExpressClientId" id="fardaExpressClientId" defaultValue={tenant.fardaExpressClientId || ''} className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/>
+                </div>
+                <div>
+                  <label htmlFor="fardaExpressApiKey" className="block text-sm font-medium text-gray-200">API Key</label>
+                  <input type="password" name="fardaExpressApiKey" id="fardaExpressApiKey" defaultValue={tenant.fardaExpressApiKey || ''} className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/>
+                </div>
+              </div>
+            </div>
+
+            {/* Trans Express */}
+            <div className="border-t border-white/10 pt-6">
+              <h4 className="text-sm font-semibold text-gray-300 mb-4">Trans Express</h4>
+              <div>
+                <label htmlFor="transExpressApiKey" className="block text-sm font-medium text-gray-200">API Key</label>
+                <input type="password" name="transExpressApiKey" id="transExpressApiKey" defaultValue={tenant.transExpressApiKey || ''} className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/>
+              </div>
+            </div>
+
+            {/* Royal Express */}
+            <div className="border-t border-white/10 pt-6">
+              <h4 className="text-sm font-semibold text-gray-300 mb-4">Royal Express</h4>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="royalExpressApiKey" className="block text-sm font-medium text-gray-200">Credentials</label>
+                  <p className="text-xs text-gray-400 mb-2">Format: email:password (e.g., user@example.com:yourpassword)</p>
+                  <input type="password" name="royalExpressApiKey" id="royalExpressApiKey" defaultValue={tenant.royalExpressApiKey || ''} placeholder="email:password" className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/>
+                </div>
+                <div>
+                  <label htmlFor="royalExpressOrderPrefix" className="block text-sm font-medium text-gray-200">Order Prefix</label>
+                  <input type="text" name="royalExpressOrderPrefix" id="royalExpressOrderPrefix" defaultValue={tenant.royalExpressOrderPrefix || 'JNEX'} placeholder="JNEX" className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-x-6">
+              <button type="submit" className="rounded-md bg-yellow-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-yellow-500">Update API Keys</button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

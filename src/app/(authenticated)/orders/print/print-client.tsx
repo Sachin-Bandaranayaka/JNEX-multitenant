@@ -230,11 +230,15 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             print-color-adjust: exact !important;
             color-adjust: exact !important;
           }
-          body {
-            margin: 0 !important;
-            padding: 0 !important;
+          /* Force light mode CSS variables for print */
+          :root, html, body, .dark {
+            --background: 0 0% 100% !important;
+            --foreground: 222.2 84% 4.9% !important;
+            --card: 0 0% 100% !important;
+            --card-foreground: 222.2 84% 4.9% !important;
             background-color: #fff !important;
             background: #fff !important;
+            color: #000 !important;
           }
           html {
             margin: 0 !important;
@@ -242,8 +246,26 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             background-color: #fff !important;
             background: #fff !important;
           }
-          /* Override any dark backgrounds */
-          .bg-gray-900, .bg-gray-800, .bg-gray-700 {
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background-color: #fff !important;
+            background: #fff !important;
+          }
+          /* Override dark mode class backgrounds */
+          .dark,
+          .dark body,
+          .bg-background,
+          .bg-gray-900, 
+          .bg-gray-800, 
+          .bg-gray-700,
+          [class*="bg-"] {
+            background-color: #fff !important;
+            background: #fff !important;
+          }
+          /* Override all dark backgrounds using attribute selector */
+          [data-theme="dark"],
+          [class*="dark:"] {
             background-color: #fff !important;
             background: #fff !important;
             color: #000 !important;
@@ -251,28 +273,62 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
           /* This container for each page of invoices forces a page break after it */
           .print-page-container {
             page-break-after: always;
+            break-after: page;
+            page-break-inside: avoid;
+            break-inside: avoid;
             background-color: #fff !important;
             background: #fff !important;
             width: 100%;
-            height: 100%;
+            height: 297mm;
             margin: 0 !important;
             padding: 0 !important;
+            overflow: hidden;
+            box-sizing: border-box;
           }
           .print-page-container:last-child {
             page-break-after: auto;
+            break-after: auto;
+          }
+          /* Grid layout for 8 invoices per page (2 cols x 4 rows) */
+          .print-invoice-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(4, 1fr);
+            width: 100%;
+            height: 297mm;
+            margin: 0;
+            padding: 0;
+            gap: 0;
           }
           .invoice-item {
             border: 1px solid #000;
-            padding: 0mm;
+            padding: 0;
+            margin: 0;
             box-sizing: border-box;
             overflow: hidden;
             color: #000 !important;
             background-color: #fff !important;
             background: #fff !important;
+            width: 100%;
+            height: 100%;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
           /* Ensure text is visible */
-          p, h1, h2, h3, span, div {
+          p, h1, h2, h3, span, div, td, th, tr, table {
             color: #000 !important;
+          }
+          /* Force the print-only container to be white */
+          .print-only {
+            background-color: #fff !important;
+            background: #fff !important;
+          }
+          /* Override any element that might have dark background */
+          #__next,
+          main,
+          [role="main"] {
+            background-color: #fff !important;
+            background: #fff !important;
           }
         }
       `}</style>
@@ -353,7 +409,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
       <div className="print-only bg-white text-black">
         {chunk(ordersToPrint, 8).map((pageOfOrders, pageIndex) => (
           <div key={pageIndex} className="print-page-container">
-            <div className="grid grid-cols-2 grid-rows-4 w-full h-full">
+            <div className="print-invoice-grid">
               {pageOfOrders.map((order, index) => (
                 <div key={order.id} className="invoice-item">
                   <Invoice

@@ -128,6 +128,25 @@
     margin: 0.5cm;
   }
 
+  /* Force light mode for print - override dark mode CSS variables */
+  :root,
+  html,
+  body,
+  .dark {
+    --background: 0 0% 100% !important;
+    --foreground: 222.2 84% 4.9% !important;
+    --card: 0 0% 100% !important;
+    --card-foreground: 222.2 84% 4.9% !important;
+    --popover: 0 0% 100% !important;
+    --popover-foreground: 222.2 84% 4.9% !important;
+    --muted: 210 40% 96.1% !important;
+    --muted-foreground: 215.4 16.3% 46.9% !important;
+    --border: 214.3 31.8% 91.4% !important;
+    background-color: #fff !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
   body {
     background-color: #fff !important;
     background: #fff !important;
@@ -135,6 +154,16 @@
   }
 
   html {
+    background-color: #fff !important;
+    background: #fff !important;
+  }
+
+  /* Override dark mode backgrounds */
+  .dark,
+  .bg-background,
+  [class*="bg-gray-"],
+  [class*="bg-slate-"],
+  [class*="dark:bg-"] {
     background-color: #fff !important;
     background: #fff !important;
   }

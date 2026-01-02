@@ -7,18 +7,13 @@ import { ShippingProvider } from '@prisma/client';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs'; // Import bcrypt for hashing
 
-// --- SCHEMA FOR TENANT DETAILS ---
+// --- SCHEMA FOR TENANT DETAILS (API keys removed - super admin only) ---
 const settingsSchema = z.object({
   businessName: z.string().optional(),
   businessAddress: z.string().optional(),
   businessPhone: z.string().optional(),
   invoicePrefix: z.string().optional(),
   defaultShippingProvider: z.nativeEnum(ShippingProvider).optional(),
-  fardaExpressClientId: z.string().optional(),
-  fardaExpressApiKey: z.string().optional(),
-  transExpressApiKey: z.string().optional(),
-  royalExpressApiKey: z.string().optional(),
-  royalExpressOrderPrefix: z.string().optional(),
 });
 
 // --- NEW SCHEMA FOR PASSWORD CHANGE ---
@@ -45,18 +40,12 @@ export async function updateTenantSettings(
 
   try {
     const validatedData = settingsSchema.parse(formValues);
-    
-    const dataToUpdate: Partial<typeof validatedData> = { ...validatedData };
-    if (!dataToUpdate.fardaExpressApiKey) delete dataToUpdate.fardaExpressApiKey;
-    if (!dataToUpdate.transExpressApiKey) delete dataToUpdate.transExpressApiKey;
-    if (!dataToUpdate.royalExpressApiKey) delete dataToUpdate.royalExpressApiKey;
-    if (!dataToUpdate.royalExpressOrderPrefix) delete dataToUpdate.royalExpressOrderPrefix;
 
     await prisma.tenant.update({
       where: {
         id: session.user.tenantId, 
       },
-      data: dataToUpdate,
+      data: validatedData,
     });
 
     revalidatePath('/settings');

@@ -8,7 +8,6 @@ import { motion } from 'framer-motion';
 import {
     BuildingOfficeIcon,
     TruckIcon,
-    KeyIcon,
     ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 
@@ -128,42 +127,7 @@ export function SettingsForm({ tenant }: { tenant: Tenant }) {
                     </div>
                 </div>
 
-                {/* API Keys Section */}
-                <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-border bg-muted/30 flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
-                            <KeyIcon className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-foreground">Shipping API Keys</h3>
-                            <p className="text-sm text-muted-foreground">Enter your own API keys for shipping providers.</p>
-                        </div>
-                    </div>
 
-                    <div className="p-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <div>
-                            <label htmlFor="fardaExpressClientId" className="block text-sm font-medium text-muted-foreground mb-2">Farda Express Client ID</label>
-                            <input type="text" name="fardaExpressClientId" id="fardaExpressClientId" defaultValue={tenant.fardaExpressClientId || ''} className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                        </div>
-                        <div>
-                            <label htmlFor="fardaExpressApiKey" className="block text-sm font-medium text-muted-foreground mb-2">Farda Express API Key</label>
-                            <input type="password" name="fardaExpressApiKey" id="fardaExpressApiKey" defaultValue={tenant.fardaExpressApiKey || ''} className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                        </div>
-                        <div className="sm:col-span-2">
-                            <label htmlFor="transExpressApiKey" className="block text-sm font-medium text-muted-foreground mb-2">Trans Express API Key</label>
-                            <input type="password" name="transExpressApiKey" id="transExpressApiKey" defaultValue={tenant.transExpressApiKey || ''} className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                        </div>
-                        <div className="sm:col-span-2">
-                            <label htmlFor="royalExpressApiKey" className="block text-sm font-medium text-muted-foreground mb-2">Royal Express Credentials</label>
-                            <p className="text-xs text-muted-foreground mb-2">Format: email:password (e.g., user@example.com:yourpassword)</p>
-                            <input type="password" name="royalExpressApiKey" id="royalExpressApiKey" defaultValue={tenant.royalExpressApiKey || ''} placeholder="email:password" className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                        </div>
-                        <div>
-                            <label htmlFor="royalExpressOrderPrefix" className="block text-sm font-medium text-muted-foreground mb-2">Royal Express Order Prefix</label>
-                            <input type="text" name="royalExpressOrderPrefix" id="royalExpressOrderPrefix" defaultValue={tenant.royalExpressOrderPrefix || 'JNEX'} placeholder="JNEX" className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                        </div>
-                    </div>
-                </div>
 
                 <div className="flex justify-end gap-x-3 items-center pt-4">
                     {settingsState?.status === 'error' && (

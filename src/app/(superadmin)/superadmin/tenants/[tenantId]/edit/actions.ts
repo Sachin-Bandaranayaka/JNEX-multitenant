@@ -100,3 +100,66 @@ export async function updateTenant(tenantId: string, adminUserId: string, formDa
   revalidatePath('/superadmin/users');
   redirect('/superadmin/users');
 }
+
+// --- SCHEMA FOR COURIER API KEYS (Super Admin Only) ---
+const ApiKeysSchema = z.object({
+  defaultShippingProvider: z.enum(['FARDA_EXPRESS', 'TRANS_EXPRESS', 'SL_POST', 'ROYAL_EXPRESS']).optional(),
+  fardaExpressClientId: z.string().optional(),
+  fardaExpressApiKey: z.string().optional(),
+  transExpressApiKey: z.string().optional(),
+  royalExpressApiKey: z.string().optional(),
+  royalExpressOrderPrefix: z.string().optional(),
+});
+
+export async function updateTenantApiKeys(tenantId: string, formData: FormData): Promise<void> {
+  const validatedFields = ApiKeysSchema.safeParse(Object.fromEntries(formData.entries()));
+
+  if (!validatedFields.success) {
+    console.error("Validation Errors:", validatedFields.error.flatten().fieldErrors);
+    throw new Error('Validation failed');
+  }
+
+  const { 
+    defaultShippingProvider,
+    fardaExpressClientId, 
+    fardaExpressApiKey, 
+    transExpressApiKey, 
+    royalExpressApiKey,
+    royalExpressOrderPrefix 
+  } = validatedFields.data;
+
+  try {
+    // Build update data, only including non-empty values
+    const updateData: {
+      defaultShippingProvider?: 'FARDA_EXPRESS' | 'TRANS_EXPRESS' | 'SL_POST' | 'ROYAL_EXPRESS';
+      fardaExpressClientId?: string | null;
+      fardaExpressApiKey?: string | null;
+      transExpressApiKey?: string | null;
+      royalExpressApiKey?: string | null;
+      royalExpressOrderPrefix?: string | null;
+    } = {};
+
+    if (defaultShippingProvider) {
+      updateData.defaultShippingProvider = defaultShippingProvider;
+    }
+    
+    // For API keys, we update them if provided (even empty to allow clearing)
+    updateData.fardaExpressClientId = fardaExpressClientId || null;
+    updateData.fardaExpressApiKey = fardaExpressApiKey || null;
+    updateData.transExpressApiKey = transExpressApiKey || null;
+    updateData.royalExpressApiKey = royalExpressApiKey || null;
+    updateData.royalExpressOrderPrefix = royalExpressOrderPrefix || null;
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: updateData,
+    });
+
+  } catch (error) {
+    console.error(error);
+    throw new Error('Database Error: Failed to update API keys.');
+  }
+
+  revalidatePath(`/superadmin/tenants/${tenantId}/edit`);
+  redirect(`/superadmin/tenants/${tenantId}/edit`);
+}

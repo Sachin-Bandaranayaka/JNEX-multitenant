@@ -9,7 +9,7 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 const nextConfig = {
   output: 'standalone',
   images: {
-    domains: ['avatars.githubusercontent.com', 'lh3.googleusercontent.com'],
+    domains: ['avatars.githubusercontent.com', 'lh3.googleusercontent.com', 'jnex-images.s3.eu-north-1.amazonaws.com'],
     unoptimized: true,
   },
   serverExternalPackages: ['@prisma/client'],

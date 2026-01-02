@@ -371,6 +371,7 @@ model StoreProduct {
   price           Float
   stock           Int       @default(0)
   sku             String    @unique
+  imageUrl        String?   // S3 image URL
   isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

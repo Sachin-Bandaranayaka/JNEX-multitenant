@@ -14,6 +14,7 @@ const storeProductSchema = z.object({
   price: z.number().min(0, 'Price must be >= 0'),
   stock: z.number().min(0, 'Stock must be >= 0'),
   sku: z.string().min(2, 'SKU must be at least 2 characters').max(50),
+  imageUrl: z.string().url().optional().nullable(),
 });
 
 // GET - List all store products (accessible by all authenticated users)

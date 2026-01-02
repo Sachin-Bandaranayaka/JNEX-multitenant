@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   PlusIcon, 
   PencilIcon, 
   TrashIcon,
   ShoppingBagIcon,
-  ClipboardDocumentListIcon
+  ClipboardDocumentListIcon,
+  PhotoIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface StoreProduct {
   id: string;
@@ -18,6 +21,7 @@ interface StoreProduct {
   price: number;
   stock: number;
   sku: string;
+  imageUrl: string | null;
   isActive: boolean;
   createdAt: string | Date;
 }
@@ -37,14 +41,19 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
     price: '',
     stock: '',
     sku: '',
+    imageUrl: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetForm = () => {
-    setFormData({ name: '', description: '', price: '', stock: '', sku: '' });
+    setFormData({ name: '', description: '', price: '', stock: '', sku: '', imageUrl: '' });
     setEditingProduct(null);
     setShowForm(false);
+    setImagePreview(null);
   };
 
   const openEditForm = (product: StoreProduct) => {
@@ -55,8 +64,69 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
       price: product.price.toString(),
       stock: product.stock.toString(),
       sku: product.sku,
+      imageUrl: product.imageUrl || '',
     });
+    setImagePreview(product.imageUrl);
     setShowForm(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Get presigned URL
+      const response = await fetch('/api/store/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to get upload URL');
+      }
+
+      const { uploadUrl, publicUrl } = await response.json();
+
+      // Upload to S3
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      setFormData(prev => ({ ...prev, imageUrl: publicUrl }));
+      setImagePreview(publicUrl);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = () => {
+    setFormData(prev => ({ ...prev, imageUrl: '' }));
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,6 +140,7 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
         sku: formData.sku,
+        imageUrl: formData.imageUrl || null,
       };
 
       const url = editingProduct 
@@ -167,6 +238,59 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
               {editingProduct ? 'Edit Product' : 'Add New Product'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Image Upload Section */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Product Image
+                </label>
+                <div className="flex items-start gap-4">
+                  {imagePreview ? (
+                    <div className="relative">
+                      <div className="relative h-32 w-32 rounded-lg overflow-hidden bg-gray-700">
+                        <Image
+                          src={imagePreview}
+                          alt="Product preview"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute -top-2 -right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+                      >
+                        <XMarkIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="h-32 w-32 rounded-lg border-2 border-dashed border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors"
+                    >
+                      {uploading ? (
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+                      ) : (
+                        <>
+                          <PhotoIcon className="h-8 w-8 text-gray-500" />
+                          <span className="text-xs text-gray-500 mt-1">Upload</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <div className="text-sm text-gray-400">
+                    <p>Click to upload product image</p>
+                    <p className="text-xs mt-1">JPEG, PNG, WebP, GIF (max 5MB)</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
@@ -247,7 +371,7 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || uploading}
                   className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors disabled:opacity-50"
                 >
                   {submitting ? 'Saving...' : editingProduct ? 'Update Product' : 'Add Product'}
@@ -297,13 +421,29 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
               {products.map((product) => (
                 <tr key={product.id} className="hover:bg-gray-700/50 transition-colors">
                   <td className="px-6 py-4">
-                    <div>
-                      <p className="font-medium text-white">{product.name}</p>
-                      {product.description && (
-                        <p className="text-sm text-gray-400 truncate max-w-xs">
-                          {product.description}
-                        </p>
+                    <div className="flex items-center gap-3">
+                      {product.imageUrl ? (
+                        <div className="relative h-10 w-10 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
+                          <Image
+                            src={product.imageUrl}
+                            alt={product.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0">
+                          <PhotoIcon className="h-5 w-5 text-gray-500" />
+                        </div>
                       )}
+                      <div>
+                        <p className="font-medium text-white">{product.name}</p>
+                        {product.description && (
+                          <p className="text-sm text-gray-400 truncate max-w-xs">
+                            {product.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-300">{product.sku}</td>

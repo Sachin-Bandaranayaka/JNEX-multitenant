@@ -8,6 +8,10 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  env: {
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+  },
   images: {
     domains: ['avatars.githubusercontent.com', 'lh3.googleusercontent.com', 'jnex-images.s3.eu-north-1.amazonaws.com'],
     unoptimized: true,

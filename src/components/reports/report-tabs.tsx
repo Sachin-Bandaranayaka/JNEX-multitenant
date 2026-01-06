@@ -7,11 +7,13 @@ import { SalesReport } from './sales-report';
 import { ProductReport } from './product-report';
 import { LeadReport } from './lead-report';
 import { ShippingReport } from './shipping-report';
+import { FinancialReport } from './financial-report';
 import {
     ChartBarIcon,
     CubeIcon,
     UsersIcon,
-    TruckIcon
+    TruckIcon,
+    BanknotesIcon
 } from '@heroicons/react/24/outline';
 
 interface ReportTabsProps {
@@ -25,11 +27,11 @@ interface ReportTabsProps {
     };
 }
 
-type TabType = 'sales' | 'products' | 'leads' | 'shipping';
+type TabType = 'sales' | 'products' | 'leads' | 'shipping' | 'financial';
 type TimeFilterType = 'daily' | 'weekly' | 'monthly' | 'custom';
 
 export function ReportTabs({ user, initialData }: ReportTabsProps) {
-    const [activeTab, setActiveTab] = useState<TabType>('sales');
+    const [activeTab, setActiveTab] = useState<TabType>('financial');
     const [dateRange, setDateRange] = useState({
         startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0],
@@ -61,6 +63,11 @@ export function ReportTabs({ user, initialData }: ReportTabsProps) {
     };
 
     const tabs: { id: TabType; name: string; icon: JSX.Element }[] = [
+        {
+            id: 'financial',
+            name: 'Financial',
+            icon: <BanknotesIcon className="h-5 w-5" />,
+        },
         {
             id: 'sales',
             name: 'Sales Report',
@@ -154,6 +161,13 @@ export function ReportTabs({ user, initialData }: ReportTabsProps) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                 >
+                    {activeTab === 'financial' && (
+                        <FinancialReport
+                            startDate={dateRange.startDate}
+                            endDate={dateRange.endDate}
+                            canExport={canExport}
+                        />
+                    )}
                     {activeTab === 'sales' && (
                         <SalesReport
                             startDate={dateRange.startDate}

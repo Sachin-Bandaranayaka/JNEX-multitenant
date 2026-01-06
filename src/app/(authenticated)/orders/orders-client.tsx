@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { OrderActions } from '@/components/orders/order-actions';
+import { SyncOrdersButton } from '@/components/orders/sync-orders-button';
 import { Prisma } from '@prisma/client';
 import { User } from 'next-auth';
 import { motion } from 'framer-motion';
@@ -97,7 +98,13 @@ export function OrdersClient({ initialOrders, user }: OrdersClientProps) {
     <div className="space-y-6">
       {/* Action Bar */}
       {canPrintInvoices && (
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          {/* Sync Button - Only show for admins */}
+          {user.role === 'ADMIN' && (
+            <SyncOrdersButton />
+          )}
+          {user.role !== 'ADMIN' && <div />}
+          
           <Link
             href={selectedOrders.length > 0 ? `/orders/print?ids=${selectedOrders.join(',')}` : '#'}
             aria-disabled={selectedOrders.length === 0}

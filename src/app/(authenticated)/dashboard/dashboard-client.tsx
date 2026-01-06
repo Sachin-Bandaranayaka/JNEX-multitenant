@@ -9,11 +9,21 @@ import Link from 'next/link';
 import { StatsOverview } from '@/components/dashboard/stats-overview';
 import { CalendarIcon, FunnelIcon } from '@heroicons/react/24/outline';
 
+interface PeriodChanges {
+    orders: number | null;
+    revenue: number | null;
+    leads: number | null;
+    conversionRate: number | null;
+    avgOrderValue: number | null;
+}
+
 interface PeriodStats {
     orders: number;
     revenue: number;
     leads: number;
     conversionRate: number;
+    avgOrderValue: number;
+    changes: PeriodChanges;
 }
 
 interface DashboardData {

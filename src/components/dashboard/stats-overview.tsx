@@ -3,23 +3,30 @@
 import { ArrowUpIcon, ArrowDownIcon, EllipsisHorizontalIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
 
+interface PeriodChanges {
+    orders: number | null;
+    revenue: number | null;
+    leads: number | null;
+    conversionRate: number | null;
+    avgOrderValue: number | null;
+}
+
 interface PeriodStats {
     orders: number;
     revenue: number;
     leads: number;
     conversionRate: number;
+    avgOrderValue: number;
+    changes: PeriodChanges;
 }
 
 interface StatsOverviewProps {
     data: PeriodStats;
-    previousData?: PeriodStats; // Optional for comparison
 }
 
 export function StatsOverview({ data }: StatsOverviewProps) {
-    // Mocking percentage changes for now as we don't have previous period data passed explicitly yet
-    // In a real scenario, we would calculate this from previousData
-    const revenueChange = 7.9;
-    const revenueUp = true;
+    const revenueChange = data.changes.revenue;
+    const revenueUp = revenueChange !== null && revenueChange >= 0;
 
     return (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -39,10 +46,12 @@ export function StatsOverview({ data }: StatsOverviewProps) {
                     <h2 className="text-5xl font-bold text-foreground tracking-tight">
                         LKR {data.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </h2>
-                    <div className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-medium ${revenueUp ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-600'}`}>
-                        {revenueUp ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
-                        {revenueChange}%
-                    </div>
+                    {revenueChange !== null && (
+                        <div className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-medium ${revenueUp ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-600'}`}>
+                            {revenueUp ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                            {Math.abs(revenueChange).toFixed(1)}%
+                        </div>
+                    )}
                 </div>
                 <div className="mt-2 text-sm text-muted-foreground">
                     vs prev. period
@@ -63,29 +72,25 @@ export function StatsOverview({ data }: StatsOverviewProps) {
                 <StatsCard
                     title="Orders"
                     value={data.orders.toLocaleString()}
-                    change={12}
-                    isUp={true}
+                    change={data.changes.orders}
                     delay={0.1}
                 />
                 <StatsCard
                     title="Leads"
                     value={data.leads.toLocaleString()}
-                    change={5}
-                    isUp={false}
+                    change={data.changes.leads}
                     delay={0.2}
                 />
                 <StatsCard
                     title="Conversion"
                     value={`${data.conversionRate.toFixed(1)}%`}
-                    change={2.1}
-                    isUp={true}
+                    change={data.changes.conversionRate}
                     delay={0.3}
                 />
                 <StatsCard
                     title="Avg. Order"
-                    value={data.orders > 0 ? `LKR ${(data.revenue / data.orders).toFixed(0)}` : '0'}
-                    change={0.5}
-                    isUp={true}
+                    value={data.orders > 0 ? `LKR ${data.avgOrderValue.toFixed(0)}` : '0'}
+                    change={data.changes.avgOrderValue}
                     delay={0.4}
                 />
             </div>
@@ -93,7 +98,9 @@ export function StatsOverview({ data }: StatsOverviewProps) {
     );
 }
 
-function StatsCard({ title, value, change, isUp, delay }: { title: string; value: string; change: number; isUp: boolean; delay: number }) {
+function StatsCard({ title, value, change, delay }: { title: string; value: string; change: number | null; delay: number }) {
+    const isUp = change !== null && change >= 0;
+    
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -103,10 +110,12 @@ function StatsCard({ title, value, change, isUp, delay }: { title: string; value
         >
             <div className="flex justify-between items-start">
                 <span className="text-sm font-medium text-muted-foreground">{title}</span>
-                <div className={`flex items-center gap-0.5 text-xs font-medium ${isUp ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {isUp ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
-                    {change}%
-                </div>
+                {change !== null && (
+                    <div className={`flex items-center gap-0.5 text-xs font-medium ${isUp ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {isUp ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+                        {Math.abs(change).toFixed(1)}%
+                    </div>
+                )}
             </div>
             <div className="mt-4">
                 <span className="text-2xl font-bold text-foreground">{value}</span>

@@ -16,7 +16,7 @@ import { FardaExpressService } from '@/lib/shipping/farda-express';
 import { TransExpressProvider } from '@/lib/shipping/trans-express';
 import { getAllDistricts, getCitiesByDistrict, TransExpressCity } from '@/lib/shipping/trans-express-cities';
 import { RoyalExpressProvider } from '@/lib/shipping/royal-express';
-import { getAllStates, getCitiesByState, RoyalExpressCity, RoyalExpressState } from '@/lib/shipping/royal-express-locations';
+import { RoyalExpressCity, RoyalExpressState } from '@/lib/shipping/royal-express-locations';
 import { ShippingProvider } from '@prisma/client';
 
 interface ShippingFormProps {
@@ -81,7 +81,7 @@ export function ShippingForm({
     const [states, setStates] = useState<RoyalExpressState[]>([]);
     const [selectedState, setSelectedState] = useState<string>('Colombo');
     const [selectedRoyalCity, setSelectedRoyalCity] = useState<number>(1001);
-    const [citiesInState, setCitiesInState] = useState<RoyalExpressCity[]>([]);
+    const [allRoyalCities, setAllRoyalCities] = useState<RoyalExpressCity[]>([]);
     const [isLoadingRoyalLocations, setIsLoadingRoyalLocations] = useState(false);
     const [royalCitySearchTerm, setRoyalCitySearchTerm] = useState('');
     const [filteredRoyalCities, setFilteredRoyalCities] = useState<RoyalExpressCity[]>([]);
@@ -107,34 +107,85 @@ export function ShippingForm({
         loadDistricts();
     }, [provider]);
 
-    // Load states when provider changes to Royal Express
+    // Load all cities when provider changes to Royal Express
     useEffect(() => {
-        const loadRoyalExpressStates = async () => {
+        const loadRoyalExpressData = async () => {
             if (provider !== 'ROYAL_EXPRESS') return;
 
             setIsLoadingRoyalLocations(true);
             try {
-                if (!royalExpressApiKey) {
-                    setIsLoadingRoyalLocations(false);
-                    return;
+                // Fetch from API route instead of calling the library directly
+                const response = await fetch('/api/shipping/royal-express/locations');
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch locations');
                 }
-                const royalExpressService = new RoyalExpressProvider(royalExpressApiKey);
-                const allStates = await getAllStates(royalExpressService);
-                setStates(allStates);
-                setSelectedState('Colombo');
+                
+                const data = await response.json();
+                console.log('Royal Express locations data:', data);
+                const { states: allStates, cities } = data;
+                
+                if (allStates && allStates.length > 0) {
+                    setStates(allStates);
+                }
+                
+                if (cities && cities.length > 0) {
+                    console.log(`Loaded ${cities.length} cities for Royal Express`);
+                    setAllRoyalCities(cities);
+                    setFilteredRoyalCities(cities);
+                    
+                    // Set default selection
+                    const defaultCity = cities.find((c: RoyalExpressCity) => c.name === 'Colombo 01') || cities[0];
+                    setSelectedRoyalCity(defaultCity.id);
+                    setSelectedState(defaultCity.state);
+                    setRoyalCitySearchTerm(defaultCity.name);
+                } else {
+                    console.warn('No cities in API response, using client fallback');
+                    throw new Error('No cities returned from API');
+                }
             } catch (err) {
-                console.error('Failed to load Royal Express states:', err);
-                setStates([
+                console.error('Failed to load Royal Express locations:', err);
+                // Fallback data - comprehensive list
+                const fallbackStates = [
                     { id: 1, name: 'Colombo' },
+                    { id: 2, name: 'Kandy' },
                     { id: 3, name: 'Galle' },
                     { id: 4, name: 'Gampaha' }
-                ]);
+                ];
+                const fallbackCities = [
+                    { id: 1001, name: 'Colombo 01', state: 'Colombo' },
+                    { id: 1002, name: 'Colombo 02', state: 'Colombo' },
+                    { id: 1003, name: 'Colombo 03', state: 'Colombo' },
+                    { id: 1004, name: 'Colombo 04', state: 'Colombo' },
+                    { id: 1005, name: 'Colombo 05', state: 'Colombo' },
+                    { id: 1006, name: 'Colombo 06', state: 'Colombo' },
+                    { id: 1007, name: 'Colombo 07', state: 'Colombo' },
+                    { id: 1016, name: 'Dehiwala', state: 'Colombo' },
+                    { id: 1017, name: 'Mount Lavinia', state: 'Colombo' },
+                    { id: 1019, name: 'Moratuwa', state: 'Colombo' },
+                    { id: 1021, name: 'Maharagama', state: 'Colombo' },
+                    { id: 1022, name: 'Nugegoda', state: 'Colombo' },
+                    { id: 1023, name: 'Battaramulla', state: 'Colombo' },
+                    { id: 2001, name: 'Kandy', state: 'Kandy' },
+                    { id: 3001, name: 'Galle', state: 'Galle' },
+                    { id: 4001, name: 'Gampaha', state: 'Gampaha' },
+                    { id: 4002, name: 'Negombo', state: 'Gampaha' },
+                    { id: 4003, name: 'Ja-Ela', state: 'Gampaha' },
+                    { id: 4004, name: 'Kadawatha', state: 'Gampaha' },
+                    { id: 4005, name: 'Kiribathgoda', state: 'Gampaha' },
+                    { id: 4006, name: 'Wattala', state: 'Gampaha' },
+                ];
+                setStates(fallbackStates);
+                setAllRoyalCities(fallbackCities);
+                setFilteredRoyalCities(fallbackCities);
                 setSelectedState('Colombo');
+                setRoyalCitySearchTerm('Colombo 01');
             } finally {
                 setIsLoadingRoyalLocations(false);
             }
         };
-        loadRoyalExpressStates();
+        loadRoyalExpressData();
     }, [provider]);
 
     // Update cities when district changes for Trans Express
@@ -170,40 +221,19 @@ export function ShippingForm({
         updateCities();
     }, [selectedDistrict, provider]);
 
-    // Update cities when state changes for Royal Express
+    // Filter cities based on search term for Royal Express (searches all cities)
     useEffect(() => {
-        const updateRoyalCities = async () => {
-            if (provider !== 'ROYAL_EXPRESS' || !selectedState) return;
-
-            setIsLoadingRoyalLocations(true);
-            try {
-                if (!royalExpressApiKey) {
-                    setIsLoadingRoyalLocations(false);
-                    return;
-                }
-                const royalExpressService = new RoyalExpressProvider(royalExpressApiKey);
-                const cities = await getCitiesByState(royalExpressService, selectedState);
-                setCitiesInState(cities);
-
-                if (cities.length > 0) {
-                    setSelectedRoyalCity(cities[0].id);
-                    setRoyalCitySearchTerm(cities[0].name);
-                } else {
-                    setCitiesInState([{ id: 1001, name: 'Colombo 01', state: selectedState }]);
-                    setSelectedRoyalCity(1001);
-                    setRoyalCitySearchTerm('Colombo 01');
-                }
-            } catch (err) {
-                console.error(`Failed to load cities for state ${selectedState}:`, err);
-                setCitiesInState([{ id: 1001, name: 'Colombo 01', state: selectedState }]);
-                setSelectedRoyalCity(1001);
-                setRoyalCitySearchTerm('Colombo 01');
-            } finally {
-                setIsLoadingRoyalLocations(false);
-            }
-        };
-        updateRoyalCities();
-    }, [selectedState, provider]);
+        if (royalCitySearchTerm.trim() === '') {
+            setFilteredRoyalCities(allRoyalCities);
+        } else {
+            const searchLower = royalCitySearchTerm.toLowerCase();
+            const filtered = allRoyalCities.filter(city =>
+                city.name.toLowerCase().includes(searchLower) ||
+                city.state.toLowerCase().includes(searchLower)
+            );
+            setFilteredRoyalCities(filtered);
+        }
+    }, [royalCitySearchTerm, allRoyalCities]);
 
     // Filter cities based on search term for Trans Express
     useEffect(() => {
@@ -216,18 +246,6 @@ export function ShippingForm({
             setFilteredCities(filtered);
         }
     }, [citySearchTerm, citiesInDistrict]);
-
-    // Filter cities based on search term for Royal Express
-    useEffect(() => {
-        if (royalCitySearchTerm.trim() === '') {
-            setFilteredRoyalCities(citiesInState);
-        } else {
-            const filtered = citiesInState.filter(city =>
-                city.name.toLowerCase().includes(royalCitySearchTerm.toLowerCase())
-            );
-            setFilteredRoyalCities(filtered);
-        }
-    }, [royalCitySearchTerm, citiesInState]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -246,14 +264,6 @@ export function ShippingForm({
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
-
-    // Clear city search term when state changes
-    useEffect(() => {
-        if (provider === 'ROYAL_EXPRESS' && selectedState) {
-            setRoyalCitySearchTerm('');
-            setShowRoyalCityDropdown(false);
-        }
-    }, [selectedState, provider]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -350,7 +360,9 @@ export function ShippingForm({
                 const royalExpressService = new RoyalExpressProvider(royalExpressApiKey);
                 const codAmount = (order.product.price * order.quantity) - (order.discount || 0);
                 const originState = "Colombo";
-                const destinationState = selectedState;
+                // Get the state from the selected city
+                const selectedCityData = allRoyalCities.find(c => c.id === selectedRoyalCity);
+                const destinationState = selectedCityData?.state || selectedState;
 
                 const result = await royalExpressService.createShipment(
                     {
@@ -365,7 +377,7 @@ export function ShippingForm({
                     {
                         name: order.customerName,
                         street: order.customerAddress,
-                        city: citiesInState.find(c => c.id === selectedRoyalCity)?.name || 'Colombo 02',
+                        city: selectedCityData?.name || 'Colombo 02',
                         state: destinationState,
                         postalCode: '',
                         country: 'LK',
@@ -380,7 +392,7 @@ export function ShippingForm({
                     },
                     'Standard',
                     selectedRoyalCity,
-                    states.find(s => s.name === selectedState)?.id,
+                    states.find(s => s.name === destinationState)?.id,
                     codAmount,
                     royalExpressOrderPrefix
                 );
@@ -613,33 +625,12 @@ export function ShippingForm({
                             </div>
                         )}
 
-                        {/* Royal Express Specific */}
+                        {/* Royal Express Specific - Single city search */}
                         {provider === ShippingProvider.ROYAL_EXPRESS && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="royalState" className="block text-sm font-medium text-muted-foreground mb-1.5">
-                                        State
-                                    </label>
-                                    <div className="relative">
-                                        <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <select
-                                            id="royalState"
-                                            value={selectedState}
-                                            onChange={(e) => setSelectedState(e.target.value)}
-                                            className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2 appearance-none"
-                                            required
-                                            disabled={isLoadingRoyalLocations}
-                                        >
-                                            {states.map((state) => (
-                                                <option key={state.id} value={state.name}>{state.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
+                            <div>
                                 <div className="relative royal-city-dropdown-container">
                                     <label htmlFor="royalCity" className="block text-sm font-medium text-muted-foreground mb-1.5">
-                                        City
+                                        Destination City
                                     </label>
                                     <div className="relative">
                                         <BuildingOfficeIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -653,7 +644,7 @@ export function ShippingForm({
                                             }}
                                             onFocus={() => setShowRoyalCityDropdown(true)}
                                             onClick={() => setShowRoyalCityDropdown(true)}
-                                            placeholder={isLoadingRoyalLocations ? "Loading..." : "Search city..."}
+                                            placeholder={isLoadingRoyalLocations ? "Loading cities..." : "Type to search city..."}
                                             className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2"
                                             required
                                             disabled={isLoadingRoyalLocations}
@@ -662,25 +653,38 @@ export function ShippingForm({
                                     </div>
                                     {showRoyalCityDropdown && !isLoadingRoyalLocations && (
                                         <div className="absolute z-50 mt-1 w-full bg-popover rounded-lg border border-border shadow-lg max-h-60 overflow-y-auto">
-                                            {filteredRoyalCities.length > 0 ? filteredRoyalCities.map((city) => (
+                                            {filteredRoyalCities.length > 0 ? filteredRoyalCities.slice(0, 50).map((city) => (
                                                 <button
                                                     key={city.id}
                                                     type="button"
                                                     onClick={() => {
                                                         setSelectedRoyalCity(city.id);
+                                                        setSelectedState(city.state);
                                                         setRoyalCitySearchTerm(city.name);
                                                         setShowRoyalCityDropdown(false);
                                                     }}
                                                     className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
                                                 >
-                                                    {city.name}
+                                                    <span>{city.name}</span>
+                                                    <span className="text-muted-foreground ml-2">({city.state})</span>
                                                 </button>
                                             )) : (
                                                 <div className="px-4 py-2 text-sm text-muted-foreground">No cities found</div>
                                             )}
+                                            {filteredRoyalCities.length > 50 && (
+                                                <div className="px-4 py-2 text-xs text-muted-foreground border-t border-border">
+                                                    Type more to narrow down results...
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
+                                {selectedState && royalCitySearchTerm && (
+                                    <p className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1">
+                                        <MapPinIcon className="w-3 h-3" />
+                                        State: {selectedState}
+                                    </p>
+                                )}
                             </div>
                         )}
 

@@ -398,8 +398,8 @@ export async function GET(request: Request) {
                             try {
                                 const royalApiKey = order.tenant?.royalExpressApiKey;
                                 if (royalApiKey) {
-                                    const [royalEmail, royalPassword] = royalApiKey.split(':');
-                                    const royalExpressService = new RoyalExpressProvider(royalEmail, royalPassword);
+                                    // Pass the full API key string (email:password)
+                                    const royalExpressService = new RoyalExpressProvider(royalApiKey);
                                     const basicStatus = await royalExpressService.trackShipment(order.trackingNumber!);
 
                                     await prisma.order.update({

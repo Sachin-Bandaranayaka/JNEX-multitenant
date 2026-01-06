@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { updateTenant, updateTenantApiKeys } from './actions';
 import { Role, ShippingProvider } from '@prisma/client';
+import { PasswordInput } from '@/components/ui/password-input';
 
 // export default async function EditTenantPage({ params }: { params: { tenantId: string } }) {
 //   const { tenantId } = params;
@@ -169,11 +170,15 @@ export default async function EditTenantPage({ params }: { params: Promise<{ ten
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="fardaExpressClientId" className="block text-sm font-medium text-gray-200">Client ID</label>
-                  <input type="text" name="fardaExpressClientId" id="fardaExpressClientId" defaultValue={tenant.fardaExpressClientId || ''} className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/>
+                  <div className="mt-2">
+                    <PasswordInput name="fardaExpressClientId" id="fardaExpressClientId" defaultValue={tenant.fardaExpressClientId || ''} />
+                  </div>
                 </div>
                 <div>
                   <label htmlFor="fardaExpressApiKey" className="block text-sm font-medium text-gray-200">API Key</label>
-                  <input type="password" name="fardaExpressApiKey" id="fardaExpressApiKey" defaultValue={tenant.fardaExpressApiKey || ''} className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/>
+                  <div className="mt-2">
+                    <PasswordInput name="fardaExpressApiKey" id="fardaExpressApiKey" defaultValue={tenant.fardaExpressApiKey || ''} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -183,7 +188,9 @@ export default async function EditTenantPage({ params }: { params: Promise<{ ten
               <h4 className="text-sm font-semibold text-gray-300 mb-4">Trans Express</h4>
               <div>
                 <label htmlFor="transExpressApiKey" className="block text-sm font-medium text-gray-200">API Key</label>
-                <input type="password" name="transExpressApiKey" id="transExpressApiKey" defaultValue={tenant.transExpressApiKey || ''} className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/>
+                <div className="mt-2">
+                  <PasswordInput name="transExpressApiKey" id="transExpressApiKey" defaultValue={tenant.transExpressApiKey || ''} />
+                </div>
               </div>
             </div>
 
@@ -194,7 +201,7 @@ export default async function EditTenantPage({ params }: { params: Promise<{ ten
                 <div>
                   <label htmlFor="royalExpressApiKey" className="block text-sm font-medium text-gray-200">Credentials</label>
                   <p className="text-xs text-gray-400 mb-2">Format: email:password (e.g., user@example.com:yourpassword)</p>
-                  <input type="password" name="royalExpressApiKey" id="royalExpressApiKey" defaultValue={tenant.royalExpressApiKey || ''} placeholder="email:password" className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/>
+                  <PasswordInput name="royalExpressApiKey" id="royalExpressApiKey" defaultValue={tenant.royalExpressApiKey || ''} placeholder="email:password" />
                 </div>
                 <div>
                   <label htmlFor="royalExpressOrderPrefix" className="block text-sm font-medium text-gray-200">Order Prefix</label>

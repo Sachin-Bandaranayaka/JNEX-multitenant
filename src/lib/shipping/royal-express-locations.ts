@@ -201,48 +201,108 @@ export class RoyalExpressLocations {
 
     /**
      * Fetch all cities from Royal Express API
+     * Uses the states endpoint which includes embedded cities for better performance
      */
     async getCities(): Promise<RoyalExpressCity[]> {
-        if (this.cities) {
-            return this.cities || FALLBACK_ROYAL_EXPRESS_CITIES;
+        if (this.cities && this.cities.length > 0) {
+            return this.cities;
         }
 
         try {
-            // First ensure we have states loaded
-            const states = await this.getStates();
-            const stateMap = new Map(states.map(state => [state.id, state.name]));
+            // The states endpoint includes embedded cities for each state
+            // This is much more efficient than paginating through 190+ pages of cities
+            const statesResponse = await this.royalExpress.getStates();
 
-            // API endpoint for cities
-            const response = await this.royalExpress.makeApiRequest('/merchant/city', 'GET');
-
-            if (!response || !response.data || !Array.isArray(response.data)) {
-                throw new Error('Invalid response format from Royal Express Cities API');
+            if (!statesResponse || !statesResponse.data || !Array.isArray(statesResponse.data)) {
+                throw new Error('Invalid response format from Royal Express States API');
             }
 
-            // Process all cities without making additional API calls for each one
-            this.cities = response.data.map((city: any) => {
-                // Look up state name from our loaded states
-                let stateName = 'Unknown';
+            const allCities: RoyalExpressCity[] = [];
 
-                if (city.state_id && stateMap.has(city.state_id)) {
-                    stateName = stateMap.get(city.state_id) || 'Unknown';
-                } else if (city.state && city.state.name) {
-                    // Some API responses include the state object directly
-                    stateName = city.state.name;
+            // Extract cities from each state
+            for (const state of statesResponse.data) {
+                if (state.cities && Array.isArray(state.cities)) {
+                    for (const city of state.cities) {
+                        allCities.push({
+                            id: city.id,
+                            name: city.name,
+                            state: state.name
+                        });
+                    }
                 }
+            }
 
-                return {
-                    id: city.id,
-                    name: city.name,
-                    state: stateName
-                };
-            });
+            if (allCities.length > 0) {
+                console.log(`Successfully extracted ${allCities.length} cities from states data`);
+                this.cities = allCities;
+                return this.cities;
+            }
 
-            return this.cities || FALLBACK_ROYAL_EXPRESS_CITIES;
+            // Fallback: If states don't have embedded cities, try paginated city endpoint
+            console.log('No embedded cities in states response, falling back to paginated city API');
+            return await this.getCitiesPaginated();
         } catch (error) {
             console.error('Failed to fetch cities from Royal Express API, using fallback data:', error);
             this.cities = FALLBACK_ROYAL_EXPRESS_CITIES;
             return this.cities;
+        }
+    }
+
+    /**
+     * Fetch all cities using pagination (slower, used as fallback)
+     */
+    private async getCitiesPaginated(): Promise<RoyalExpressCity[]> {
+        try {
+            const states = await this.getStates();
+            const stateMap = new Map(states.map(state => [state.id, state.name]));
+
+            const allCities: RoyalExpressCity[] = [];
+            let currentPage = 1;
+            let hasMorePages = true;
+
+            // Fetch all pages (with a safety limit)
+            while (hasMorePages && currentPage <= 200) {
+                const response = await this.royalExpress.makeApiRequest(`/merchant/city?page=${currentPage}`, 'GET');
+
+                if (!response || !response.data || !Array.isArray(response.data)) {
+                    break;
+                }
+
+                // Process cities from this page
+                for (const city of response.data) {
+                    let stateName = 'Unknown';
+                    if (city.state_id && stateMap.has(city.state_id)) {
+                        stateName = stateMap.get(city.state_id) || 'Unknown';
+                    } else if (city.state && city.state.name) {
+                        stateName = city.state.name;
+                    }
+
+                    allCities.push({
+                        id: city.id,
+                        name: city.name,
+                        state: stateName
+                    });
+                }
+
+                // Check if there are more pages
+                if (response.meta && response.meta.current_page < response.meta.last_page) {
+                    currentPage++;
+                } else {
+                    hasMorePages = false;
+                }
+
+                // Log progress every 10 pages
+                if (currentPage % 10 === 0) {
+                    console.log(`Fetched ${allCities.length} cities so far (page ${currentPage})...`);
+                }
+            }
+
+            console.log(`Successfully fetched ${allCities.length} cities from Royal Express API`);
+            this.cities = allCities;
+            return this.cities;
+        } catch (error) {
+            console.error('Failed to fetch paginated cities:', error);
+            return FALLBACK_ROYAL_EXPRESS_CITIES;
         }
     }
 

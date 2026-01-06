@@ -562,8 +562,8 @@ The state name must match exactly, including capitalization.`);
             // Create a temporary instance with environment variables
             const email = process.env.NEXT_PUBLIC_ROYAL_EXPRESS_EMAIL || '';
             const password = process.env.NEXT_PUBLIC_ROYAL_EXPRESS_PASSWORD || '';
-            const tenant = process.env.NEXT_PUBLIC_ROYAL_EXPRESS_TENANT || 'developers';
-            const provider = new RoyalExpressProvider(email, password);
+            const apiKey = `${email}:${password}`;
+            const provider = new RoyalExpressProvider(apiKey);
 
             // Authenticate and fetch states
             console.log('Fetching valid states from Royal Express API...');

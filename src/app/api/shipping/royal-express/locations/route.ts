@@ -40,7 +40,8 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const royalExpressService = new RoyalExpressProvider(royalEmail, royalPassword);
+        // Pass the full API key string (email:password), not separate values
+        const royalExpressService = new RoyalExpressProvider(tenant.royalExpressApiKey);
 
         const url = new URL(request.url);
         const state = url.searchParams.get('state');

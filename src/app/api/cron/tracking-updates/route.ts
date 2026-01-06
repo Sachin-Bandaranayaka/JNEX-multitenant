@@ -6,8 +6,10 @@ import { RoyalExpressProvider } from '@/lib/shipping/royal-express';
 import { ShipmentStatus } from '@/lib/shipping/types';
 import { createNotification } from '@/lib/notifications';
 
-// Force dynamic rendering for this route
+// Force dynamic rendering - disable all caching
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 const prisma = new PrismaClient();
 
@@ -24,11 +26,23 @@ const statusMap: Record<ShipmentStatus, OrderStatus> = {
 
 // This endpoint will be called by a cron job every hour
 export async function GET(request: Request) {
+    // Add no-cache headers helper
+    const createResponse = (data: any, status: number = 200) => {
+        return NextResponse.json(data, {
+            status,
+            headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+            },
+        });
+    };
+
     try {
         // Verify the request is from our cron service
         const authHeader = request.headers.get('authorization');
         if (authHeader !== `Bearer ${process.env.CRON_SECRET_KEY}`) {
-            return new NextResponse('Unauthorized', { status: 401 });
+            return createResponse({ error: 'Unauthorized' }, 401);
         }
 
         // Get all orders that are shipped but not delivered
@@ -471,15 +485,15 @@ export async function GET(request: Request) {
             updates.push(result);
         }
 
-        return NextResponse.json({
+        return createResponse({
             processed: orders.length,
             updates,
         });
     } catch (error) {
         console.error('Error processing tracking updates:', error);
-        return NextResponse.json(
+        return createResponse(
             { error: 'Failed to process tracking updates' },
-            { status: 500 }
+            500
         );
     }
 }

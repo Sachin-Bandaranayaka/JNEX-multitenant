@@ -10,6 +10,7 @@ frontend:
         - echo "NEXTAUTH_URL=$NEXTAUTH_URL" >> .env.production
         - echo "DATABASE_URL=$DATABASE_URL" >> .env.production
         - echo "DIRECT_URL=$DIRECT_URL" >> .env.production
+        - echo "CRON_SECRET_KEY=$CRON_SECRET_KEY" >> .env.production
         - npm run build
   artifacts:
     baseDirectory: .next

@@ -29,6 +29,11 @@ export async function middleware(request: NextRequest) {
   const userRole = token?.role as Role;
   const userPermissions = (token?.permissions as string[]) || [];
 
+  // --- Allow API routes to pass through (they handle their own auth) ---
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
   // --- FIX: Explicitly allow access to the unauthorized page to prevent redirect loops ---
   if (pathname === '/unauthorized') {
     return NextResponse.next();

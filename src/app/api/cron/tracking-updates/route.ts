@@ -63,8 +63,23 @@ export async function GET(request: Request) {
 
         console.log(`Found ${orders.length} orders to check for updates`);
 
-        const updates = await Promise.all(
-            orders.map(async (order) => {
+        // Helper function to add delay between API calls (rate limiting protection)
+        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+        
+        // Process orders sequentially with delay to avoid rate limiting
+        // Royal Express has rate limits, so we add 2 second delay between each order
+        const updates = [];
+        for (let i = 0; i < orders.length; i++) {
+            const order = orders[i];
+            
+            // Add delay between orders (skip first one)
+            if (i > 0) {
+                await delay(2000); // 2 second delay between API calls
+            }
+            
+            console.log(`Processing order ${i + 1}/${orders.length}: ${order.id}`);
+            
+            const result = await (async () => {
                 try {
                     if (order.shippingProvider === ShippingProvider.FARDA_EXPRESS) {
                         const fardaClientId = order.tenant?.fardaExpressClientId;
@@ -451,8 +466,10 @@ export async function GET(request: Request) {
                         error: error instanceof Error ? error.message : 'Unknown error',
                     };
                 }
-            })
-        );
+            })();
+            
+            updates.push(result);
+        }
 
         return NextResponse.json({
             processed: orders.length,

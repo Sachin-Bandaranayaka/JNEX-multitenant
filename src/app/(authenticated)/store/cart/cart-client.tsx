@@ -8,9 +8,11 @@ import {
   PlusIcon, 
   MinusIcon,
   ShoppingCartIcon,
-  ArrowLeftIcon 
+  ArrowLeftIcon,
+  PhotoIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface CartItem {
   id: string;
@@ -21,6 +23,7 @@ interface CartItem {
     price: number;
     stock: number;
     sku: string;
+    imageUrl: string | null;
   };
 }
 
@@ -173,7 +176,23 @@ export function CartClient({ initialItems, initialTotal }: CartClientProps) {
                 exit={{ opacity: 0, x: -100 }}
                 className="rounded-2xl bg-card border border-border p-4"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4">
+                  {/* Product Image */}
+                  <div className="relative h-16 w-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                    {item.storeProduct.imageUrl ? (
+                      <Image
+                        src={item.storeProduct.imageUrl}
+                        alt={item.storeProduct.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center">
+                        <PhotoIcon className="h-6 w-6 text-muted-foreground/50" />
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex-1">
                     <h3 className="font-semibold text-foreground">{item.storeProduct.name}</h3>
                     <p className="text-sm text-muted-foreground">SKU: {item.storeProduct.sku}</p>

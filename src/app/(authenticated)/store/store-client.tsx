@@ -6,9 +6,11 @@ import {
   ShoppingCartIcon, 
   PlusIcon, 
   MinusIcon,
-  ShoppingBagIcon 
+  ShoppingBagIcon,
+  PhotoIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface StoreProduct {
   id: string;
@@ -17,6 +19,7 @@ interface StoreProduct {
   price: number;
   stock: number;
   sku: string;
+  imageUrl: string | null;
 }
 
 interface StoreClientProps {
@@ -118,6 +121,22 @@ export function StoreClient({ initialProducts, initialCartCount }: StoreClientPr
                 animate={{ opacity: 1, y: 0 }}
                 className="rounded-2xl bg-card border border-border shadow-sm overflow-hidden"
               >
+                {/* Product Image */}
+                <div className="relative h-48 w-full bg-muted">
+                  {product.imageUrl ? (
+                    <Image
+                      src={product.imageUrl}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center">
+                      <PhotoIcon className="h-16 w-16 text-muted-foreground/50" />
+                    </div>
+                  )}
+                </div>
+
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div>

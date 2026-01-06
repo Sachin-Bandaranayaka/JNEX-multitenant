@@ -123,7 +123,8 @@ export function LeadEditForm({ lead, products, onSuccess, onCancel, isModal = fa
             // Call onSuccess callback if provided
             onSuccess?.();
 
-            // Refresh the page to show the updated data
+            // Redirect back to leads list to show updated data
+            router.push('/leads');
             router.refresh();
         } catch (err) {
             if (err instanceof z.ZodError) {

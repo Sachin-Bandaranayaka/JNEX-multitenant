@@ -23,9 +23,18 @@ export function LeadDetailsClient({ initialLead, products, user }: LeadDetailsCl
     // --- PERMISSION CHECK ---
     const canEdit = user.role === 'ADMIN' || user.permissions?.includes('EDIT_LEADS');
 
-    const handleSuccess = () => {
+    const handleSuccess = async () => {
+        // Fetch updated lead data
+        try {
+            const response = await fetch(`/api/leads/${lead.id}`);
+            if (response.ok) {
+                const updatedLead = await response.json();
+                setLead(updatedLead);
+            }
+        } catch (error) {
+            console.error('Failed to refresh lead data:', error);
+        }
         setIsEditing(false);
-        // We can optionally refresh data here if needed
     };
 
     return (

@@ -11,6 +11,7 @@ export class TransExpressProvider implements ShippingProvider {
   private apiKey!: string;
   private apiUrl!: string;
   private readonly CREATE_SHIPMENT_ENDPOINT = '/orders/upload/single-auto';
+  private readonly CREATE_SHIPMENT_WITHOUT_CITY_ENDPOINT = '/orders/upload/single-auto-without-city';
   private readonly TRACK_SHIPMENT_ENDPOINT = '/tracking';
   private readonly DISTRICTS_ENDPOINT = '/districts';
   private readonly CITIES_ENDPOINT = '/cities';
@@ -98,6 +99,21 @@ export class TransExpressProvider implements ShippingProvider {
     ];
   }
 
+  /**
+   * Generate a structured order_no for multi-tenant tracking.
+   * Format: {orderPrefix}-{orderId short} or {tenantId short}-{orderId short} or random fallback.
+   */
+  private generateOrderNo(tenantId?: string, orderId?: string, orderPrefix?: string): string {
+    if (tenantId && orderId) {
+      // Use custom prefix if provided, otherwise first 8 chars of tenantId
+      const prefix = orderPrefix || tenantId.substring(0, 8).toUpperCase();
+      const orderShort = orderId.substring(0, 8).toUpperCase();
+      return `${prefix}-${orderShort}`;
+    }
+    // Fallback to random number if no tenant/order info
+    return Math.floor(Math.random() * 100000000).toString();
+  }
+
   async createShipment(
     origin: ShippingAddress,
     destination: ShippingAddress,
@@ -105,11 +121,14 @@ export class TransExpressProvider implements ShippingProvider {
     service: string,
     cityId?: number,
     districtId?: number,
-    orderTotal?: number
+    orderTotal?: number,
+    tenantId?: string,
+    orderId?: string,
+    orderPrefix?: string
   ): Promise<ShippingLabel> {
     // Map our data to Trans Express API format
     const data: any = {
-      order_no: Math.floor(Math.random() * 100000000), // Generate a random order number
+      order_no: this.generateOrderNo(tenantId, orderId, orderPrefix),
       customer_name: destination.name,
       address: destination.street,
       description: `${packageDetails.weight}kg package - ${service}`,
@@ -135,15 +154,59 @@ export class TransExpressProvider implements ShippingProvider {
 
     const response = await this.makeRequest(this.CREATE_SHIPMENT_ENDPOINT, 'POST', data);
 
-    // Check if the API call was successful
-    if (!response.success && !response.order?.waybill_id) {
+    // Check if the API call was successful — API may return 'order' or 'orders'
+    const orderData = response.order || response.orders;
+    if (!response.success && !orderData?.waybill_id) {
       throw new Error('Failed to create shipment with Trans Express');
     }
 
-    const trackingNumber = response.order.waybill_id;
+    const trackingNumber = orderData.waybill_id;
     return {
       trackingNumber: trackingNumber,
-      labelUrl: `https://transexpress.lk/print-label/${trackingNumber}`, // Mock URL - actual URL may differ
+      labelUrl: `https://transexpress.lk/print-label/${trackingNumber}`,
+      provider: this.getName(),
+    };
+  }
+
+  /**
+   * Create a shipment using city name string instead of city_id/district_id.
+   * Uses the TransExpress 'single-auto-without-city' endpoint.
+   */
+  async createShipmentByCityName(
+    destination: ShippingAddress,
+    packageDetails: PackageDetails,
+    service: string,
+    cityName: string,
+    orderTotal?: number,
+    tenantId?: string,
+    orderId?: string,
+    orderPrefix?: string
+  ): Promise<ShippingLabel> {
+    const data = {
+      order_no: this.generateOrderNo(tenantId, orderId, orderPrefix),
+      customer_name: destination.name,
+      address: destination.street,
+      city: cityName,
+      description: `${packageDetails.weight}kg package - ${service}`,
+      phone_no: destination.phone,
+      phone_no2: destination.alternatePhone || "",
+      cod: orderTotal || 0,
+      note: `Shipped via JNEX - ${service} service`
+    };
+
+    console.log('Creating Trans Express shipment with city name:', cityName);
+    const response = await this.makeRequest(this.CREATE_SHIPMENT_WITHOUT_CITY_ENDPOINT, 'POST', data);
+
+    // Check if the API call was successful — API may return 'order' or 'orders'
+    const orderData = response.order || response.orders;
+    if (!response.success && !orderData?.waybill_id) {
+      throw new Error('Failed to create shipment with Trans Express');
+    }
+
+    const trackingNumber = orderData.waybill_id;
+    return {
+      trackingNumber: trackingNumber,
+      labelUrl: `https://transexpress.lk/print-label/${trackingNumber}`,
       provider: this.getName(),
     };
   }

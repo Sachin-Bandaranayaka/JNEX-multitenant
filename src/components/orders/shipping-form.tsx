@@ -14,7 +14,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { FardaExpressService } from '@/lib/shipping/farda-express';
 import { TransExpressProvider } from '@/lib/shipping/trans-express';
-import { getAllDistricts, getCitiesByDistrict, TransExpressCity } from '@/lib/shipping/trans-express-cities';
+
 import { RoyalExpressProvider } from '@/lib/shipping/royal-express';
 import { RoyalExpressCity, RoyalExpressState } from '@/lib/shipping/royal-express-locations';
 import { ShippingProvider } from '@prisma/client';
@@ -40,6 +40,7 @@ interface ShippingFormProps {
     fardaExpressApiKey?: string;
     transExpressApiKey?: string;
     royalExpressApiKey?: string;
+    transExpressOrderPrefix?: string;
     royalExpressOrderPrefix?: string;
     tenantId?: string;
     onSuccess?: () => void;
@@ -54,6 +55,7 @@ export function ShippingForm({
     fardaExpressApiKey,
     transExpressApiKey,
     royalExpressApiKey,
+    transExpressOrderPrefix,
     royalExpressOrderPrefix,
     tenantId,
     onSuccess,
@@ -67,15 +69,12 @@ export function ShippingForm({
     const [weight, setWeight] = useState('1'); // Default weight in kg
     const [city, setCity] = useState('');
 
-    // For Trans Express
-    const [districts, setDistricts] = useState<string[]>([]);
-    const [selectedDistrict, setSelectedDistrict] = useState<string>('Colombo');
-    const [selectedCity, setSelectedCity] = useState<number>(864);
-    const [citiesInDistrict, setCitiesInDistrict] = useState<TransExpressCity[]>([]);
-    const [isLoadingLocations, setIsLoadingLocations] = useState(false);
-    const [citySearchTerm, setCitySearchTerm] = useState('');
-    const [filteredCities, setFilteredCities] = useState<TransExpressCity[]>([]);
-    const [showCityDropdown, setShowCityDropdown] = useState(false);
+    // For Trans Express - city name input with autocomplete
+    const [transExpressCityName, setTransExpressCityName] = useState(order.customerCity || '');
+    const [allTransExpressCities, setAllTransExpressCities] = useState<{ id: number; text: string; district_name?: string }[]>([]);
+    const [filteredTransExpressCities, setFilteredTransExpressCities] = useState<{ id: number; text: string; district_name?: string }[]>([]);
+    const [showTransExpressCityDropdown, setShowTransExpressCityDropdown] = useState(false);
+    const [isLoadingTransExpressCities, setIsLoadingTransExpressCities] = useState(false);
 
     // For Royal Express
     const [states, setStates] = useState<RoyalExpressState[]>([]);
@@ -87,24 +86,56 @@ export function ShippingForm({
     const [filteredRoyalCities, setFilteredRoyalCities] = useState<RoyalExpressCity[]>([]);
     const [showRoyalCityDropdown, setShowRoyalCityDropdown] = useState(false);
 
-    // Load districts when provider changes to Trans Express
+
+
+    // Load all cities when provider changes to Trans Express
     useEffect(() => {
-        const loadDistricts = async () => {
+        const loadTransExpressCities = async () => {
             if (provider !== 'TRANS_EXPRESS') return;
 
-            setIsLoadingLocations(true);
+            setIsLoadingTransExpressCities(true);
             try {
-                const allDistricts = await getAllDistricts();
-                setDistricts(allDistricts);
-                setSelectedDistrict('Colombo');
+                const response = await fetch('/api/shipping/locations');
+                if (!response.ok) throw new Error('Failed to fetch locations');
+                const data = await response.json();
+
+                if (data.cities && data.cities.length > 0) {
+                    // Enrich cities with district names
+                    const districtMap = new Map<number, string>();
+                    if (data.districts) {
+                        data.districts.forEach((d: { id: number; text: string }) => {
+                            districtMap.set(d.id, d.text);
+                        });
+                    }
+                    const enrichedCities = data.cities.map((c: { id: number; text: string; district_id?: number }) => ({
+                        id: c.id,
+                        text: c.text,
+                        district_name: c.district_id ? districtMap.get(c.district_id) || '' : ''
+                    }));
+                    setAllTransExpressCities(enrichedCities);
+                    setFilteredTransExpressCities(enrichedCities);
+                }
             } catch (err) {
-                console.error('Failed to load districts:', err);
-                setDistricts(['Colombo', 'Gampaha', 'Kandy']);
+                console.error('Failed to load Trans Express cities:', err);
+                // Use fallback from trans-express-cities
+                const fallbackCities = [
+                    { id: 864, text: 'Colombo 01', district_name: 'Colombo' },
+                    { id: 879, text: 'Dehiwala', district_name: 'Colombo' },
+                    { id: 882, text: 'Moratuwa', district_name: 'Colombo' },
+                    { id: 884, text: 'Maharagama', district_name: 'Colombo' },
+                    { id: 885, text: 'Nugegoda', district_name: 'Colombo' },
+                    { id: 901, text: 'Kandy', district_name: 'Kandy' },
+                    { id: 920, text: 'Galle', district_name: 'Galle' },
+                    { id: 950, text: 'Negombo', district_name: 'Gampaha' },
+                    { id: 990, text: 'Kurunegala', district_name: 'Kurunegala' },
+                ];
+                setAllTransExpressCities(fallbackCities);
+                setFilteredTransExpressCities(fallbackCities);
             } finally {
-                setIsLoadingLocations(false);
+                setIsLoadingTransExpressCities(false);
             }
         };
-        loadDistricts();
+        loadTransExpressCities();
     }, [provider]);
 
     // Load all cities when provider changes to Royal Express
@@ -116,25 +147,25 @@ export function ShippingForm({
             try {
                 // Fetch from API route instead of calling the library directly
                 const response = await fetch('/api/shipping/royal-express/locations');
-                
+
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.error || 'Failed to fetch locations');
                 }
-                
+
                 const data = await response.json();
                 console.log('Royal Express locations data:', data);
                 const { states: allStates, cities } = data;
-                
+
                 if (allStates && allStates.length > 0) {
                     setStates(allStates);
                 }
-                
+
                 if (cities && cities.length > 0) {
                     console.log(`Loaded ${cities.length} cities for Royal Express`);
                     setAllRoyalCities(cities);
                     setFilteredRoyalCities(cities);
-                    
+
                     // Set default selection
                     const defaultCity = cities.find((c: RoyalExpressCity) => c.name === 'Colombo 01') || cities[0];
                     setSelectedRoyalCity(defaultCity.id);
@@ -188,39 +219,6 @@ export function ShippingForm({
         loadRoyalExpressData();
     }, [provider]);
 
-    // Update cities when district changes for Trans Express
-    useEffect(() => {
-        const updateCities = async () => {
-            if (provider !== 'TRANS_EXPRESS' || !selectedDistrict) return;
-
-            setIsLoadingLocations(true);
-            try {
-                const cities = await getCitiesByDistrict(selectedDistrict);
-                setCitiesInDistrict(cities);
-
-                if (cities.length > 0) {
-                    setSelectedCity(cities[0].id);
-                    setCitySearchTerm(cities[0].name);
-                } else {
-                    const fallbackCities = await getCitiesByDistrict('Colombo');
-                    if (fallbackCities.length > 0) {
-                        setCitiesInDistrict([{ id: fallbackCities[0].id, name: fallbackCities[0].name, district: selectedDistrict }]);
-                        setSelectedCity(fallbackCities[0].id);
-                        setCitySearchTerm(fallbackCities[0].name);
-                    }
-                }
-            } catch (err) {
-                console.error('Failed to load cities for district:', err);
-                setCitiesInDistrict([{ id: 864, name: 'Colombo 01', district: selectedDistrict }]);
-                setSelectedCity(864);
-                setCitySearchTerm('Colombo 01');
-            } finally {
-                setIsLoadingLocations(false);
-            }
-        };
-        updateCities();
-    }, [selectedDistrict, provider]);
-
     // Filter cities based on search term for Royal Express (searches all cities)
     useEffect(() => {
         if (royalCitySearchTerm.trim() === '') {
@@ -237,22 +235,24 @@ export function ShippingForm({
 
     // Filter cities based on search term for Trans Express
     useEffect(() => {
-        if (citySearchTerm.trim() === '') {
-            setFilteredCities(citiesInDistrict);
+        if (transExpressCityName.trim() === '') {
+            setFilteredTransExpressCities(allTransExpressCities);
         } else {
-            const filtered = citiesInDistrict.filter(city =>
-                city.name.toLowerCase().includes(citySearchTerm.toLowerCase())
+            const searchLower = transExpressCityName.toLowerCase();
+            const filtered = allTransExpressCities.filter(city =>
+                city.text.toLowerCase().includes(searchLower) ||
+                (city.district_name && city.district_name.toLowerCase().includes(searchLower))
             );
-            setFilteredCities(filtered);
+            setFilteredTransExpressCities(filtered);
         }
-    }, [citySearchTerm, citiesInDistrict]);
+    }, [transExpressCityName, allTransExpressCities]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
-            if (!target.closest('.city-dropdown-container')) {
-                setShowCityDropdown(false);
+            if (!target.closest('.trans-express-city-dropdown-container')) {
+                setShowTransExpressCityDropdown(false);
             }
             if (!target.closest('.royal-city-dropdown-container')) {
                 setShowRoyalCityDropdown(false);
@@ -319,20 +319,14 @@ export function ShippingForm({
                     throw new Error('Trans Express API key not provided.');
                 }
                 const transExpressService = new TransExpressProvider(transExpressApiKey);
-                const result = await transExpressService.createShipment(
-                    {
-                        name: 'JNEX Warehouse',
-                        street: '123 Warehouse St',
-                        city: 'Colombo',
-                        state: 'Western',
-                        postalCode: '10300',
-                        country: 'LK',
-                        phone: '+9477123456',
-                    },
+                const codAmount = (order.product.price * order.quantity) - (order.discount || 0);
+                const cityNameToUse = transExpressCityName || order.customerCity || 'Colombo';
+
+                const result = await transExpressService.createShipmentByCityName(
                     {
                         name: order.customerName,
                         street: order.customerAddress,
-                        city: order.customerCity || 'Colombo',
+                        city: cityNameToUse,
                         state: '',
                         postalCode: '',
                         country: 'LK',
@@ -345,9 +339,11 @@ export function ShippingForm({
                         height: 10,
                     },
                     'Standard',
-                    selectedCity,
-                    undefined,
-                    (order.product.price * order.quantity) - (order.discount || 0)
+                    cityNameToUse,
+                    codAmount,
+                    tenantId,
+                    orderId,
+                    transExpressOrderPrefix
                 );
 
                 setTrackingNumber(result.trackingNumber);
@@ -554,74 +550,64 @@ export function ShippingForm({
                             </div>
                         )}
 
-                        {/* Trans Express Specific */}
+                        {/* Trans Express Specific - City search with autocomplete */}
                         {provider === ShippingProvider.TRANS_EXPRESS && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="district" className="block text-sm font-medium text-muted-foreground mb-1.5">
-                                        District
-                                    </label>
-                                    <div className="relative">
-                                        <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <select
-                                            id="district"
-                                            value={selectedDistrict}
-                                            onChange={(e) => setSelectedDistrict(e.target.value)}
-                                            className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2 appearance-none"
-                                            required
-                                            disabled={isLoadingLocations}
-                                        >
-                                            {districts.map((district) => (
-                                                <option key={district} value={district}>{district}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="relative city-dropdown-container">
-                                    <label htmlFor="city_id" className="block text-sm font-medium text-muted-foreground mb-1.5">
-                                        City
+                            <div>
+                                <div className="relative trans-express-city-dropdown-container">
+                                    <label htmlFor="transExpressCity" className="block text-sm font-medium text-muted-foreground mb-1.5">
+                                        Recipient City
                                     </label>
                                     <div className="relative">
                                         <BuildingOfficeIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                         <input
                                             type="text"
-                                            id="city_id"
-                                            value={citySearchTerm}
+                                            id="transExpressCity"
+                                            value={transExpressCityName}
                                             onChange={(e) => {
-                                                setCitySearchTerm(e.target.value);
-                                                setShowCityDropdown(true);
+                                                setTransExpressCityName(e.target.value);
+                                                setShowTransExpressCityDropdown(true);
                                             }}
-                                            onFocus={() => setShowCityDropdown(true)}
-                                            onClick={() => setShowCityDropdown(true)}
-                                            placeholder={isLoadingLocations ? "Loading..." : "Search city..."}
+                                            onFocus={() => setShowTransExpressCityDropdown(true)}
+                                            onClick={() => setShowTransExpressCityDropdown(true)}
+                                            placeholder={isLoadingTransExpressCities ? "Loading cities..." : "Type to search city..."}
                                             className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2"
                                             required
-                                            disabled={isLoadingLocations}
+                                            disabled={isLoadingTransExpressCities}
                                             autoComplete="off"
                                         />
                                     </div>
-                                    {showCityDropdown && !isLoadingLocations && (
+                                    {showTransExpressCityDropdown && !isLoadingTransExpressCities && (
                                         <div className="absolute z-50 mt-1 w-full bg-popover rounded-lg border border-border shadow-lg max-h-60 overflow-y-auto">
-                                            {filteredCities.length > 0 ? filteredCities.map((city) => (
+                                            {filteredTransExpressCities.length > 0 ? filteredTransExpressCities.slice(0, 50).map((city) => (
                                                 <button
                                                     key={city.id}
                                                     type="button"
                                                     onClick={() => {
-                                                        setSelectedCity(city.id);
-                                                        setCitySearchTerm(city.name);
-                                                        setShowCityDropdown(false);
+                                                        setTransExpressCityName(city.text);
+                                                        setShowTransExpressCityDropdown(false);
                                                     }}
                                                     className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
                                                 >
-                                                    {city.name}
+                                                    <span>{city.text}</span>
+                                                    {city.district_name && (
+                                                        <span className="text-muted-foreground ml-2">({city.district_name})</span>
+                                                    )}
                                                 </button>
                                             )) : (
                                                 <div className="px-4 py-2 text-sm text-muted-foreground">No cities found</div>
                                             )}
+                                            {filteredTransExpressCities.length > 50 && (
+                                                <div className="px-4 py-2 text-xs text-muted-foreground border-t border-border">
+                                                    Type more to narrow down results...
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
+                                <p className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1">
+                                    <MapPinIcon className="w-3 h-3" />
+                                    District will be auto-detected from the city name
+                                </p>
                             </div>
                         )}
 

@@ -65,7 +65,8 @@ model Tenant {
   businessPhone       String?
   invoicePrefix       String?
 
-  // --- NEW: Royal Express Order Prefix ---
+  // --- NEW: Order Prefixes for Shipping Providers ---
+  transExpressOrderPrefix String? @default("JNEX")
   royalExpressOrderPrefix String? @default("JNEX")
 
   // --- NEW: Default Shipping Provider Field ---

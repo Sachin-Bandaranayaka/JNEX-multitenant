@@ -98,6 +98,7 @@ export function LeadActions({
         fardaExpressClientId?: string;
         fardaExpressApiKey?: string;
         transExpressApiKey?: string;
+        transExpressOrderPrefix?: string;
         royalExpressApiKey?: string;
         royalExpressOrderPrefix?: string;
     }
@@ -319,6 +320,7 @@ export function LeadActions({
                     fardaExpressApiKey={tenantConfig.fardaExpressApiKey}
                     transExpressApiKey={tenantConfig.transExpressApiKey}
                     royalExpressApiKey={tenantConfig.royalExpressApiKey}
+                    transExpressOrderPrefix={tenantConfig.transExpressOrderPrefix}
                     royalExpressOrderPrefix={tenantConfig.royalExpressOrderPrefix}
                     onSuccess={onAction}
                 />

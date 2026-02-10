@@ -53,6 +53,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                 fardaExpressClientId: true,
                 fardaExpressApiKey: true,
                 transExpressApiKey: true,
+                transExpressOrderPrefix: true,
                 royalExpressApiKey: true,
                 royalExpressOrderPrefix: true
             }
@@ -140,6 +141,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                                         fardaExpressApiKey={tenant.fardaExpressApiKey || undefined}
                                         transExpressApiKey={tenant.transExpressApiKey || undefined}
                                         royalExpressApiKey={tenant.royalExpressApiKey || undefined}
+                                        transExpressOrderPrefix={tenant.transExpressOrderPrefix || undefined}
                                         royalExpressOrderPrefix={tenant.royalExpressOrderPrefix || undefined}
                                         tenantId={tenant.id}
                                     />

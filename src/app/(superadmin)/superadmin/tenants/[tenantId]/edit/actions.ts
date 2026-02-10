@@ -21,15 +21,15 @@ const UpdateTenantSchema = z.object({
 
   backgroundColor: z.preprocess(
     (val) => (val === "" ? undefined : val),
-    z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, { message: "Must be a valid hex color code."}).optional()
+    z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, { message: "Must be a valid hex color code." }).optional()
   ),
   cardColor: z.preprocess(
     (val) => (val === "" ? undefined : val),
-    z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, { message: "Must be a valid hex color code."}).optional()
+    z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, { message: "Must be a valid hex color code." }).optional()
   ),
   fontColor: z.preprocess(
     (val) => (val === "" ? undefined : val),
-    z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, { message: "Must be a valid hex color code."}).optional()
+    z.string().regex(/^#([0-9a-f]{3}){1,2}$/i, { message: "Must be a valid hex color code." }).optional()
   ),
 });
 
@@ -41,7 +41,7 @@ export async function updateTenant(tenantId: string, adminUserId: string, formDa
     console.error("Validation Errors:", validatedFields.error.flatten().fieldErrors);
     throw new Error('Validation failed');
   }
-  
+
   const { name, email, ...brandingSettings } = validatedFields.data;
 
   try {
@@ -85,13 +85,13 @@ export async function updateTenant(tenantId: string, adminUserId: string, formDa
       }));
     }
 
-    if(transactionPromises.length > 0) {
+    if (transactionPromises.length > 0) {
       await prisma.$transaction(transactionPromises);
     }
 
   } catch (error) {
     if ((error as any).code === 'P2002') {
-        throw new Error('This email address is already in use.');
+      throw new Error('This email address is already in use.');
     }
     console.error(error);
     throw new Error('Database Error: Failed to update tenant.');
@@ -107,6 +107,7 @@ const ApiKeysSchema = z.object({
   fardaExpressClientId: z.string().optional(),
   fardaExpressApiKey: z.string().optional(),
   transExpressApiKey: z.string().optional(),
+  transExpressOrderPrefix: z.string().optional(),
   royalExpressApiKey: z.string().optional(),
   royalExpressOrderPrefix: z.string().optional(),
 });
@@ -119,13 +120,14 @@ export async function updateTenantApiKeys(tenantId: string, formData: FormData):
     throw new Error('Validation failed');
   }
 
-  const { 
+  const {
     defaultShippingProvider,
-    fardaExpressClientId, 
-    fardaExpressApiKey, 
-    transExpressApiKey, 
+    fardaExpressClientId,
+    fardaExpressApiKey,
+    transExpressApiKey,
+    transExpressOrderPrefix,
     royalExpressApiKey,
-    royalExpressOrderPrefix 
+    royalExpressOrderPrefix
   } = validatedFields.data;
 
   try {
@@ -135,6 +137,7 @@ export async function updateTenantApiKeys(tenantId: string, formData: FormData):
       fardaExpressClientId?: string | null;
       fardaExpressApiKey?: string | null;
       transExpressApiKey?: string | null;
+      transExpressOrderPrefix?: string | null;
       royalExpressApiKey?: string | null;
       royalExpressOrderPrefix?: string | null;
     } = {};
@@ -142,11 +145,12 @@ export async function updateTenantApiKeys(tenantId: string, formData: FormData):
     if (defaultShippingProvider) {
       updateData.defaultShippingProvider = defaultShippingProvider;
     }
-    
+
     // For API keys, we update them if provided (even empty to allow clearing)
     updateData.fardaExpressClientId = fardaExpressClientId || null;
     updateData.fardaExpressApiKey = fardaExpressApiKey || null;
     updateData.transExpressApiKey = transExpressApiKey || null;
+    updateData.transExpressOrderPrefix = transExpressOrderPrefix || null;
     updateData.royalExpressApiKey = royalExpressApiKey || null;
     updateData.royalExpressOrderPrefix = royalExpressOrderPrefix || null;
 

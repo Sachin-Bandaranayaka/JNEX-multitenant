@@ -53,6 +53,7 @@ export function LeadsClient({
     fardaExpressClientId?: string;
     fardaExpressApiKey?: string;
     transExpressApiKey?: string;
+    transExpressOrderPrefix?: string;
     royalExpressApiKey?: string;
     royalExpressOrderPrefix?: string;
   }

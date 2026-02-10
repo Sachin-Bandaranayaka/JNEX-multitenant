@@ -89,6 +89,7 @@ export default async function LeadsPage({
         fardaExpressClientId: true,
         fardaExpressApiKey: true,
         transExpressApiKey: true,
+        transExpressOrderPrefix: true,
         royalExpressApiKey: true,
         royalExpressOrderPrefix: true,
       }
@@ -106,6 +107,7 @@ export default async function LeadsPage({
         fardaExpressClientId: tenant.fardaExpressClientId || undefined,
         fardaExpressApiKey: tenant.fardaExpressApiKey || undefined,
         transExpressApiKey: tenant.transExpressApiKey || undefined,
+        transExpressOrderPrefix: tenant.transExpressOrderPrefix || undefined,
         royalExpressApiKey: tenant.royalExpressApiKey || undefined,
         royalExpressOrderPrefix: tenant.royalExpressOrderPrefix || undefined,
       } : undefined}

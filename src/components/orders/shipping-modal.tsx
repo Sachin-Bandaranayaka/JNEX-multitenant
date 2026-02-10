@@ -28,6 +28,7 @@ interface ShippingModalProps {
     fardaExpressApiKey?: string;
     transExpressApiKey?: string;
     royalExpressApiKey?: string;
+    transExpressOrderPrefix?: string;
     royalExpressOrderPrefix?: string;
     tenantId?: string;
     onSuccess?: () => void;
@@ -42,6 +43,7 @@ export function ShippingModal({
     fardaExpressApiKey,
     transExpressApiKey,
     royalExpressApiKey,
+    transExpressOrderPrefix,
     royalExpressOrderPrefix,
     tenantId,
     onSuccess,
@@ -129,6 +131,7 @@ export function ShippingModal({
                                     fardaExpressApiKey={fardaExpressApiKey}
                                     transExpressApiKey={transExpressApiKey}
                                     royalExpressApiKey={royalExpressApiKey}
+                                    transExpressOrderPrefix={transExpressOrderPrefix}
                                     royalExpressOrderPrefix={royalExpressOrderPrefix}
                                     tenantId={tenantId}
                                     onSuccess={handleSuccess}

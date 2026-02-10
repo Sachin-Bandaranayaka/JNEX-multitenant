@@ -119,7 +119,7 @@ export default async function EditTenantPage({ params }: { params: Promise<{ ten
               <div className="mt-4 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                 <div className="sm:col-span-6">
                   <label htmlFor="businessName" className="block text-sm font-medium text-gray-200">Business Name</label>
-                  <input type="text" name="businessName" id="businessName" defaultValue={tenant.businessName || ''} className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/>
+                  <input type="text" name="businessName" id="businessName" defaultValue={tenant.businessName || ''} className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500" />
                 </div>
               </div>
             </div>
@@ -186,10 +186,16 @@ export default async function EditTenantPage({ params }: { params: Promise<{ ten
             {/* Trans Express */}
             <div className="border-t border-white/10 pt-6">
               <h4 className="text-sm font-semibold text-gray-300 mb-4">Trans Express</h4>
-              <div>
-                <label htmlFor="transExpressApiKey" className="block text-sm font-medium text-gray-200">API Key</label>
-                <div className="mt-2">
-                  <PasswordInput name="transExpressApiKey" id="transExpressApiKey" defaultValue={tenant.transExpressApiKey || ''} />
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="transExpressApiKey" className="block text-sm font-medium text-gray-200">API Key</label>
+                  <div className="mt-2">
+                    <PasswordInput name="transExpressApiKey" id="transExpressApiKey" defaultValue={tenant.transExpressApiKey || ''} />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="transExpressOrderPrefix" className="block text-sm font-medium text-gray-200">Order Prefix</label>
+                  <input type="text" name="transExpressOrderPrefix" id="transExpressOrderPrefix" defaultValue={tenant.transExpressOrderPrefix || 'JNEX'} placeholder="JNEX" className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500" />
                 </div>
               </div>
             </div>
@@ -205,7 +211,7 @@ export default async function EditTenantPage({ params }: { params: Promise<{ ten
                 </div>
                 <div>
                   <label htmlFor="royalExpressOrderPrefix" className="block text-sm font-medium text-gray-200">Order Prefix</label>
-                  <input type="text" name="royalExpressOrderPrefix" id="royalExpressOrderPrefix" defaultValue={tenant.royalExpressOrderPrefix || 'JNEX'} placeholder="JNEX" className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500"/>
+                  <input type="text" name="royalExpressOrderPrefix" id="royalExpressOrderPrefix" defaultValue={tenant.royalExpressOrderPrefix || 'JNEX'} placeholder="JNEX" className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500" />
                 </div>
               </div>
             </div>

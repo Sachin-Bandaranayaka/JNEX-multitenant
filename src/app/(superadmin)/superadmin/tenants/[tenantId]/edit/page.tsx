@@ -1,5 +1,7 @@
 // src/app/(superadmin)/superadmin/tenants/[tenantId]/edit/page.tsx
 
+export const dynamic = 'force-dynamic';
+
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { updateTenant, updateTenantApiKeys } from './actions';

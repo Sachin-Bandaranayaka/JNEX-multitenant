@@ -1,5 +1,7 @@
 // src/app/(superadmin)/superadmin/store/purchases/page.tsx
 
+export const dynamic = 'force-dynamic';
+
 import { prisma } from '@/lib/prisma';
 import { PurchasesManagementClient } from './purchases-management-client';
 

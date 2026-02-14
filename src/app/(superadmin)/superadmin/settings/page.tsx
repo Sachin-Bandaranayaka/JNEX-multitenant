@@ -1,5 +1,7 @@
 // src/app/(superadmin)/superadmin/settings/page.tsx
 
+export const dynamic = 'force-dynamic';
+
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -20,6 +22,6 @@ export default async function SuperAdminSettingsPage() {
     });
 
     return (
-       <SettingsClient currentSession={session} superAdmins={superAdmins} />
+        <SettingsClient currentSession={session} superAdmins={superAdmins} />
     );
 }

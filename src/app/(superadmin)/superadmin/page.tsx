@@ -1,5 +1,7 @@
 // src/app/(superadmin)/superadmin/page.tsx
 
+export const dynamic = 'force-dynamic';
+
 import { prisma } from '@/lib/prisma';
 import { ChartCard } from './chart-card';
 import { ReferralChart } from './referral-chart'; // <-- Import the new chart

@@ -1,6 +1,8 @@
+export const dynamic = 'force-dynamic';
+
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
-import { toggleTenantStatus, deleteTenant } from '../actions'; 
+import { toggleTenantStatus, deleteTenant } from '../actions';
 
 // This is a Server Component, so it can be async and fetch data directly.
 export default async function SuperAdminUsersPage() {
@@ -82,10 +84,10 @@ export default async function SuperAdminUsersPage() {
                               </button>
                             </form>
                             <form action={deleteTenant}>
-                                <input type="hidden" name="tenantId" value={tenant.id} />
-                                <button type="submit" className="text-red-500 hover:text-red-400">
-                                    Delete
-                                </button>
+                              <input type="hidden" name="tenantId" value={tenant.id} />
+                              <button type="submit" className="text-red-500 hover:text-red-400">
+                                Delete
+                              </button>
                             </form>
                           </div>
                         )}

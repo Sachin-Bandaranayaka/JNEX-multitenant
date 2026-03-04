@@ -270,35 +270,12 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             background: #fff !important;
             color: #000 !important;
           }
-          /* This container for each page of invoices forces a page break after it */
-          .print-page-container {
-            page-break-after: always;
-            break-after: page;
-            page-break-inside: avoid;
+          /* Each row of 2 invoices — browser decides how many rows fit per page */
+          .print-row {
+            display: flex;
+            width: 100%;
             break-inside: avoid;
-            background-color: #fff !important;
-            background: #fff !important;
-            width: 100%;
-            height: 297mm;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden;
-            box-sizing: border-box;
-          }
-          .print-page-container:last-child {
-            page-break-after: auto;
-            break-after: auto;
-          }
-          /* Grid layout for 8 invoices per page (2 cols x 4 rows) */
-          .print-invoice-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: repeat(4, 1fr);
-            width: 100%;
-            height: 297mm;
-            margin: 0;
-            padding: 0;
-            gap: 0;
+            page-break-inside: avoid;
           }
           .invoice-item {
             border: 1px solid #000;
@@ -309,10 +286,8 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             color: #000 !important;
             background-color: #fff !important;
             background: #fff !important;
-            width: 100%;
-            height: 100%;
-            page-break-inside: avoid;
-            break-inside: avoid;
+            width: 50%;
+            flex: 0 0 50%;
           }
           /* Ensure text is visible */
           p, h1, h2, h3, span, div, td, th, tr, table {
@@ -329,6 +304,26 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
           [role="main"] {
             background-color: #fff !important;
             background: #fff !important;
+          }
+          /* Hide the app layout chrome (sidebar, header) during print */
+          header,
+          nav,
+          aside {
+            display: none !important;
+          }
+          /* Remove layout flex so content fills the full page width */
+          body > div,
+          #__next > div,
+          .flex.min-h-screen {
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          /* Remove main padding so invoices use full page area */
+          main {
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
           }
         }
       `}</style>
@@ -405,12 +400,16 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
         </Tabs>
       </div>
 
-      {/* --- UPDATED: Print view now uses chunking for pagination --- */}
+      {/* --- SMART: Browser-native flow pagination — no manual chunking --- */}
       <div className="print-only bg-white text-black">
-        {chunk(ordersToPrint, 8).map((pageOfOrders, pageIndex) => (
-          <div key={pageIndex} className="print-page-container">
-            <div className="print-invoice-grid">
-              {pageOfOrders.map((order, index) => (
+        {(() => {
+          const rows: OrderWithProduct[][] = [];
+          for (let i = 0; i < ordersToPrint.length; i += 2) {
+            rows.push(ordersToPrint.slice(i, i + 2));
+          }
+          return rows.map((row, rowIndex) => (
+            <div key={rowIndex} className="print-row">
+              {row.map((order, colIndex) => (
                 <div key={order.id} className="invoice-item">
                   <Invoice
                     order={order}
@@ -420,13 +419,13 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
                     invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`}
                     isMultiPrint={true}
                     showPrintControls={false}
-                    printIndex={(pageIndex * 8) + index + 1}
+                    printIndex={rowIndex * 2 + colIndex + 1}
                   />
                 </div>
               ))}
             </div>
-          </div>
-        ))}
+          ));
+        })()}
       </div>
     </>
   );

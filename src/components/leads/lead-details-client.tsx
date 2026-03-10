@@ -3,6 +3,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { User } from 'next-auth';
 import { Product } from '@prisma/client';
 import { LeadDetails, type Lead as LeadDetailsType } from './lead-details';
@@ -17,6 +18,7 @@ interface LeadDetailsClientProps {
 }
 
 export function LeadDetailsClient({ initialLead, products, user }: LeadDetailsClientProps) {
+    const router = useRouter();
     const [lead, setLead] = useState(initialLead);
     const [isEditing, setIsEditing] = useState(false);
 
@@ -35,6 +37,8 @@ export function LeadDetailsClient({ initialLead, products, user }: LeadDetailsCl
             console.error('Failed to refresh lead data:', error);
         }
         setIsEditing(false);
+        // Refresh server components to ensure everything is in sync
+        router.refresh();
     };
 
     return (

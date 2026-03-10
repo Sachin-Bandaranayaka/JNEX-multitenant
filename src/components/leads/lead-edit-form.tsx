@@ -120,12 +120,13 @@ export function LeadEditForm({ lead, products, onSuccess, onCancel, isModal = fa
                 throw new Error(data.error || 'Failed to update lead');
             }
 
-            // Call onSuccess callback if provided
-            onSuccess?.();
-
-            // Redirect back to leads list to show updated data
-            router.push('/leads');
-            router.refresh();
+            // Call onSuccess callback if provided, otherwise redirect to leads list
+            if (onSuccess) {
+                await onSuccess();
+            } else {
+                router.push('/leads');
+                router.refresh();
+            }
         } catch (err) {
             if (err instanceof z.ZodError) {
                 setError(err.errors[0].message);

@@ -13,7 +13,7 @@ import {
     ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
 import { FardaExpressService } from '@/lib/shipping/farda-express';
-import { TransExpressProvider } from '@/lib/shipping/trans-express';
+
 
 import { RoyalExpressProvider } from '@/lib/shipping/royal-express';
 import { RoyalExpressCity, RoyalExpressState } from '@/lib/shipping/royal-express-locations';
@@ -315,37 +315,32 @@ export function ShippingForm({
                 await updateShippingInfo(provider, result.trackingNumber);
 
             } else if (provider === ShippingProvider.TRANS_EXPRESS) {
-                if (!transExpressApiKey) {
-                    throw new Error('Trans Express API key not provided.');
-                }
-                const transExpressService = new TransExpressProvider(transExpressApiKey);
                 const codAmount = (order.product.price * order.quantity) - (order.discount || 0);
                 const cityNameToUse = transExpressCityName || order.customerCity || 'Colombo';
 
-                const result = await transExpressService.createShipmentByCityName(
-                    {
-                        name: order.customerName,
-                        street: order.customerAddress,
-                        city: cityNameToUse,
-                        state: '',
-                        postalCode: '',
-                        country: 'LK',
-                        phone: order.customerPhone,
-                    },
-                    {
-                        weight: parseFloat(weight),
-                        length: 10,
-                        width: 10,
-                        height: 10,
-                    },
-                    'Standard',
-                    cityNameToUse,
-                    codAmount,
-                    tenantId,
-                    orderId,
-                    transExpressOrderPrefix
-                );
+                const response = await fetch('/api/shipping/trans-express/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        orderId,
+                        customerName: order.customerName,
+                        customerAddress: order.customerAddress,
+                        customerPhone: order.customerPhone,
+                        customerSecondPhone: order.customerSecondPhone || '',
+                        cityName: cityNameToUse,
+                        weight,
+                        service: 'Standard',
+                        orderTotal: codAmount,
+                        orderPrefix: transExpressOrderPrefix,
+                    }),
+                });
 
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to create Trans Express shipment');
+                }
+
+                const result = await response.json();
                 setTrackingNumber(result.trackingNumber);
                 await updateShippingInfo(provider, result.trackingNumber);
 

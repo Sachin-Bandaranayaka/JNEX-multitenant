@@ -46,11 +46,12 @@ export async function PUT(
             );
         }
 
-        // Update lead status
+        // Update lead status (and increment callAttempts when marking as NO_ANSWER)
         const updatedLead = await prisma.lead.update({
             where: { id: resolvedParams.leadId },
             data: {
                 status: validatedData.status,
+                ...(validatedData.status === 'NO_ANSWER' ? { callAttempts: { increment: 1 } } : {}),
             },
             include: {
                 product: true,

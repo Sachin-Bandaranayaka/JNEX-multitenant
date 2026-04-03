@@ -1,0 +1,2516 @@
+{
+  "info": {
+    "_postman_id": "8226a02d-a1be-4aae-b258-47c183f02023",
+    "name": "Trans Express Main",
+    "description": "Overview\n\nThe Trans Express API simplifies your shipping operations by seamlessly integrating Trans Express services into your existing systems. Whether it's your website, order entry, or warehouse management, our API streamlines your processes for a more efficient operation.\n\n_Key Features_\n\n- _Shipment_: Create and manage shipments.\n    \n- _Tracking_: Monitor shipment status.\n    \n\n_Benefits_\n\n- Optimize and expand your business.\n    \n- Easily integrate Trans Express features into your existing system.\n    \n- Maintain your team's familiarity with the user interface.\n    \n\n_Developer-Friendly:_\n\n- Single API based on industry standards.\n    \n- Designed for fast-paced warehousing and time-sensitive e-commerce.\n    \n- Dedicated API environment for testing.\n    \n\n# Environments\n\n| [https://dev-transexpress.parallaxtec.com/api](https://dev-transexpress.parallaxtec.com/) | **Staging - for testing perpose** |\n| --- | --- |\n| [https://portal.transexpress.lk/api](https://portal.transexpress.lk/api) | Production - for live account access |\n\n**Responses:**\n\nEach API endpoint provides both success and error responses.\n\n---\n\nThis updated documentation now includes a section on responses for each API endpoint, featuring an example of both success and error responses. It provides users with a clear understanding of what to expect when interacting with your API.\n\n**Testing Shipments:**\n\nYou can also verify the functionality of the Trans Express API by adding orders via the API to our staging servers and checking the status. Follow these steps:\n\n1. **Add Orders:** Utilize the API to create sample orders and submit them to our staging servers. Make sure to use the API endpoints designed for testing purposes.\n    \n2. **Login:** Access the following link to log in to our staging servers and verify if the orders have been successfully added: [https://dev-transexpress.parallaxtec.com/](https://dev-transexpress.parallaxtec.com/) .\n    \n3. **Check Status:** Once logged in, navigate to the shipment status section. Here, you can review the status of the orders you added via the API.\n    \n\nTesting your shipments on our staging servers allows you to ensure that everything is functioning as expected before implementing the API in a live environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "36003731"
+  },
+  "item": [
+    {
+      "name": "Client Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = JSON.parse(responseBody);",
+              "pm.environment.set(\"client_token\", jsonData.token);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              ""
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "disabledSystemHeaders": {
+          "accept": true
+        }
+      },
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"email\": \"apex@gmail.com\",\r\n    \"password\": \"12345678\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{url}}/login/client",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "login",
+            "client"
+          ]
+        },
+        "description": "**Trans Express API** uses a simple login sytem based on **email and password** in order to access the client portal after successful sign-ins. It performs authentication and authorization checks to ensure that only authorized clients can access the client portal of the system.\n\n## Request Payload Objects\n\n**Login_data** : _**required : Object**_ - General Order details\n\n- **E-mail** : _**required : String**_ - email address provided by the client during registration.\n    \n\n(provide valid email address)\n\n- **Password** : _**required: String**_ - password provided by the client.\n    \n\n### **For Production Use :\n\nClient Portal ->My Profile -> Update Account -> API Key as a Bearer Token**"
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"iphonestore8@gmail.com\",\r\n    \"password\": \"12345678\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/login/client",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login",
+                "client"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 06:05:54 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "58",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "Xf85f01e6650daef902c029ef7cb990c8",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=H0j9PK8wtlZfIFjyKgJLHt523GcXjaO0wIL7RBIE; expires=Fri, 06-Oct-2023 08:05:54 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"token\": \"oGEIPQgrUrIzHZP9OZevE9YKc0M1oWx7ZZXA2QjTNwN8ShwFXrHz5hPwdvY9sansrMc0jKtuZR3QK06Y\",\n    \"status\": \"success\"\n}"
+        },
+        {
+          "name": "Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"iphonestore8@gmail.co\",\r\n    \"password\": \"12345678\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/login/client",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "login",
+                "client"
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 06:06:23 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "59",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "X581a9958b57fab93b018e97bffd6df79",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=H0j9PK8wtlZfIFjyKgJLHt523GcXjaO0wIL7RBIE; expires=Fri, 06-Oct-2023 08:06:23 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"error\": \"Invalid password or email\",\n    \"status\": \"error\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "All Provinces",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{url}}/provinces",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "provinces"
+          ]
+        },
+        "description": "displays all the provinces situated in Sri Lanka"
+      },
+      "response": []
+    },
+    {
+      "name": "All Districts",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "",
+              "value": "1",
+              "type": "text",
+              "disabled": true
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{url}}/districts?province_id=1",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "districts"
+          ],
+          "query": [
+            {
+              "key": "province_id",
+              "value": "1"
+            }
+          ]
+        },
+        "description": "Displays the districts upon each province by selecting a province"
+      },
+      "response": [
+        {
+          "name": "success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/districts?province_id=1",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "districts"
+              ],
+              "query": [
+                {
+                  "key": "province_id",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.14.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 10:27:03 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "58",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "trans_express_services_lanka_session=Zun8yttZ7a6LtKQoZQUlGaheUZGcmyK6JwxpO2iI; expires=Fri, 06-Oct-2023 10:57:03 GMT; Max-Age=1800; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "[\n    {\n        \"id\": 11,\n        \"text\": \"Kandy\"\n    },\n    {\n        \"id\": 16,\n        \"text\": \"Matale\"\n    },\n    {\n        \"id\": 20,\n        \"text\": \"NuwaraEliya\"\n    }\n]"
+        }
+      ]
+    },
+    {
+      "name": "All Cities",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{url}}/cities",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "cities"
+          ],
+          "query": [
+            {
+              "key": "district_id",
+              "value": "8",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Depicts all the citites available on each respective district."
+      },
+      "response": [
+        {
+          "name": "success",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/cities?district_id=8",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "cities"
+              ],
+              "query": [
+                {
+                  "key": "district_id",
+                  "value": "8"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.14.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 10:30:04 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "58",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "trans_express_services_lanka_session=Zun8yttZ7a6LtKQoZQUlGaheUZGcmyK6JwxpO2iI; expires=Fri, 06-Oct-2023 11:00:04 GMT; Max-Age=1800; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "[\n    {\n        \"id\": 519,\n        \"text\": \"Ambalantota\"\n    },\n    {\n        \"id\": 520,\n        \"text\": \"Angunakolapelessa\"\n    },\n    {\n        \"id\": 521,\n        \"text\": \"Bandagiriya Colony\"\n    },\n    {\n        \"id\": 522,\n        \"text\": \"Barawakumbuka\"\n    },\n    {\n        \"id\": 523,\n        \"text\": \"Beliatta\"\n    },\n    {\n        \"id\": 524,\n        \"text\": \"Beragama\"\n    },\n    {\n        \"id\": 525,\n        \"text\": \"Beralihela\"\n    },\n    {\n        \"id\": 526,\n        \"text\": \"Bowalagama\"\n    },\n    {\n        \"id\": 527,\n        \"text\": \"Bundala\"\n    },\n    {\n        \"id\": 528,\n        \"text\": \"Ellagala\"\n    },\n    {\n        \"id\": 529,\n        \"text\": \"Gangulandeniya\"\n    },\n    {\n        \"id\": 530,\n        \"text\": \"Getamanna\"\n    },\n    {\n        \"id\": 531,\n        \"text\": \"Goda Koggalla\"\n    },\n    {\n        \"id\": 532,\n        \"text\": \"Gonagamuwa Uduwila\"\n    },\n    {\n        \"id\": 533,\n        \"text\": \"Gonnoruwa\"\n    },\n    {\n        \"id\": 534,\n        \"text\": \"Hakuruwela\"\n    },\n    {\n        \"id\": 535,\n        \"text\": \"Hambantota\"\n    },\n    {\n        \"id\": 536,\n        \"text\": \"Horewelagoda\"\n    },\n    {\n        \"id\": 537,\n        \"text\": \"Hungama\"\n    },\n    {\n        \"id\": 538,\n        \"text\": \"Ihala Beligalla\"\n    },\n    {\n        \"id\": 539,\n        \"text\": \"Iththademaliya\"\n    },\n    {\n        \"id\": 540,\n        \"text\": \"Julampitiya\"\n    },\n    {\n        \"id\": 541,\n        \"text\": \"Kahandamodara\"\n    },\n    {\n        \"id\": 542,\n        \"text\": \"Kariyamaditta\"\n    },\n    {\n        \"id\": 543,\n        \"text\": \"Katuwana\"\n    },\n    {\n        \"id\": 544,\n        \"text\": \"Kirama\"\n    },\n    {\n        \"id\": 545,\n        \"text\": \"Kirinda\"\n    },\n    {\n        \"id\": 546,\n        \"text\": \"Lunama\"\n    },\n    {\n        \"id\": 547,\n        \"text\": \"Lunugamwehera\"\n    },\n    {\n        \"id\": 548,\n        \"text\": \"Magama\"\n    },\n    {\n        \"id\": 549,\n        \"text\": \"Mahagalwewa\"\n    },\n    {\n        \"id\": 550,\n        \"text\": \"Mamadala\"\n    },\n    {\n        \"id\": 551,\n        \"text\": \"Medamulana\"\n    },\n    {\n        \"id\": 552,\n        \"text\": \"Middeniya\"\n    },\n    {\n        \"id\": 553,\n        \"text\": \"Migahajandura\"\n    },\n    {\n        \"id\": 554,\n        \"text\": \"Modarawana\"\n    },\n    {\n        \"id\": 555,\n        \"text\": \"Mulkirigala\"\n    },\n    {\n        \"id\": 556,\n        \"text\": \"Nakulugamuwa\"\n    },\n    {\n        \"id\": 557,\n        \"text\": \"Netolpitiya\"\n    },\n    {\n        \"id\": 558,\n        \"text\": \"Nihiluwa\"\n    },\n    {\n        \"id\": 559,\n        \"text\": \"Padawkema\"\n    },\n    {\n        \"id\": 560,\n        \"text\": \"Pahala Andarawewa\"\n    },\n    {\n        \"id\": 561,\n        \"text\": \"Pallekanda\"\n    },\n    {\n        \"id\": 562,\n        \"text\": \"Rammalawarapitiya\"\n    },\n    {\n        \"id\": 563,\n        \"text\": \"Ranakeliya\"\n    },\n    {\n        \"id\": 564,\n        \"text\": \"Ranmuduwewa\"\n    },\n    {\n        \"id\": 565,\n        \"text\": \"Ranna\"\n    },\n    {\n        \"id\": 566,\n        \"text\": \"Ratmalwala\"\n    },\n    {\n        \"id\": 567,\n        \"text\": \"Ru/ridiyagama\"\n    },\n    {\n        \"id\": 568,\n        \"text\": \"Sooriyawewa Town\"\n    },\n    {\n        \"id\": 569,\n        \"text\": \"Tangalla\"\n    },\n    {\n        \"id\": 570,\n        \"text\": \"Tissamaharama\"\n    },\n    {\n        \"id\": 571,\n        \"text\": \"Uda Gomadiya\"\n    },\n    {\n        \"id\": 572,\n        \"text\": \"Udamattala\"\n    },\n    {\n        \"id\": 573,\n        \"text\": \"Uswewa\"\n    },\n    {\n        \"id\": 574,\n        \"text\": \"Vitharandeniya\"\n    },\n    {\n        \"id\": 575,\n        \"text\": \"Walasmulla\"\n    },\n    {\n        \"id\": 576,\n        \"text\": \"Weeraketiya\"\n    },\n    {\n        \"id\": 577,\n        \"text\": \"Weerawila Newtown\"\n    },\n    {\n        \"id\": 578,\n        \"text\": \"Weerawila\"\n    },\n    {\n        \"id\": 579,\n        \"text\": \"Wekandawela\"\n    },\n    {\n        \"id\": 580,\n        \"text\": \"Weligatta\"\n    },\n    {\n        \"id\": 581,\n        \"text\": \"Yatigala\"\n    },\n    {\n        \"id\": 2168,\n        \"text\": \"mirijjawila\"\n    },\n    {\n        \"id\": 2224,\n        \"text\": \"hambantota town\"\n    },\n    {\n        \"id\": 2226,\n        \"text\": \"Alokapura\"\n    },\n    {\n        \"id\": 2227,\n        \"text\": \"udamalala\"\n    },\n    {\n        \"id\": 2228,\n        \"text\": \"Mayurapura\"\n    },\n    {\n        \"id\": 2229,\n        \"text\": \"Siribopura\"\n    },\n    {\n        \"id\": 2304,\n        \"text\": \"A/ TOTA\"\n    },\n    {\n        \"id\": 2831,\n        \"text\": \"Ranawarunawa\"\n    },\n    {\n        \"id\": 2832,\n        \"text\": \"pannegamuwa\"\n    },\n    {\n        \"id\": 2833,\n        \"text\": \"debarawewa\"\n    },\n    {\n        \"id\": 2834,\n        \"text\": \"beraligala\"\n    },\n    {\n        \"id\": 2835,\n        \"text\": \"yodhakanndiya\"\n    },\n    {\n        \"id\": 2836,\n        \"text\": \"nedigamvila\"\n    },\n    {\n        \"id\": 2837,\n        \"text\": \"ikkapallama\"\n    },\n    {\n        \"id\": 2838,\n        \"text\": \"Uduvila (Hambantota)\"\n    },\n    {\n        \"id\": 2839,\n        \"text\": \"mahasenpura (Hambantota)\"\n    },\n    {\n        \"id\": 2840,\n        \"text\": \"julpallama\"\n    },\n    {\n        \"id\": 2841,\n        \"text\": \"ranminitenna\"\n    },\n    {\n        \"id\": 2842,\n        \"text\": \"kawantissapura\"\n    },\n    {\n        \"id\": 2844,\n        \"text\": \"situlpawwa\"\n    }\n]"
+        }
+      ]
+    },
+    {
+      "name": "Add Single Order - Manual waybill",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{client_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "service-provider",
+            "value": "larocher",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"waybill_id\": \"A0000201\",\r\n    \"order_no\": 55555555,\r\n    \"customer_name\": \"customer name 1\",\r\n    \"address\": \"address 1\",\r\n    \"description\": \"test order_description\",\r\n    \"phone_no\": \"0777777777\",\r\n    \"phone_no2\": \"0777777777\",\r\n    \"cod\": 1500,\r\n    \"city_id\": \"Kegalle\",\r\n    \"note\": \"sample note 1\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{url}}/orders/upload/single-manual",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "orders",
+            "upload",
+            "single-manual"
+          ]
+        },
+        "description": "The following request can be used to **add orders by manually** providing a **waybill ID** for the package.\n\n## Request Payload Objects\n\n**order_data** : _**required : Object**_ - Order Specific Details For A Batch Of Orders\n\n- **waybill_id** : _**required : String**_ - Waybill number of the order (min count = 8 , max = 8)\n    \n- **order_no** : _**optional : String**_ - Order number of the order\n    \n- **customer_name** : _**required : String**_ - Name of the customer to which the order should be delivered to\n    \n- **address** : _**required : String**_ - Address of the customer to which the order should be delivered to\n    \n- **description :** _**optional : String**_ - A short description about the order\n    \n\n(min=0 , max=500 characters)\n\n- **phone_no** : _**required : String**_ - Contact number of the customer to which the order should be delivered to (min =9 , max =10 digits)\n    \n- **phone_no2** : _**optional : String**_ - Another contact number of the customer to which the order should be delivered to (min =9 , max =10 digits)\n    \n- **cod** : _**required : Double**_ - Amount which should be collected on delivery of the package to said customer\n    \n- **city_id** : _**required : Integer**_ - Respective city of the package should be delivered too\n    \n- **note** : _**optional : String**_ - Mention if any particular note regarding the order package"
+      },
+      "response": [
+        {
+          "name": "Sucess",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n        \"waybill_id\" : \"42718291\",\r\n        \"order_no\" : 55555555,\r\n        \"customer_name\" : \"customer name 1\",\r\n        \"address\" : \"address 1\",\r\n        \"description\" : \"test order_description\" ,\r\n        \"phone_no\" : \"0777777777\",\r\n        \"phone_no2\" : \"0767777777\",\r\n        \"cod\" : 1500,\r\n        \"district_id\" : 5,\r\n        \"city_id\" : 864,\r\n        \"note\" : \"sample note 1\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/single-manual",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "single-manual"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 11:32:55 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "58",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "X880e4075457a45905b8da3edabd52036",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=K62Ueg09MBzgH5axb6hj6ypAkef1lAuwp6MtemrK; expires=Fri, 06-Oct-2023 13:32:55 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": \"Record successfully added\",\n    \"order\": {\n        \"waybill_id\": \"42718291\",\n        \"order_no\": 55555555,\n        \"customer_name\": \"customer name 1\",\n        \"address\": \"address 1\",\n        \"description\": \"test order_description\",\n        \"phone_no\": \"0777777777\",\n        \"phone_no2\" : \"0767777777\",\n        \"cod\": \"1500\",\n        \"district_id\": 5,\n        \"city_id\": 864,\n        \"note\": \"sample note 1\",\n        \"updated_at\": \"2023-10-06 17:02:55\",\n        \"created_at\": \"2023-10-06 17:02:55\",\n        \"id\": 1947052,\n        \"client_id\": 4205,\n        \"status_id\": 14998774\n    }\n}"
+        },
+        {
+          "name": "Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n        \"waybill_id\" : \"42718291\",\r\n        \"order_no\" : 55555555,\r\n        \"customer_name\" : \"customer name 1\",\r\n        \"address\" : \"address 1\",\r\n        \"description\" : \"test order_description\" ,\r\n        \"phone_no\" : \"0777777777\",\r\n        \"cod\" : 1500,\r\n        \"district_id\" : 5,\r\n        \"city_id\" : 864,\r\n        \"note\" : \"sample note 1\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/single-manual",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "single-manual"
+              ]
+            }
+          },
+          "status": "Unprocessable Entity (WebDAV) (RFC 4918)",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 11:33:13 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "57",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "X11004fdda57a61609f3c6881272b7262",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=K62Ueg09MBzgH5axb6hj6ypAkef1lAuwp6MtemrK; expires=Fri, 06-Oct-2023 13:33:13 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"message\": \"The given data was invalid.\",\n    \"errors\": {\n        \"waybill_id\": [\n            \"The waybill id has already been taken.\"\n        ]\n    }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add Single Order - Auto waybill",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{client_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n        \r\n        \"order_no\" : 44444444,\r\n        \"customer_name\" : \"customer name 1\",\r\n        \"address\" : \"address 1\",\r\n        \"description\" : \"test order_description\" ,\r\n        \"phone_no\" : \"0777777777\",\r\n        \"phone_no2\" : \"0677777777\",\r\n        \"cod\" : 1500,\r\n        \"city_id\" : 864,\r\n        \"note\" : \"sample note 1\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{url}}/orders/upload/single-auto",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "orders",
+            "upload",
+            "single-auto"
+          ]
+        },
+        "description": "The following request can be made to add **orders automaticaly** into our system.\n\n## Request Payload Objects\n\n**order_data** : _**required : Object**_ - Order Specific Details For A Batch Of Orders\n\n- **waybill_id** : _**required : String**_ - Waybill number of the order (min count = 8 , max = 8)\n    \n- **order_no** : _**optional : String**_ - Order number of the order\n    \n- **customer_name** : _**required : String**_ - Name of the customer to which the order should be delivered to\n    \n- **address** : _**required : String**_ - Address of the customer to which the order should be delivered to\n    \n- **description :** _**optional : String**_ - A short description about the order\n    \n\n(min=0 , max=500 characters)\n\n- **phone_no** : _**required : String**_ - Contact number of the customer to which the order should be delivered to (min =9 , max =10 digits)\n    \n- **phone_no2** : _**optional : String**_ - Another contact number of the customer to which the order should be delivered to (min =9 , max =10 digits)\n    \n- **cod** : _**required : Double**_ - Amount which should be collected on delivery of the package to said customer\n    \n- **city_id** : _**required : Integer**_ - Respective city of the package should be delivered too\n    \n- **note** : _**optional : String**_ - Mention if any particular note regarding the order package"
+      },
+      "response": []
+    },
+    {
+      "name": "Add Single Order - Auto waybill without city",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{client_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "service-provider",
+            "value": "larocher",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"order_no\": 44444444,\r\n    \"customer_name\": \"customer name 1\",\r\n    \"address\": \"address 1\",\r\n    \"description\": \"test order_description\",\r\n    \"phone_no\": \"0777777777\",\r\n    \"phone_no2\": \"0677777777\",\r\n    \"cod\": 1500,\r\n    \"note\": \"sample note 1\",\r\n    \"city\": \"Kegalle\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{url}}/orders/upload/single-auto-without-city",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "orders",
+            "upload",
+            "single-auto-without-city"
+          ]
+        },
+        "description": "The following request can be used to add orders where the waybill ID will be suggested automaticaly for an order.\n\n## Request Payload Objects\n\n**order_data** : _**required : Object**_ - Order Specific Details For A Batch Of Orders\n\n- **order_no** : _**optional : String**_ - Order number of the order\n    \n- **customer_name** : _**required : String**_ - Name of the customer to which the order should be delivered to\n    \n- **address** : _**required : String**_ - Address of the customer to which the order should be delivered to\n    \n- **description :** _**optional : String**_ - A short description about the order (min=0,max=500 characters)\n    \n- **phone_no** : _**required : String**_ - Contact number of the customer to which the order should be delivered to (min=10, max=10 digits)\n    \n- **phone_no2** : _**optional : String**_ - Another contact number of the customer to which the order should be delivered to (min=10, max=10 digits)\n    \n- **cod** : _**required : Double**_ - Amount which should be collected on delivery of the package to said customer\n    \n- **city** : **String** \\- Respective city of the package should be delivered too\n    \n- **note** : _**optional : String**_ - Mention if any particular note regarding the order package"
+      },
+      "response": [
+        {
+          "name": "success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n        \r\n        \"order_no\" : 44444444,\r\n        \"customer_name\" : \"customer name 1\",\r\n        \"address\" : \"address 1\",\r\n        \"description\" : \"test order_description\" ,\r\n        \"phone_no\" : \"0777777777\",\r\n        \"phone_no2\" : \"0677777777\",\r\n        \"cod\" : 1500,\r\n        \"district_id\" : 5,\r\n        \"city_id\" : 864,\r\n        \"note\" : \"sample note 1\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/single-auto",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "single-auto"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 09:48:33 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "59",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "X39d1409109e90bfbab791bcc7059afb0",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=QfhPIzzrb1ArUVx8LawIGE3IVchfQj2KOX76xz7e; expires=Fri, 06-Oct-2023 11:48:33 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": \"Record successfully added\",\n    \"order\": {\n        \"waybill_id\": \"AT399773\",\n        \"order_no\": 44444444,\n        \"address\": \"address 1\",\n        \"customer_name\": \"customer name 1\",\n        \"phone_no\": [\n            \"0777777777\",\n            \"0677777777\"\n        ],\n        \"description\": \"test order_description\",\n        \"district_id\": 5,\n        \"city_id\": 864,\n        \"cod\": \"1500\",\n        \"note\": \"sample note 1\",\n        \"third_party_service\": null,\n        \"updated_at\": \"2023-10-06 15:18:33\",\n        \"created_at\": \"2023-10-06 15:18:33\",\n        \"id\": 1947047,\n        \"client_id\": 4205,\n        \"status_id\": 14998769\n    }\n}"
+        },
+        {
+          "name": "error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n        \r\n        \r\n        \"customer_name\" : \"cust\",\r\n        \"address\" : \"address 1\",\r\n        \"description\" : \"test order_description\" ,\r\n        \"phone_no\" : \"0777777777\",\r\n        \"cod\" : 1500,\r\n        \"district_id\" : 5,\r\n        \"city_id\" : 864,\r\n        \"note\" : \"sample note 1\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/single-auto",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "single-auto"
+              ]
+            }
+          },
+          "status": "Unprocessable Entity (WebDAV) (RFC 4918)",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 09:57:27 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "58",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "Xfd5774d2db26c3170f9e7781ffec277f",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=QfhPIzzrb1ArUVx8LawIGE3IVchfQj2KOX76xz7e; expires=Fri, 06-Oct-2023 11:57:27 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"message\": \"The given data was invalid.\",\n    \"errors\": {\n        \"order_no\": [\n            \"The order no field is required.\"\n        ]\n    }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add Single Order - Manual waybill  without city",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{client_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "service-provider",
+            "value": "larocher",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"waybill_id\": \"A0000002\",\r\n    \"order_no\": 240083,\r\n    \"customer_name\": \"Mazeezasraf\",\r\n    \"address\": \"Mainsreet. Kalpitiya\",\r\n    \"description\": \"Frog Super Viscous Oily Glue\",\r\n    \"phone_no\": \"0772431525\",\r\n    \"phone_no2\": \"0788844040\",\r\n    \"cod\": 1350,\r\n    \"note\": \"\",\r\n    \"city\": \"Kegalle\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{url}}/orders/upload/single-manual-without-city",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "orders",
+            "upload",
+            "single-manual-without-city"
+          ]
+        },
+        "description": "The following request can be used to **add orders by manually** providing a **waybill ID** for the package.\n\n## Request Payload Objects\n\n**order_data** : _**required : Object**_ - Order Specific Details For A Batch Of Orders\n\n- **waybill_id** : _**required : String**_ - Waybill number of the order (min count = 8 , max = 8)\n    \n- **order_no** : _**optional : String**_ - Order number of the order\n    \n- **customer_name** : _**required : String**_ - Name of the customer to which the order should be delivered to\n    \n- **address** : _**required : String**_ - Address of the customer to which the order should be delivered to\n    \n- **description :** _**optional : String**_ - A short description about the order\n    \n\n(min=0 , max=500 characters)\n\n- **phone_no** : _**required : String**_ - Contact number of the customer to which the order should be delivered to (min =9 , max =10 digits)\n    \n- **phone_no2** : _**optional : String**_ - Another contact number of the customer to which the order should be delivered to (min =9 , max =10 digits)\n    \n- **cod** : _**required : Double**_ - Amount which should be collected on delivery of the package to said customer\n    \n- **city** : **String** - Respective city of the package should be delivered too\n    \n- **note** : _**optional : String**_ - Mention if any particular note regarding the order package"
+      },
+      "response": [
+        {
+          "name": "Sucess",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n        \"waybill_id\" : \"42718291\",\r\n        \"order_no\" : 55555555,\r\n        \"customer_name\" : \"customer name 1\",\r\n        \"address\" : \"address 1\",\r\n        \"description\" : \"test order_description\" ,\r\n        \"phone_no\" : \"0777777777\",\r\n        \"phone_no2\" : \"0767777777\",\r\n        \"cod\" : 1500,\r\n        \"district_id\" : 5,\r\n        \"city_id\" : 864,\r\n        \"note\" : \"sample note 1\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/single-manual",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "single-manual"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 11:32:55 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "58",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "X880e4075457a45905b8da3edabd52036",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=K62Ueg09MBzgH5axb6hj6ypAkef1lAuwp6MtemrK; expires=Fri, 06-Oct-2023 13:32:55 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": \"Record successfully added\",\n    \"order\": {\n        \"waybill_id\": \"42718291\",\n        \"order_no\": 55555555,\n        \"customer_name\": \"customer name 1\",\n        \"address\": \"address 1\",\n        \"description\": \"test order_description\",\n        \"phone_no\": \"0777777777\",\n        \"phone_no2\" : \"0767777777\",\n        \"cod\": \"1500\",\n        \"district_id\": 5,\n        \"city_id\": 864,\n        \"note\": \"sample note 1\",\n        \"updated_at\": \"2023-10-06 17:02:55\",\n        \"created_at\": \"2023-10-06 17:02:55\",\n        \"id\": 1947052,\n        \"client_id\": 4205,\n        \"status_id\": 14998774\n    }\n}"
+        },
+        {
+          "name": "Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n        \"waybill_id\" : \"42718291\",\r\n        \"order_no\" : 55555555,\r\n        \"customer_name\" : \"customer name 1\",\r\n        \"address\" : \"address 1\",\r\n        \"description\" : \"test order_description\" ,\r\n        \"phone_no\" : \"0777777777\",\r\n        \"cod\" : 1500,\r\n        \"district_id\" : 5,\r\n        \"city_id\" : 864,\r\n        \"note\" : \"sample note 1\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/single-manual",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "single-manual"
+              ]
+            }
+          },
+          "status": "Unprocessable Entity (WebDAV) (RFC 4918)",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 11:33:13 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "57",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "X11004fdda57a61609f3c6881272b7262",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=K62Ueg09MBzgH5axb6hj6ypAkef1lAuwp6MtemrK; expires=Fri, 06-Oct-2023 13:33:13 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"message\": \"The given data was invalid.\",\n    \"errors\": {\n        \"waybill_id\": [\n            \"The waybill id has already been taken.\"\n        ]\n    }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add bulk orders auto",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{client_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "service-provider",
+            "value": "larocher",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "[\r\n    {\r\n        \"order_id\" : 50060110,\r\n        \"customer_name\" : \"Customer Name 1\",\r\n        \"address\" : \"Address 1\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 1\"\r\n    },\r\n    {\r\n        \"order_id\" : 50060111,\r\n        \"customer_name\" : \"Customer Name 2\",\r\n        \"address\" : \"Address 2\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 2\"\r\n    },\r\n    {\r\n        \"order_id\" : 50060112,\r\n        \"customer_name\" : \"Customer Name 3\",\r\n        \"address\" : \"Address 3\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 3\"\r\n    }\r\n]"
+        },
+        "url": {
+          "raw": "{{url}}/orders/upload/auto",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "orders",
+            "upload",
+            "auto"
+          ]
+        },
+        "description": "The following request can be made to add **multiple orders automaticaly** into our system.\n\n## **Request Payload Objects**\n\n**order_data** : _**required : Object**_ - Order Specific Details For A Batch Of Orders\n\n- **order_id** : _**optional : String**_ - Order number of the order\n    \n- **customer_name** : _**required : String**_ - Name of the customer to which the order should be delivered to\n    \n- **address** : _**required : String**_ - Address of the customer to which the order should be delivered to\n    \n- **order_description :** _**optional : String**_ - A short description about the order\n    \n\n(min=0 , max=500 characters)\n\n- **customer_phone** : _**required : String**_ - Contact number of the customer to which the order should be delivered to (min=9 , max=10 digits)\n    \n- **customer_phone 2** : _**optional: String**_ - Other contact number of the customer to which the order should be delivered to\n    \n- **cod_amount** : _**required : Double**_ - Amount which should be collected on delivery of the package to said customer\n    \n- **city** : _**required : Integer**_ - Respective city of the package should be delivered too\n    \n- **remark** : _**optional : String**_ - Any remarks regarding the order"
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "",
+                "value": "",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\r\n    {\r\n        \"order_id\" : 88888888,\r\n        \"customer_name\" : \"Customer Name 1\",\r\n        \"address\" : \"Address 1\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 1\"\r\n    },\r\n    {\r\n        \"order_id\" : 77777777,\r\n        \"customer_name\" : \"Customer Name 2\",\r\n        \"address\" : \"Address 2\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 2\"\r\n    },\r\n    {\r\n        \"order_id\" : 66666666,\r\n        \"customer_name\" : \"Customer Name 3\",\r\n        \"address\" : \"Address 3\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 3\"\r\n    }\r\n]"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/auto",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "auto"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 11:34:35 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "59",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "Xce9ca36ea923d506f1e7d3fd10571883",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=K62Ueg09MBzgH5axb6hj6ypAkef1lAuwp6MtemrK; expires=Fri, 06-Oct-2023 13:34:35 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": \"Record successfully added\",\n    \"orders\": [\n        {\n            \"id\": 1947053,\n            \"waybill_id\": \"AT399774\",\n            \"client_id\": 4205,\n            \"order_no\": \"88888888\",\n            \"customer_name\": \"Customer Name 1\",\n            \"address\": \"Address 1\",\n            \"phone_no\": \"\",\n            \"description\": \"test order_description\",\n            \"district_id\": 5,\n            \"city_id\": 864,\n            \"suggested_city\": \"\",\n            \"branch_id\": null,\n            \"new_branch_id\": null,\n            \"cod\": 1500,\n            \"collected_cod\": null,\n            \"delivery_charge\": null,\n            \"wight\": null,\n            \"note\": \"remark 1\",\n            \"first_kg\": null,\n            \"after_kg\": null,\n            \"inv_id\": null,\n            \"deposit_id\": null,\n            \"created_at\": \"2023-10-06 17:04:35\",\n            \"updated_at\": \"2023-10-06 17:04:35\",\n            \"status_id\": 14998775,\n            \"delivery_attempts\": null,\n            \"third_party_service\": null,\n            \"current_rider_id\": null,\n            \"latest_rider_assign_id\": null,\n            \"branch_order_id\": null\n        },\n        {\n            \"id\": 1947054,\n            \"waybill_id\": \"AT399775\",\n            \"client_id\": 4205,\n            \"order_no\": \"77777777\",\n            \"customer_name\": \"Customer Name 2\",\n            \"address\": \"Address 2\",\n            \"phone_no\": \"\",\n            \"description\": \"test order_description\",\n            \"district_id\": 5,\n            \"city_id\": 864,\n            \"suggested_city\": \"\",\n            \"branch_id\": null,\n            \"new_branch_id\": null,\n            \"cod\": 1500,\n            \"collected_cod\": null,\n            \"delivery_charge\": null,\n            \"wight\": null,\n            \"note\": \"remark 2\",\n            \"first_kg\": null,\n            \"after_kg\": null,\n            \"inv_id\": null,\n            \"deposit_id\": null,\n            \"created_at\": \"2023-10-06 17:04:35\",\n            \"updated_at\": \"2023-10-06 17:04:35\",\n            \"status_id\": 14998776,\n            \"delivery_attempts\": null,\n            \"third_party_service\": null,\n            \"current_rider_id\": null,\n            \"latest_rider_assign_id\": null,\n            \"branch_order_id\": null\n        },\n        {\n            \"id\": 1947055,\n            \"waybill_id\": \"AT399776\",\n            \"client_id\": 4205,\n            \"order_no\": \"66666666\",\n            \"customer_name\": \"Customer Name 3\",\n            \"address\": \"Address 3\",\n            \"phone_no\": \"\",\n            \"description\": \"test order_description\",\n            \"district_id\": 5,\n            \"city_id\": 864,\n            \"suggested_city\": \"\",\n            \"branch_id\": null,\n            \"new_branch_id\": null,\n            \"cod\": 1500,\n            \"collected_cod\": null,\n            \"delivery_charge\": null,\n            \"wight\": null,\n            \"note\": \"remark 3\",\n            \"first_kg\": null,\n            \"after_kg\": null,\n            \"inv_id\": null,\n            \"deposit_id\": null,\n            \"created_at\": \"2023-10-06 17:04:35\",\n            \"updated_at\": \"2023-10-06 17:04:35\",\n            \"status_id\": 14998777,\n            \"delivery_attempts\": null,\n            \"third_party_service\": null,\n            \"current_rider_id\": null,\n            \"latest_rider_assign_id\": null,\n            \"branch_order_id\": null\n        }\n    ]\n}"
+        },
+        {
+          "name": "Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "",
+                "value": "",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\r\n    {\r\n        \"order_id\" : 88888888,\r\n        \"customer_name\" : \"Customer Name 1\",\r\n        \"address\" : \"Address 1\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"07777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 1\"\r\n    },\r\n    {\r\n        \"order_id\" : 77777777,\r\n        \"customer_name\" : \"Customer Name 2\",\r\n        \"address\" : \"Address 2\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 2\"\r\n    },\r\n    {\r\n        \"order_id\" : 66666666,\r\n        \"customer_name\" : \"Customer Name 3\",\r\n        \"address\" : \"Address 3\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 3\"\r\n    }\r\n]"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/auto",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "auto"
+              ]
+            }
+          },
+          "status": "Unprocessable Entity (WebDAV) (RFC 4918)",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 11:35:10 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "58",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "Xcc77e1b16f31e1500559a2ac163c2391",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=K62Ueg09MBzgH5axb6hj6ypAkef1lAuwp6MtemrK; expires=Fri, 06-Oct-2023 13:35:10 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"message\": \"The given data was invalid.\",\n    \"errors\": {\n        \"0.customer_phone\": [\n            \" Primary phone number must be at least 10 characters\"\n        ]\n    }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add bulk orders manual",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{client_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "service-provider",
+            "value": "larocher",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "[\r\n    {\r\n        \"way_bill\": \"A0000007\",\r\n        \"order_id\" : 88888888,\r\n        \"customer_name\" : \"Customer Name 1\",\r\n        \"address\" : \"Address 1\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : \"Kandy\",\r\n        \"remarks\" : \"remark 1\"\r\n    },\r\n    {\r\n        \"way_bill\": \"A0000008\",\r\n        \"order_id\" : 77777777,\r\n        \"customer_name\" : \"Customer Name 2\",\r\n        \"address\" : \"Address 2\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : \"Kendagolla\",\r\n        \"remarks\" : \"remark 2\"\r\n    },\r\n    {\r\n        \"way_bill\": \"A0000009\",\r\n        \"order_id\" : 66666666,\r\n        \"customer_name\" : \"Customer Name 3\",\r\n        \"address\" : \"Address 3\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : \"Kegalle\",\r\n        \"remarks\" : \"remark 3\"\r\n    }\r\n]",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{url}}/orders/upload/manual",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "orders",
+            "upload",
+            "manual"
+          ]
+        },
+        "description": "The following request can be made to add **multiple orders manually** into our system by including the waybill id.\n\n## **Request Payload Objects**\n\n**order_data** : _**required : Object**_ - Order Specific Details For A Batch Of Orders\n\n- **waybill_id** : _**required : String**_ - Waybill number of the order\n    \n\n(min=8 , max=8 characters)\n\n- **order_id** : _**optional : String**_ - Order number of the order\n    \n- **customer_name** : _**required : String**_ - Name of the customer to which the order should be delivered to\n    \n- **address** : _**required : String**_ - Address of the customer to which the order should be delivered to\n    \n- **order_description :** _**optional : String**_ - A short description about the order\n    \n\n(min=0 , max=500 characters)\n\n- **customer_phone** : _**required : String**_ - Contact number of the customer to which the order should be delivered to\n    \n\n(min=9 , max=10 digits)\n\n- **cod_amount** : _**required : Double**_ - Amount which should be collected on delivery of the package to said customer\n    \n- **city** : _**required : Integer**_ - Respective city of the package should be delivered too\n    \n- **remark** : _**optional : String**_ - Any remarks regarding the order"
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\r\n    {\r\n        \"way_bill\": 67201919,\r\n        \"order_id\" : 88888888,\r\n        \"customer_name\" : \"Customer Name 1\",\r\n        \"address\" : \"Address 1\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : \"Kandy\",\r\n        \"remarks\" : \"remark 1\"\r\n    },\r\n    {\r\n        \"way_bill\": 77201291,\r\n        \"order_id\" : 77777777,\r\n        \"customer_name\" : \"Customer Name 2\",\r\n        \"address\" : \"Address 2\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : \"Kendagolla\",\r\n        \"remarks\" : \"remark 2\"\r\n    },\r\n    {\r\n        \"way_bill\": 66801182,\r\n        \"order_id\" : 66666666,\r\n        \"customer_name\" : \"Customer Name 3\",\r\n        \"address\" : \"Address 3\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\" : \"Kegalle\",\r\n        \"remarks\" : \"remark 3\"\r\n    }\r\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/manual",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "manual"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 11:24:47 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "59",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "X46d4b1d5721b8a58be9cb35c6e8ce5a3",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=K62Ueg09MBzgH5axb6hj6ypAkef1lAuwp6MtemrK; expires=Fri, 06-Oct-2023 13:24:47 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": \"Record successfully added\",\n    \"orders\": [\n        {\n            \"id\": 1947049,\n            \"waybill_id\": \"67283919\",\n            \"client_id\": 4205,\n            \"order_no\": \"88888888\",\n            \"customer_name\": \"Customer Name 1\",\n            \"address\": \"Address 1\",\n            \"phone_no\": \"\",\n            \"description\": \"test order_description\",\n            \"district_id\": 5,\n            \"city_id\": 864,\n            \"suggested_city\": \"\",\n            \"branch_id\": null,\n            \"new_branch_id\": null,\n            \"cod\": 1500,\n            \"collected_cod\": null,\n            \"delivery_charge\": null,\n            \"wight\": null,\n            \"note\": \"remark 1\",\n            \"first_kg\": null,\n            \"after_kg\": null,\n            \"inv_id\": null,\n            \"deposit_id\": null,\n            \"created_at\": \"2023-10-06 16:54:46\",\n            \"updated_at\": \"2023-10-06 16:54:46\",\n            \"status_id\": 14998771,\n            \"delivery_attempts\": null,\n            \"third_party_service\": null,\n            \"current_rider_id\": null,\n            \"latest_rider_assign_id\": null,\n            \"branch_order_id\": null\n        },\n        {\n            \"id\": 1947050,\n            \"waybill_id\": \"77288291\",\n            \"client_id\": 4205,\n            \"order_no\": \"77777777\",\n            \"customer_name\": \"Customer Name 2\",\n            \"address\": \"Address 2\",\n            \"phone_no\": \"\",\n            \"description\": \"test order_description\",\n            \"district_id\": 5,\n            \"city_id\": 864,\n            \"suggested_city\": \"\",\n            \"branch_id\": null,\n            \"new_branch_id\": null,\n            \"cod\": 1500,\n            \"collected_cod\": null,\n            \"delivery_charge\": null,\n            \"wight\": null,\n            \"note\": \"remark 2\",\n            \"first_kg\": null,\n            \"after_kg\": null,\n            \"inv_id\": null,\n            \"deposit_id\": null,\n            \"created_at\": \"2023-10-06 16:54:46\",\n            \"updated_at\": \"2023-10-06 16:54:46\",\n            \"status_id\": 14998772,\n            \"delivery_attempts\": null,\n            \"third_party_service\": null,\n            \"current_rider_id\": null,\n            \"latest_rider_assign_id\": null,\n            \"branch_order_id\": null\n        },\n        {\n            \"id\": 1947051,\n            \"waybill_id\": \"66829182\",\n            \"client_id\": 4205,\n            \"order_no\": \"66666666\",\n            \"customer_name\": \"Customer Name 3\",\n            \"address\": \"Address 3\",\n            \"phone_no\": \"\",\n            \"description\": \"test order_description\",\n            \"district_id\": 5,\n            \"city_id\": 864,\n            \"suggested_city\": \"\",\n            \"branch_id\": null,\n            \"new_branch_id\": null,\n            \"cod\": 1500,\n            \"collected_cod\": null,\n            \"delivery_charge\": null,\n            \"wight\": null,\n            \"note\": \"remark 3\",\n            \"first_kg\": null,\n            \"after_kg\": null,\n            \"inv_id\": null,\n            \"deposit_id\": null,\n            \"created_at\": \"2023-10-06 16:54:46\",\n            \"updated_at\": \"2023-10-06 16:54:46\",\n            \"status_id\": 14998773,\n            \"delivery_attempts\": null,\n            \"third_party_service\": null,\n            \"current_rider_id\": null,\n            \"latest_rider_assign_id\": null,\n            \"branch_order_id\": null\n        }\n    ]\n}"
+        },
+        {
+          "name": "Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\r\n    {\r\n        \"way_bill\": 67283919,\r\n        \"order_id\": 88888888,\r\n        \"customer_name\": \"Customer Name 1\",\r\n        \"address\": \"Address 1\",\r\n        \"order_description\": \"test order_description\",\r\n        \"customer_phone\": \"0777777777\",\r\n        \"customer_phone2\": \"0777777777\",\r\n        \"cod_amount\": 1500,\r\n        \"city\": \"Kandy\",\r\n        \"remarks\": \"remark 1\"\r\n    },\r\n    {\r\n        \"way_bill\": 77288291,\r\n        \"order_id\": 77777777,\r\n        \"customer_name\": \"Customer Name 2\",\r\n        \"address\": \"Address 2\",\r\n        \"order_description\": \"test order_description\",\r\n        \"customer_phone\": \"0777777777\",\r\n        \"customer_phone2\": \"0777777777\",\r\n        \"cod_amount\": 1500,\r\n        \"city\": \"Kandy\",\r\n        \"remarks\": \"remark 2\"\r\n    },\r\n    {\r\n        \"way_bill\": 66829182,\r\n        \"order_id\": 66666666,\r\n        \"customer_name\": \"Customer Name 3\",\r\n        \"address\": \"Address 3\",\r\n        \"order_description\": \"test order_description\",\r\n        \"customer_phone\": \"0777777777\",\r\n        \"customer_phone2\": \"0777777777\",\r\n        \"cod_amount\": 1500,\r\n        \"city\": \"Kandy\",\r\n        \"remarks\": \"remark 3\"\r\n    }\r\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/manual",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "manual"
+              ]
+            }
+          },
+          "status": "Unprocessable Entity (WebDAV) (RFC 4918)",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 11:31:28 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "59",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "Xcdfd490bf22b11d2943dbf9a87448be2",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=K62Ueg09MBzgH5axb6hj6ypAkef1lAuwp6MtemrK; expires=Fri, 06-Oct-2023 13:31:28 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"message\": \"The given data was invalid.\",\n    \"errors\": {\n        \"0.way_bill\": [\n            \"way bill already exists\"\n        ],\n        \"1.way_bill\": [\n            \"way bill already exists\"\n        ],\n        \"2.way_bill\": [\n            \"way bill already exists\"\n        ]\n    }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add bulk orders auto  without city",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{client_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "service-provider",
+            "value": "larocher",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "[\r\n    {\r\n        \"order_id\": 240083,\r\n        \"customer_name\": \"Mazeezasraf \",\r\n        \"address\": \"Mainsreet. Kalpitiya\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 772431525,\r\n        \"customer_phone2\": 788844040,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Puttalam Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240416,\r\n        \"customer_name\": \"S abdul asis \",\r\n        \"address\": \"53/3/a dehianga muruthalawq\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 763236018,\r\n        \"customer_phone2\": 763236018,\r\n        \"cod_amount\": 1300.0,\r\n        \"city\": \"Kandy City\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240423,\r\n        \"customer_name\": \"S T Pallewatta \",\r\n        \"address\": \"no 98 Amunugama gunnapana\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 715347372,\r\n        \"customer_phone2\": 715347372,\r\n        \"cod_amount\": 1300.0,\r\n        \"city\": \"Kandy Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240480,\r\n        \"customer_name\": \"sandika.suranjan \",\r\n        \"address\": \"ViLlyagma.Lhiruyagama,DANKOTUWA ,PUTHTHALAMA\",\r\n        \"order_description\": \"Hearing Amplifier Ear Whisperer\",\r\n        \"customer_phone\": 777483411,\r\n        \"customer_phone2\": 777693411,\r\n        \"cod_amount\": 2000.0,\r\n        \"city\": \"Puttalam Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240545,\r\n        \"customer_name\": \"Tharaka \",\r\n        \"address\": \"No 30 Papliyana rode nadimala\",\r\n        \"order_description\": \"REFRIGERATOR  LOCK\",\r\n        \"customer_phone\": 758010072,\r\n        \"customer_phone2\": 758010072,\r\n        \"cod_amount\": 1800.0,\r\n        \"city\": \"Nedimala\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240566,\r\n        \"customer_name\": \"shihan \",\r\n        \"address\": \"146/62A, Aramya Road, Dematagoda, Colombo 9\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 777113955,\r\n        \"customer_phone2\": 757113919,\r\n        \"cod_amount\": 1450.0,\r\n        \"city\": \"Colombo 8 - Borella\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240583,\r\n        \"customer_name\": \"m.g indika \",\r\n        \"address\": \"gammaddegoda ,Rathgama\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 776090224,\r\n        \"customer_phone2\": 776090224,\r\n        \"cod_amount\": 1450.0,\r\n        \"city\": \"Galle Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240589,\r\n        \"customer_name\": \"Asma sappideen \",\r\n        \"address\": \"9 new ferry lane colombo 2\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 778537096,\r\n        \"customer_phone2\": 778537096,\r\n        \"cod_amount\": 1450.0,\r\n        \"city\": \"Colombo 02 - Slave Island & Union Place\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240601,\r\n        \"customer_name\": \"Rinos \",\r\n        \"address\": \"248B Vappayadi Road. Sainthamaruthu 13\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 757572372,\r\n        \"customer_phone2\": 757572372,\r\n        \"cod_amount\": 1450.0,\r\n        \"city\": \"Ampara Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240624,\r\n        \"customer_name\": \"Dulanga Madara \",\r\n        \"address\": \"3 Alfredo place Colombo\",\r\n        \"order_description\": \"Airpods Pro ( AAA Grade )\",\r\n        \"customer_phone\": 776779200,\r\n        \"customer_phone2\": 771295155,\r\n        \"cod_amount\": 2350.0,\r\n        \"city\": \"Colombo 3 - Kollupitiya\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240711,\r\n        \"customer_name\": \"Nandana Bible \",\r\n        \"address\": \"06, Jayawardana Mawatha, Sea Beach Road, Angola, Moratuwa\",\r\n        \"order_description\": \"24V Mini Chainsaw\",\r\n        \"customer_phone\": 755950930,\r\n        \"customer_phone2\": 782343300,\r\n        \"cod_amount\": 6000.0,\r\n        \"city\": \"Rathmalana\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240714,\r\n        \"customer_name\": \"kahada kanththga palitha edwrd samarasingha \",\r\n        \"address\": \"no9 seeppukulamaroad galenbidunuwewa\",\r\n        \"order_description\": \"24V Mini Chainsaw\",\r\n        \"customer_phone\": 712810993,\r\n        \"customer_phone2\": 713961196,\r\n        \"cod_amount\": 6000.0,\r\n        \"city\": \"Anuradhapura Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240716,\r\n        \"customer_name\": \"Pubudu Roshan \",\r\n        \"address\": \"No 28, Acers 25, Pelwadiya, Ratnapura\",\r\n        \"order_description\": \"24V Mini Chainsaw\",\r\n        \"customer_phone\": 716537410,\r\n        \"customer_phone2\": 772398160,\r\n        \"cod_amount\": 6000.0,\r\n        \"city\": \"Rathnapura Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240721,\r\n        \"customer_name\": \"k m Nilantha \",\r\n        \"address\": \"Andara wewa ,ANAMADU ,PUTHTHALAMA\",\r\n        \"order_description\": \"24V Mini Chainsaw\",\r\n        \"customer_phone\": 772191982,\r\n        \"customer_phone2\": 772191982,\r\n        \"cod_amount\": 6000.0,\r\n        \"city\": \"Puttalam Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240722,\r\n        \"customer_name\": \"Chandula Dayan \",\r\n        \"address\": \"No 257 Hewana Walipanna Gahamulla\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 771512025,\r\n        \"customer_phone2\": 773653367,\r\n        \"cod_amount\": 2300.0,\r\n        \"city\": \"Kuliyapitiya\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240745,\r\n        \"customer_name\": \"S Senanayake \",\r\n        \"address\": \"39C Maithri Mawatha 1st Lane Watapuluwa Kandy\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 756326576,\r\n        \"customer_phone2\": 772981412,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Kandy City\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240750,\r\n        \"customer_name\": \"rammiyakaran theerthika \",\r\n        \"address\": \"54,kugam road ,ariyalai,jaffna.\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 761553127,\r\n        \"customer_phone2\": 761553127,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Jaffna Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240762,\r\n        \"customer_name\": \"s namasinghe \",\r\n        \"address\": \"184d3 panwiladuwa watta bogahawella rd karapitiya\",\r\n        \"order_description\": \"Kids Microscope\",\r\n        \"customer_phone\": 716360133,\r\n        \"customer_phone2\": 718360133,\r\n        \"cod_amount\": 4000.0,\r\n        \"city\": \"Galle Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240767,\r\n        \"customer_name\": \"Kelum \",\r\n        \"address\": \"Kotadeniyava bogamulla\\n\",\r\n        \"order_description\": \"Shiva Trishul BANGLE\",\r\n        \"customer_phone\": 784342380,\r\n        \"customer_phone2\": 784342380,\r\n        \"cod_amount\": 1400.0,\r\n        \"city\": \"Bogahamulla\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240895,\r\n        \"customer_name\": \"Nalini Siriwardana \",\r\n        \"address\": \"No.4A, Rampart rd, Athulkotte\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 779000442,\r\n        \"customer_phone2\": 772968651,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Kotte\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240924,\r\n        \"customer_name\": \"m a s m natheer \",\r\n        \"address\": \"NO 1 poles rd puttalam\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 772229616,\r\n        \"customer_phone2\": 721333000,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Puttalam Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240951,\r\n        \"customer_name\": \"Iresha sumuduni jayasekara\\t\\t \",\r\n        \"address\": \"haguranketha orginal apearal\\t\",\r\n        \"order_description\": \"Wart & skin tag remover\",\r\n        \"customer_phone\": 741380319,\r\n        \"customer_phone2\": 726959378,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Haguranketha\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240962,\r\n        \"customer_name\": \"Sewwandi subhashini\\t\\t \",\r\n        \"address\": \"Hospital quarts base hospital medawachchiya\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 705211608,\r\n        \"customer_phone2\": 702523708,\r\n        \"cod_amount\": 2250.0,\r\n        \"city\": \"Anuradhapura Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240981,\r\n        \"customer_name\": \"T.Gnanam \",\r\n        \"address\": \"Thunnalai west karaveddy\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 773568529,\r\n        \"customer_phone2\": 710537381,\r\n        \"cod_amount\": 2250.0,\r\n        \"city\": \"Jaffna Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240986,\r\n        \"customer_name\": \"shanaka \",\r\n        \"address\": \"gammadda kolombugama nivithigala ratnapura\",\r\n        \"order_description\": \"Manual Steel Nail Gun\",\r\n        \"customer_phone\": 712969008,\r\n        \"customer_phone2\": 703691417,\r\n        \"cod_amount\": 3950.0,\r\n        \"city\": \"Nivithigala\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 240993,\r\n        \"customer_name\": \"Thilgarajah \",\r\n        \"address\": \"no11 6/3St lowerance Road Wellawatte\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 773432148,\r\n        \"customer_phone2\": 769621784,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Colombo 6 - Wellawatta\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241004,\r\n        \"customer_name\": \"J.a.s.k.d.jayakody \",\r\n        \"address\": \"Ingaradaula.narangoda\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 787377981,\r\n        \"customer_phone2\": 761640978,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Pannala\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241005,\r\n        \"customer_name\": \"gihan sureka \",\r\n        \"address\": \"malwaththakanda.ekiriyagala.kegall\",\r\n        \"order_description\": \"Hair Dye Sticks\",\r\n        \"customer_phone\": 743180710,\r\n        \"customer_phone2\": 743180710,\r\n        \"cod_amount\": 1950.0,\r\n        \"city\": \"Kegalle Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241012,\r\n        \"customer_name\": \"S. N Gunasekara \",\r\n        \"address\": \"No 441 /21 Sooriya Terrace Sooriyagoda Muruthalawa\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 777959128,\r\n        \"customer_phone2\": 718242100,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Sooriyawewa\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241017,\r\n        \"customer_name\": \"amila. hemantha \",\r\n        \"address\": \"3/1 thalathuoya. kandy\",\r\n        \"order_description\": \"Bikecycle Wheel Light\",\r\n        \"customer_phone\": 719057046,\r\n        \"customer_phone2\": 719057046,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Kandy Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241041,\r\n        \"customer_name\": \"Mr.Roobal\\t\\t \",\r\n        \"address\": \"No1 dainos kitchen akurana\",\r\n        \"order_description\": \"Wart & skin tag remover spray\",\r\n        \"customer_phone\": 777364368,\r\n        \"customer_phone2\": 777364368,\r\n        \"cod_amount\": 2350.0,\r\n        \"city\": \"Kandy City\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241058,\r\n        \"customer_name\": \"thushara abeysinghe \",\r\n        \"address\": \"nawayalathana kathugasthota\",\r\n        \"order_description\": \"Slim Lift Baniyan\",\r\n        \"customer_phone\": 717260385,\r\n        \"customer_phone2\": 757260386,\r\n        \"cod_amount\": 2150.0,\r\n        \"city\": \"Kandy Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241077,\r\n        \"customer_name\": \"Sasindu Samalka \",\r\n        \"address\": \"Watwandana para lolugswawa\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 763419652,\r\n        \"customer_phone2\": 763419652,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Anuradhapura Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241079,\r\n        \"customer_name\": \"Anura Gunasinghe \",\r\n        \"address\": \"No 540/19, Diyawanna addara, Madiwela road, Thalawatugoda\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 773558298,\r\n        \"customer_phone2\": 777229196,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Thalawathugoda\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241104,\r\n        \"customer_name\": \"Lakshitha sankalpa \",\r\n        \"address\": \"Yaddehimulla road,unawatuna\",\r\n        \"order_description\": \"Airpods Pro ( AAA Grade )\",\r\n        \"customer_phone\": 766042164,\r\n        \"customer_phone2\": 766042164,\r\n        \"cod_amount\": 2350.0,\r\n        \"city\": \"Galle Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241143,\r\n        \"customer_name\": \"parumal RHA ha raj \",\r\n        \"address\": \"166.navapadaniya. viharahandiya dabulla\",\r\n        \"order_description\": \"Shiva Trishul BANGLE\",\r\n        \"customer_phone\": 743831739,\r\n        \"customer_phone2\": 743831739,\r\n        \"cod_amount\": 1300.0,\r\n        \"city\": \"Dambulla\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241173,\r\n        \"customer_name\": \"T.G.Gunathilaka \",\r\n        \"address\": \"Udumulla,pannala,abagasdowa\",\r\n        \"order_description\": \"Black Hair Shampoo\",\r\n        \"customer_phone\": 714728600,\r\n        \"customer_phone2\": 714728600,\r\n        \"cod_amount\": 2390.0,\r\n        \"city\": \"Welimada\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241177,\r\n        \"customer_name\": \"e. m. Sujeewa saman kumari \",\r\n        \"address\": \"Paranagama gorilla.\",\r\n        \"order_description\": \"Shiva Trishul BANGLE\",\r\n        \"customer_phone\": 763880951,\r\n        \"customer_phone2\": 763880951,\r\n        \"cod_amount\": 1300.0,\r\n        \"city\": \"Badulla Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241186,\r\n        \"customer_name\": \"nisansala swarnamali \",\r\n        \"address\": \"mpcs arachchikattuwa ,arachchikattuwa rural bank\",\r\n        \"order_description\": \"Foam Cleaner\",\r\n        \"customer_phone\": 778889769,\r\n        \"customer_phone2\": 324934713,\r\n        \"cod_amount\": 1750.0,\r\n        \"city\": \"Arachankulam\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241207,\r\n        \"customer_name\": \"kirushanth \",\r\n        \"address\": \"murippu mulliyawalai\",\r\n        \"order_description\": \"Shiva Trishul BANGLE\",\r\n        \"customer_phone\": 742970244,\r\n        \"customer_phone2\": 742970244,\r\n        \"cod_amount\": 1300.0,\r\n        \"city\": \"Mulativu\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241214,\r\n        \"customer_name\": \"dasman \",\r\n        \"address\": \"mr bbq manthandawela matale\",\r\n        \"order_description\": \"Reading Glass\",\r\n        \"customer_phone\": 771113440,\r\n        \"customer_phone2\": 771113440,\r\n        \"cod_amount\": 1650.0,\r\n        \"city\": \"Matale Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241239,\r\n        \"customer_name\": \"api \",\r\n        \"address\": \"kanukkeny\",\r\n        \"order_description\": \"Reading Glass\",\r\n        \"customer_phone\": 768075342,\r\n        \"customer_phone2\": 768075342,\r\n        \"cod_amount\": 1650.0,\r\n        \"city\": \"Mulativu\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241254,\r\n        \"customer_name\": \"M.Siva \",\r\n        \"address\": \"651Aluth mawatha modaea\",\r\n        \"order_description\": \"Reading Glass\",\r\n        \"customer_phone\": 719708030,\r\n        \"customer_phone2\": 778254258,\r\n        \"cod_amount\": 1650.0,\r\n        \"city\": \"Modara\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241258,\r\n        \"customer_name\": \"washantha \",\r\n        \"address\": \"maduragoda\",\r\n        \"order_description\": \"Reading Glass\",\r\n        \"customer_phone\": 767880911,\r\n        \"customer_phone2\": 716064491,\r\n        \"cod_amount\": 1650.0,\r\n        \"city\": \"Kurunegala Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241260,\r\n        \"customer_name\": \"N. P. Premadasa \",\r\n        \"address\": \"Dutch Lanka Engineering Pvt. Ltd., No. 17D1, LINDEL Industrial Estate, Pattiwila Road, Sapugaskand.\",\r\n        \"order_description\": \"Reading Glass\",\r\n        \"customer_phone\": 772357868,\r\n        \"customer_phone2\": 777005536,\r\n        \"cod_amount\": 1650.0,\r\n        \"city\": \"Sapugaskande\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241266,\r\n        \"customer_name\": \"H.A gamini kalila kumara \",\r\n        \"address\": \"D/164 ginihappitiya. hemmathagama\",\r\n        \"order_description\": \"Reading Glass\",\r\n        \"customer_phone\": 713011429,\r\n        \"customer_phone2\": 713011429,\r\n        \"cod_amount\": 1650.0,\r\n        \"city\": \"Hemmatagama\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241297,\r\n        \"customer_name\": \"kelum \",\r\n        \"address\": \"kotadeniyava bogamulla\",\r\n        \"order_description\": \"Shiva Trishul BANGLE\",\r\n        \"customer_phone\": 715168130,\r\n        \"customer_phone2\": 784342380,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Bogahamulla\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241305,\r\n        \"customer_name\": \"KPS PRASANNA \",\r\n        \"address\": \"KPS PRASANNA,WANNAMMADUWA,THIRAPPANE\",\r\n        \"order_description\": \"Black Hair Shampoo\",\r\n        \"customer_phone\": 705398230,\r\n        \"customer_phone2\": 705398230,\r\n        \"cod_amount\": 2390.0,\r\n        \"city\": \"Anuradhapura Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241323,\r\n        \"customer_name\": \"harisudhan \",\r\n        \"address\": \"b.7Nawagampura 1 ,colombo14\",\r\n        \"order_description\": \"Posture Corrector\",\r\n        \"customer_phone\": 770833031,\r\n        \"customer_phone2\": 770833031,\r\n        \"cod_amount\": 1650.0,\r\n        \"city\": \"Colombo 14 - Grandpass\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241341,\r\n        \"customer_name\": \"Mr.Sisira\\t\\t \",\r\n        \"address\": \"Mihindu village,Moraketiya Junction,Sevanagala\",\r\n        \"order_description\": \"Varicose Veins Spray\",\r\n        \"customer_phone\": 710715474,\r\n        \"customer_phone2\": 710715474,\r\n        \"cod_amount\": 2299.0,\r\n        \"city\": \"Sevanagala\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241421,\r\n        \"customer_name\": \"kosala \",\r\n        \"address\": \"manel waththa, Ranawana, thorayaya\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 777345728,\r\n        \"customer_phone2\": 771231141,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Kurunegala Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241425,\r\n        \"customer_name\": \"vasantha perera \",\r\n        \"address\": \"Brookside estate, ragala, halagranoya\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 713829206,\r\n        \"customer_phone2\": 770461422,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Nuwara Eliya Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241426,\r\n        \"customer_name\": \"Nayana Damaynthi \",\r\n        \"address\": \"No 28, Ipalawa, Gokarella\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 718056072,\r\n        \"customer_phone2\": 372259803,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Kurunegala Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241427,\r\n        \"customer_name\": \"B.B.T.Ruwan Kumara \",\r\n        \"address\": \"Grama Niladgari Office ,Arawa ,Badulla\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 779858945,\r\n        \"customer_phone2\": 719750597,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Badulla Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241432,\r\n        \"customer_name\": \"shyamali \",\r\n        \"address\": \"77/02/Z/1,amunugoda,imbulgoda\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 766080168,\r\n        \"customer_phone2\": 702250097,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Gampaha Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241433,\r\n        \"customer_name\": \"shanthi Nanayakkara \",\r\n        \"address\": \"Beliwaththa kottagoda\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 718194718,\r\n        \"customer_phone2\": 718194718,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Matara Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241454,\r\n        \"customer_name\": \"silmeen \",\r\n        \"address\": \"kalpit kanda kuliya\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 767296658,\r\n        \"customer_phone2\": 751596658,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Puttalam Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241456,\r\n        \"customer_name\": \"I P D G B Kumara \",\r\n        \"address\": \"NO 397/1 Udahipanpola thuthiripitigama\",\r\n        \"order_description\": \"Hearing Amplifier Ear Whisperer\",\r\n        \"customer_phone\": 713817639,\r\n        \"customer_phone2\": 770741805,\r\n        \"cod_amount\": 2000.0,\r\n        \"city\": \"Hettipola\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241458,\r\n        \"customer_name\": \"indika \",\r\n        \"address\": \"thalpediwala meghthnna\",\r\n        \"order_description\": \"Hearing Amplifier Ear Whisperer\",\r\n        \"customer_phone\": 773106833,\r\n        \"customer_phone2\": 773106833,\r\n        \"cod_amount\": 2000.0,\r\n        \"city\": \"Mathugama\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241459,\r\n        \"customer_name\": \"champika matharaarachchi \",\r\n        \"address\": \"kadjuwatta road. kalapugama. moronthuduwa\",\r\n        \"order_description\": \"Hearing Amplifier Ear Whisperer\",\r\n        \"customer_phone\": 775966300,\r\n        \"customer_phone2\": 766302904,\r\n        \"cod_amount\": 2000.0,\r\n        \"city\": \"Kalutara Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241462,\r\n        \"customer_name\": \"Kumara \",\r\n        \"address\": \"KALPITIYA TOWN , PUTTALAM\",\r\n        \"order_description\": \"Hearing Amplifier Ear Whisperer\",\r\n        \"customer_phone\": 769735165,\r\n        \"customer_phone2\": 763714747,\r\n        \"cod_amount\": 2000.0,\r\n        \"city\": \"Puttalam Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241477,\r\n        \"customer_name\": \"nasli \",\r\n        \"address\": \"asanakotuwa kuratiheana,hettipola kurunagala\",\r\n        \"order_description\": \"REFRIGERATOR  LOCK\",\r\n        \"customer_phone\": 769153307,\r\n        \"customer_phone2\": 765358562,\r\n        \"cod_amount\": 2250.0,\r\n        \"city\": \"Hettipola\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241488,\r\n        \"customer_name\": \"Chulani Jayathilaka \",\r\n        \"address\": \"63/B Lankathilaka street Handessa\",\r\n        \"order_description\": \"24V Mini Chainsaw\",\r\n        \"customer_phone\": 779344436,\r\n        \"customer_phone2\": 779344436,\r\n        \"cod_amount\": 6000.0,\r\n        \"city\": \"Pilimthalawa\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241509,\r\n        \"customer_name\": \"w v ahsnka \",\r\n        \"address\": \"koswatta town \",\r\n        \"order_description\": \"Lighter Watch\",\r\n        \"customer_phone\": 742088123,\r\n        \"customer_phone2\": 713240147,\r\n        \"cod_amount\": 2350.0,\r\n        \"city\": \"Koswatta\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241573,\r\n        \"customer_name\": \"isuru \",\r\n        \"address\": \"212 badulla rd haliela\",\r\n        \"order_description\": \"Inflatable Dinosaur Costume\",\r\n        \"customer_phone\": 774218026,\r\n        \"customer_phone2\": 724587128,\r\n        \"cod_amount\": 6350.0,\r\n        \"city\": \"Hali Ela\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241597,\r\n        \"customer_name\": \"saman \",\r\n        \"address\": \"saman motors nugathalawa\",\r\n        \"order_description\": \"Telescopic Sink Rack\",\r\n        \"customer_phone\": 773893723,\r\n        \"customer_phone2\": 774522023,\r\n        \"cod_amount\": 1600.0,\r\n        \"city\": \"Welimada\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241599,\r\n        \"customer_name\": \"nalaka \",\r\n        \"address\": \"Dahanakgedara, Moonamaldeniya\\n\",\r\n        \"order_description\": \"Reading Glass\",\r\n        \"customer_phone\": 775406191,\r\n        \"customer_phone2\": 775406191,\r\n        \"cod_amount\": 1650.0,\r\n        \"city\": \"Hettipola\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241601,\r\n        \"customer_name\": \"chamindasisira \",\r\n        \"address\": \"uraliya panirendawa\",\r\n        \"order_description\": \"Reading Glass\",\r\n        \"customer_phone\": 768579131,\r\n        \"customer_phone2\": 775475941,\r\n        \"cod_amount\": 1650.0,\r\n        \"city\": \"Madampe\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241626,\r\n        \"customer_name\": \"vinoth \",\r\n        \"address\": \"homadola no 2 udugama\",\r\n        \"order_description\": \"Cross Necklace\",\r\n        \"customer_phone\": 774956571,\r\n        \"customer_phone2\": 701502632,\r\n        \"cod_amount\": 1950.0,\r\n        \"city\": \"Galle Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241670,\r\n        \"customer_name\": \"suranga\\t\\t \",\r\n        \"address\": \"no 213/2balummahara,mudungoda\",\r\n        \"order_description\": \"Varicose Veins Spray\",\r\n        \"customer_phone\": 713414272,\r\n        \"customer_phone2\": 774662634,\r\n        \"cod_amount\": 2299.0,\r\n        \"city\": \"Gampaha Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241677,\r\n        \"customer_name\": \"j indika ruvan kumara \",\r\n        \"address\": \"samupakaraya asala badagiriya valigaththa\",\r\n        \"order_description\": \"Bikecycle Wheel Light\",\r\n        \"customer_phone\": 768086065,\r\n        \"customer_phone2\": 762581156,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Kurunegala Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241767,\r\n        \"customer_name\": \"Jayantha Rajapaksha\\t \",\r\n        \"address\": \"2/7,3rd Lane kaludawala matale.\\tMatale\\t\",\r\n        \"order_description\": \"Arthritis Oil\",\r\n        \"customer_phone\": 772945718,\r\n        \"customer_phone2\": 772945718,\r\n        \"cod_amount\": 2090.0,\r\n        \"city\": \"Matale Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241794,\r\n        \"customer_name\": \"Gina Dharmasena\\t \",\r\n        \"address\": \"No 2,Eden Gardens, Samagi Mawatha, Hokandara.\\t\\tThalawathugoda\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 777350588,\r\n        \"customer_phone2\": 777350588,\r\n        \"cod_amount\": 2290.0,\r\n        \"city\": \"Thalawathugoda\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241825,\r\n        \"customer_name\": \"wasantha sadamali \",\r\n        \"address\": \"464 dunakadeniya south welipennagahamulla\",\r\n        \"order_description\": \"Lice Comb\",\r\n        \"customer_phone\": 778743172,\r\n        \"customer_phone2\": 778743172,\r\n        \"cod_amount\": 1300.0,\r\n        \"city\": \"Kurunegala Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241881,\r\n        \"customer_name\": \"sajeewani dilhara \",\r\n        \"address\": \"no 5/2widiyawaththa udugampla\",\r\n        \"order_description\": \"Posture Corrector\",\r\n        \"customer_phone\": 705671149,\r\n        \"customer_phone2\": 705671149,\r\n        \"cod_amount\": 1700.0,\r\n        \"city\": \"Gampaha Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241918,\r\n        \"customer_name\": \"Pradeep Nandana \",\r\n        \"address\": \"\\t49/17/1 duwa hena,kosgaha kubura,samanala uyana,gonapola\\tHorana\\t\",\r\n        \"order_description\": \"Varicose Veins Spray\",\r\n        \"customer_phone\": 718985346,\r\n        \"customer_phone2\": 754561262,\r\n        \"cod_amount\": 2390.0,\r\n        \"city\": \"Gonapola Junction\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241919,\r\n        \"customer_name\": \"A.D. Fernando\\t\\t\\t\\t \",\r\n        \"address\": \"Sri lanka airport ,ankulama,morawewa\",\r\n        \"order_description\": \"Black Hair Shampoo\",\r\n        \"customer_phone\": 718202395,\r\n        \"customer_phone2\": 764531332,\r\n        \"cod_amount\": 2390.0,\r\n        \"city\": \"Trincomalee Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241942,\r\n        \"customer_name\": \"asanka \",\r\n        \"address\": \"bokundara\",\r\n        \"order_description\": \"Shiva Trishul BANGLE\",\r\n        \"customer_phone\": 701985362,\r\n        \"customer_phone2\": 701985362,\r\n        \"cod_amount\": 1300.0,\r\n        \"city\": \"Bokundara\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241944,\r\n        \"customer_name\": \"e.r.h.navod darshana\\t\\t \",\r\n        \"address\": \"suriyewawe hambanthota rood ballagaswawe\",\r\n        \"order_description\": \"Varicose Veins Spray\",\r\n        \"customer_phone\": 778650062,\r\n        \"customer_phone2\": 710351390,\r\n        \"cod_amount\": 2299.0,\r\n        \"city\": \"Sooriyawewa\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241954,\r\n        \"customer_name\": \"Hussain \",\r\n        \"address\": \"Mahahapogala Gintota\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 779739733,\r\n        \"customer_phone2\": 774967544,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Galle Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 241984,\r\n        \"customer_name\": \"Mr.Iwantha\\t\\t \",\r\n        \"address\": \"No.308/1 old kandy road dalugama kalaniya\",\r\n        \"order_description\": \"Varicose Veins Spray\",\r\n        \"customer_phone\": 779747700,\r\n        \"customer_phone2\": 759747710,\r\n        \"cod_amount\": 2299.0,\r\n        \"city\": \"Dalugama\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242024,\r\n        \"customer_name\": \"Arumugam Piriyankan \",\r\n        \"address\": \"No: 228, Varany maha Vidyalayam road, Varany\",\r\n        \"order_description\": \"REFRIGERATOR  LOCK\",\r\n        \"customer_phone\": 777111306,\r\n        \"customer_phone2\": 773146145,\r\n        \"cod_amount\": 2250.0,\r\n        \"city\": \"Kodikanam\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242029,\r\n        \"customer_name\": \"siva \",\r\n        \"address\": \"kilinochchi vaddakchchi\",\r\n        \"order_description\": \"Hair Dye Sticks\",\r\n        \"customer_phone\": 775346650,\r\n        \"customer_phone2\": 775346650,\r\n        \"cod_amount\": 1950.0,\r\n        \"city\": \"Kilinochchi\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242037,\r\n        \"customer_name\": \"Rahulnath \",\r\n        \"address\": \"15 42nd lane wellawatte\",\r\n        \"order_description\": \"Shiva Trishul BANGLE\",\r\n        \"customer_phone\": 771234869,\r\n        \"customer_phone2\": 771234869,\r\n        \"cod_amount\": 1300.0,\r\n        \"city\": \"Colombo 6 - Wellawatta\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242063,\r\n        \"customer_name\": \"Ms.abisheka\\t\\t \",\r\n        \"address\": \"No.256/4 ,moragolla ,kumburegama\",\r\n        \"order_description\": \"Varicose Veins Spray\",\r\n        \"customer_phone\": 761858202,\r\n        \"customer_phone2\": 760861653,\r\n        \"cod_amount\": 2299.0,\r\n        \"city\": \"Kandy City\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242066,\r\n        \"customer_name\": \"Mr.irshad\\t\\t \",\r\n        \"address\": \"No.93, Warana Road Thihariya,Gampaha\\t\",\r\n        \"order_description\": \"Varicose Veins Spray\",\r\n        \"customer_phone\": 770074239,\r\n        \"customer_phone2\": 770074239,\r\n        \"cod_amount\": 2299.0,\r\n        \"city\": \"Gampaha Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242081,\r\n        \"customer_name\": \"K.premachandran \",\r\n        \"address\": \"Kaddapirai ,Kopay south,kopay\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 777362481,\r\n        \"customer_phone2\": 773563039,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Jaffna Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242087,\r\n        \"customer_name\": \"Francis \",\r\n        \"address\": \"106 Ebert lane, Kaldrmulla, Moratuwa\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 766129865,\r\n        \"customer_phone2\": 766129865,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Rathmalana\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242101,\r\n        \"customer_name\": \"NAZEER RIFAS to \",\r\n        \"address\": \"4TH MILE POST GURUTHLAWA\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 704830603,\r\n        \"customer_phone2\": 776130603,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Welimada\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242106,\r\n        \"customer_name\": \"Ashfaq \",\r\n        \"address\": \"87/6/B paliyella Thalgaspiti mawathagama\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 764727177,\r\n        \"customer_phone2\": 742224677,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Kurunegala Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242107,\r\n        \"customer_name\": \"hector \",\r\n        \"address\": \"walipanna\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 776663761,\r\n        \"customer_phone2\": 776663761,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Mathugama\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242113,\r\n        \"customer_name\": \"Niranjan \",\r\n        \"address\": \"Jaffna road valvettithurai\",\r\n        \"order_description\": \"Slim Lift Baniyan\",\r\n        \"customer_phone\": 774815689,\r\n        \"customer_phone2\": 774815689,\r\n        \"cod_amount\": 2150.0,\r\n        \"city\": \"Jaffna Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242132,\r\n        \"customer_name\": \"Indrawansa herath \",\r\n        \"address\": \"no 71 pullayar kovil Road Matale\",\r\n        \"order_description\": \"Slim Lift Baniyan\",\r\n        \"customer_phone\": 717756353,\r\n        \"customer_phone2\": 757756353,\r\n        \"cod_amount\": 2150.0,\r\n        \"city\": \"Matale Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242135,\r\n        \"customer_name\": \"G.G.A. Susantha\\t\\t \",\r\n        \"address\": \"No 27/C/13 , Nagawanarama Rd , Nedagamuwa , Kotugoda\",\r\n        \"order_description\": \"Varicose Veins Spray\",\r\n        \"customer_phone\": 776606247,\r\n        \"customer_phone2\": 776469089,\r\n        \"cod_amount\": 2299.0,\r\n        \"city\": \"Ja-Ela\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242136,\r\n        \"customer_name\": \"Samipat \",\r\n        \"address\": \"No/476 Rajanganaya Left Bank Plot 03 Solepura/Parakumpura\\n\",\r\n        \"order_description\": \"Home and Car Vacuum Cleaner\",\r\n        \"customer_phone\": 766627911,\r\n        \"customer_phone2\": 713549208,\r\n        \"cod_amount\": 2350.0,\r\n        \"city\": \"Parakumpura\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242137,\r\n        \"customer_name\": \"Kelum kodikarage\\t\\t \",\r\n        \"address\": \"No.06 public market, Makandura. Matara\",\r\n        \"order_description\": \"Wart & skin tag remover\",\r\n        \"customer_phone\": 776606353,\r\n        \"customer_phone2\": 789767171,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Makandura\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242140,\r\n        \"customer_name\": \"charith \",\r\n        \"address\": \"No 26 lens port view restaurant\",\r\n        \"order_description\": \"Slim Lift Baniyan\",\r\n        \"customer_phone\": 787888451,\r\n        \"customer_phone2\": 754500403,\r\n        \"cod_amount\": 2150.0,\r\n        \"city\": \"Colombo 1 - Fort\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242141,\r\n        \"customer_name\": \"S.V. Raja\\t\\t \",\r\n        \"address\": \"292f Grow Block paragahawela ukuwela\",\r\n        \"order_description\": \"Wart & skin tag remover\",\r\n        \"customer_phone\": 777622297,\r\n        \"customer_phone2\": 777622297,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Matale Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242145,\r\n        \"customer_name\": \"ranjith \",\r\n        \"address\": \"strathspey estate upcot\",\r\n        \"order_description\": \"Home and Car Vacuum Cleaner\",\r\n        \"customer_phone\": 752030344,\r\n        \"customer_phone2\": 759561994,\r\n        \"cod_amount\": 2350.0,\r\n        \"city\": \"Maskeliya\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242150,\r\n        \"customer_name\": \"Ajmal \",\r\n        \"address\": \"40/3, muhandiram road, kollupitiya\",\r\n        \"order_description\": \"CAR HIGH PRESSURE GUN\",\r\n        \"customer_phone\": 764215547,\r\n        \"customer_phone2\": 756147007,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Colombo 4 - Bmbalapitiya\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242167,\r\n        \"customer_name\": \"Mr.selvan\\t\\t \",\r\n        \"address\": \"21/37 pickarings road kotahena, colombo 13\",\r\n        \"order_description\": \"Varicose Veins Spray\",\r\n        \"customer_phone\": 762422405,\r\n        \"customer_phone2\": 754114667,\r\n        \"cod_amount\": 2249.0,\r\n        \"city\": \"Colombo 13 - Kotahena/Kochchikade/Bloemendhal\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242179,\r\n        \"customer_name\": \"Ushan \",\r\n        \"address\": \"National school Road Bentota\",\r\n        \"order_description\": \"Slim Lift Baniyan\",\r\n        \"customer_phone\": 761481061,\r\n        \"customer_phone2\": 716094298,\r\n        \"cod_amount\": 2150.0,\r\n        \"city\": \"Aluthgama\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242183,\r\n        \"customer_name\": \"Nirushika Nilmini\\t\\t\\t\\t \",\r\n        \"address\": \"No.45 jonslat 1 kandawala katana\",\r\n        \"order_description\": \"Wart & skin tag remover\",\r\n        \"customer_phone\": 741122751,\r\n        \"customer_phone2\": 778612213,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Gampaha Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242184,\r\n        \"customer_name\": \"A.A.T. Ganga \",\r\n        \"address\": \"No.393/1 Ammanamulla, Udubaddawa\",\r\n        \"order_description\": \"Wart & skin tag remover\",\r\n        \"customer_phone\": 765502491,\r\n        \"customer_phone2\": 741112491,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Kuliyapitiya\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242208,\r\n        \"customer_name\": \"Rohan \",\r\n        \"address\": \"Navaly south manipay\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 778060213,\r\n        \"customer_phone2\": 778060213,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Jaffna Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242210,\r\n        \"customer_name\": \"shukri \",\r\n        \"address\": \"4th nile post Puttalam\",\r\n        \"order_description\": \"Hair Dye Sticks\",\r\n        \"customer_phone\": 767170710,\r\n        \"customer_phone2\": 767170710,\r\n        \"cod_amount\": 1950.0,\r\n        \"city\": \"Puttalam Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242217,\r\n        \"customer_name\": \"Anoma Ruwanmali \",\r\n        \"address\": \"No.230 pihitiwewa nuwaragala\",\r\n        \"order_description\": \"Hair Dye Sticks\",\r\n        \"customer_phone\": 774795490,\r\n        \"customer_phone2\": 722875110,\r\n        \"cod_amount\": 1950.0,\r\n        \"city\": \"Siripura\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242225,\r\n        \"customer_name\": \"Ranil Kumara\\t \",\r\n        \"address\": \"No.125.welikada makewita\\t\\tMatale\",\r\n        \"order_description\": \"Kushtadhi thailaya\",\r\n        \"customer_phone\": 779018778,\r\n        \"customer_phone2\": 779018778,\r\n        \"cod_amount\": 2390.0,\r\n        \"city\": \"Matale Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242226,\r\n        \"customer_name\": \"romilda \",\r\n        \"address\": \"urumpirai east urumpirai\",\r\n        \"order_description\": \"Hair Dye Sticks\",\r\n        \"customer_phone\": 778784706,\r\n        \"customer_phone2\": 773618032,\r\n        \"cod_amount\": 1950.0,\r\n        \"city\": \"Jaffna Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242227,\r\n        \"customer_name\": \"Caminda Arjuna \",\r\n        \"address\": \"\\tpanagoda army camp \\t\\tcolombo\",\r\n        \"order_description\": \"Kushtadhi thailaya\",\r\n        \"customer_phone\": 787023473,\r\n        \"customer_phone2\": 787023473,\r\n        \"cod_amount\": 2390.0,\r\n        \"city\": \"Colombo 8 - Borella\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242245,\r\n        \"customer_name\": \"Manju \",\r\n        \"address\": \"No 4.bakamuna\",\r\n        \"order_description\": \"Reading Glass\",\r\n        \"customer_phone\": 719131032,\r\n        \"customer_phone2\": 768662602,\r\n        \"cod_amount\": 1650.0,\r\n        \"city\": \"Dambulla\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242258,\r\n        \"customer_name\": \"K.P. Ravi Ravi\\t \",\r\n        \"address\": \"556/migamu para\\tColombo\\t\",\r\n        \"order_description\": \"Niacid serum (scar & dark spot removel )\",\r\n        \"customer_phone\": 756856322,\r\n        \"customer_phone2\": 786554370,\r\n        \"cod_amount\": 2390.0,\r\n        \"city\": \"Colombo 8 - Borella\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242267,\r\n        \"customer_name\": \"amc athapaththu \",\r\n        \"address\": \"no 21new town arlaganwila\",\r\n        \"order_description\": \"Manual Steel Nail Gun\",\r\n        \"customer_phone\": 767156538,\r\n        \"customer_phone2\": 714686974,\r\n        \"cod_amount\": 3950.0,\r\n        \"city\": \"Polonnaruwa Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242293,\r\n        \"customer_name\": \"Rajitha Sisira Kumara \",\r\n        \"address\": \"Makicchawa Morakave\\n\",\r\n        \"order_description\": \"Manual Steel Nail Gun\",\r\n        \"customer_phone\": 771406778,\r\n        \"customer_phone2\": 718938665,\r\n        \"cod_amount\": 3950.0,\r\n        \"city\": \"Anuradhapura Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242295,\r\n        \"customer_name\": \"RANJITH \",\r\n        \"address\": \"POTTUVL\",\r\n        \"order_description\": \"Manual Steel Nail Gun\",\r\n        \"customer_phone\": 717886850,\r\n        \"customer_phone2\": 741587553,\r\n        \"cod_amount\": 3950.0,\r\n        \"city\": \"Pothuwila\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242317,\r\n        \"customer_name\": \"Amila Asanka\\t \",\r\n        \"address\": \"Yaya 7, Idigella, Polpitigama,\\tkurunegala\\t\",\r\n        \"order_description\": \"Kushtadhi thailaya\",\r\n        \"customer_phone\": 726945528,\r\n        \"customer_phone2\": 726945528,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Polpitigama\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242318,\r\n        \"customer_name\": \"Deepika \",\r\n        \"address\": \"\\tMoragolla, galewala, dabulla, \\tmatale\\t\",\r\n        \"order_description\": \"Kushtadhi thailaya\",\r\n        \"customer_phone\": 775077285,\r\n        \"customer_phone2\": 775077285,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Dambulla\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242322,\r\n        \"customer_name\": \"saminda kumara \",\r\n        \"address\": \"\\tmirihana police station, \\tColombo\",\r\n        \"order_description\": \"Kushtadhi thailaya\",\r\n        \"customer_phone\": 725682022,\r\n        \"customer_phone2\": 725682022,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Mirihana\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242339,\r\n        \"customer_name\": \"Gineth solomons \",\r\n        \"address\": \"\\tAmbakotte ,kengalla\\tkandy\\t\",\r\n        \"order_description\": \"46 In 1 Pcs Tool Kit\",\r\n        \"customer_phone\": 758368078,\r\n        \"customer_phone2\": 787000450,\r\n        \"cod_amount\": 3000.0,\r\n        \"city\": \"Kengalla\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242372,\r\n        \"customer_name\": \"E.M.A.P. Ekanayaka \",\r\n        \"address\": \"No.678, Kanubichchiya, Dummalasuriya\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 774267420,\r\n        \"customer_phone2\": 753169286,\r\n        \"cod_amount\": 1450.0,\r\n        \"city\": \"Kuliyapitiya\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242387,\r\n        \"customer_name\": \"Arunagirinatthanathanguda \",\r\n        \"address\": \"Beach Road, Thalanguda 3, Arayampathy\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 773567650,\r\n        \"customer_phone2\": 773567650,\r\n        \"cod_amount\": 2400.0,\r\n        \"city\": \"Batticaloa Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242398,\r\n        \"customer_name\": \"Riyal \",\r\n        \"address\": \"45.3 Buhare masj Road .gabokka walegma\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 741589952,\r\n        \"customer_phone2\": 771599952,\r\n        \"cod_amount\": 2200.0,\r\n        \"city\": \"Matara Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242411,\r\n        \"customer_name\": \"P.A. nuwan lasantha \",\r\n        \"address\": \"galla gedara vaththa maththaka\",\r\n        \"order_description\": \"Hearing Amplifier Ear Whisperer\",\r\n        \"customer_phone\": 715197566,\r\n        \"customer_phone2\": 772080015,\r\n        \"cod_amount\": 2000.0,\r\n        \"city\": \"Galle Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242412,\r\n        \"customer_name\": \"Wilbart \",\r\n        \"address\": \"Dehansa cane products Galle road owakanda ,Rathgama\",\r\n        \"order_description\": \"Hearing Amplifier Ear Whisperer\",\r\n        \"customer_phone\": 723544867,\r\n        \"customer_phone2\": 765853075,\r\n        \"cod_amount\": 2000.0,\r\n        \"city\": \"Galle Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242414,\r\n        \"customer_name\": \"Shaman Wicramasinghe\\t \",\r\n        \"address\": \"thummulla campus colombo\\t\\tcolombo\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 777525618,\r\n        \"customer_phone2\": 777525618,\r\n        \"cod_amount\": 2290.0,\r\n        \"city\": \"Colombo 8 - Borella\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242416,\r\n        \"customer_name\": \"Danushka Pathamasiri \",\r\n        \"address\": \"\\twattala hemas hospital, \\tGampaha\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 786851688,\r\n        \"customer_phone2\": 786851688,\r\n        \"cod_amount\": 2300.0,\r\n        \"city\": \"Gampaha Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242429,\r\n        \"customer_name\": \"Thiwanka Roshan\\t \",\r\n        \"address\": \"D/5, Wahalkada, Kebitigollewa,\\tAnuradhapura\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 743779769,\r\n        \"customer_phone2\": 743779769,\r\n        \"cod_amount\": 2300.0,\r\n        \"city\": \"Kebithigollawa\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242430,\r\n        \"customer_name\": \"Lasitha Dasun \",\r\n        \"address\": \"\\t93/2/A, katuve gedara, matale\\tMatale Town\",\r\n        \"order_description\": \"Nail Oil\",\r\n        \"customer_phone\": 760369990,\r\n        \"customer_phone2\": 760369990,\r\n        \"cod_amount\": 2300.0,\r\n        \"city\": \"Matale Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242438,\r\n        \"customer_name\": \"Yogarajah \",\r\n        \"address\": \"44/5,Barathy veethy jaffna.\",\r\n        \"order_description\": \"Foam Cleaner\",\r\n        \"customer_phone\": 775998762,\r\n        \"customer_phone2\": 775089726,\r\n        \"cod_amount\": 1750.0,\r\n        \"city\": \"Jaffna Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242446,\r\n        \"customer_name\": \"Ariyadeera \",\r\n        \"address\": \"sri nagaramaya Gallahamulla welipannagahamulla\",\r\n        \"order_description\": \"Home and Car Vacuum Cleaner\",\r\n        \"customer_phone\": 775244479,\r\n        \"customer_phone2\": 757177896,\r\n        \"cod_amount\": 2350.0,\r\n        \"city\": \"Welipennaghamulla\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242479,\r\n        \"customer_name\": \"Hizbullah Abdul Azees\\t \",\r\n        \"address\": \"727 /1 malwanahinna Akurana \\tkandy\",\r\n        \"order_description\": \"Kushtadhi thailaya\",\r\n        \"customer_phone\": 777388818,\r\n        \"customer_phone2\": 777388818,\r\n        \"cod_amount\": 2390.0,\r\n        \"city\": \"Akurana\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242499,\r\n        \"customer_name\": \"U. L. M. Azaam \",\r\n        \"address\": \"13a, Bakiyathus Salihath road, Periyaneelavanai 01 Maruthamunai\",\r\n        \"order_description\": \"Foam Cleaner\",\r\n        \"customer_phone\": 770252810,\r\n        \"customer_phone2\": 763298413,\r\n        \"cod_amount\": 1750.0,\r\n        \"city\": \"Puttalam Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242502,\r\n        \"customer_name\": \"chamika \",\r\n        \"address\": \"no/165 kovil kade passara\",\r\n        \"order_description\": \"Reading Glass\",\r\n        \"customer_phone\": 773876940,\r\n        \"customer_phone2\": 773976940,\r\n        \"cod_amount\": 1650.0,\r\n        \"city\": \"Badulla Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"order_id\": 242536,\r\n        \"customer_name\": \"N G Dn Kularathna \",\r\n        \"address\": \"\\tNo 137/2 pansal godalla, wanala ,kanthale\\t\\t\\tTrincomalee\",\r\n        \"order_description\": \"Kushtadhi thailaya\",\r\n        \"customer_phone\": 773845142,\r\n        \"customer_phone2\": 773845142,\r\n        \"cod_amount\": 2300.0,\r\n        \"city\": \"Kantale\",\r\n        \"remarks\": \"\"\r\n    }\r\n]"
+        },
+        "url": {
+          "raw": "{{url}}/orders/upload/auto-without-city",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "orders",
+            "upload",
+            "auto-without-city"
+          ]
+        },
+        "description": "The following request can be made to add **multiple orders automaticaly** into our system.\n\n## **Request Payload Objects**\n\n**order_data** : _**required : Object**_ - Order Specific Details For A Batch Of Orders\n\n- **order_id** : _**optional : String**_ - Order number of the order\n    \n- **customer_name** : _**required : String**_ - Name of the customer to which the order should be delivered to\n    \n- **address** : _**required : String**_ - Address of the customer to which the order should be delivered to\n    \n- **order_description :** _**optional : String**_ - A short description about the order\n    \n\n(min=0 , max=500 characters)\n\n- **customer_phone** : _**required : String**_ - Contact number of the customer to which the order should be delivered to (min=9 , max=10 digits)\n    \n- **customer_phone 2** : _**optional: String**_ - Other contact number of the customer to which the order should be delivered to\n    \n- **cod_amount** : _**required : Double**_ - Amount which should be collected on delivery of the package to said customer\n    \n- **city** : **String** \\- Respective city of the package should be delivered too\n    \n- **remark** : _**optional : String**_ - Any remarks regarding the order"
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "",
+                "value": "",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\r\n    {\r\n        \"order_id\" : 88888888,\r\n        \"customer_name\" : \"Customer Name 1\",\r\n        \"address\" : \"Address 1\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\": \"Puttalam Town\",\r\n        \"remarks\" : \"remark 1\"\r\n    },\r\n    {\r\n        \"order_id\" : 77777777,\r\n        \"customer_name\" : \"Customer Name 2\",\r\n        \"address\" : \"Address 2\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\": \"Puttalam Town\",\r\n        \"remarks\" : \"remark 2\"\r\n    },\r\n    {\r\n        \"order_id\" : 66666666,\r\n        \"customer_name\" : \"Customer Name 3\",\r\n        \"address\" : \"Address 3\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"city\": \"Puttalam Town\",\r\n        \"remarks\" : \"remark 3\"\r\n    }\r\n]"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/auto",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "auto"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 11:34:35 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "59",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "Xce9ca36ea923d506f1e7d3fd10571883",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=K62Ueg09MBzgH5axb6hj6ypAkef1lAuwp6MtemrK; expires=Fri, 06-Oct-2023 13:34:35 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": \"Record successfully added\",\n    \"orders\": [\n        {\n            \"id\": 1947053,\n            \"waybill_id\": \"AT399774\",\n            \"client_id\": 4205,\n            \"order_no\": \"88888888\",\n            \"customer_name\": \"Customer Name 1\",\n            \"address\": \"Address 1\",\n            \"phone_no\": \"\",\n            \"description\": \"test order_description\",\n            \"district_id\": 5,\n            \"city_id\": 864,\n            \"suggested_city\": \"\",\n            \"branch_id\": null,\n            \"new_branch_id\": null,\n            \"cod\": 1500,\n            \"collected_cod\": null,\n            \"delivery_charge\": null,\n            \"wight\": null,\n            \"note\": \"remark 1\",\n            \"first_kg\": null,\n            \"after_kg\": null,\n            \"inv_id\": null,\n            \"deposit_id\": null,\n            \"created_at\": \"2023-10-06 17:04:35\",\n            \"updated_at\": \"2023-10-06 17:04:35\",\n            \"status_id\": 14998775,\n            \"delivery_attempts\": null,\n            \"third_party_service\": null,\n            \"current_rider_id\": null,\n            \"latest_rider_assign_id\": null,\n            \"branch_order_id\": null\n        },\n        {\n            \"id\": 1947054,\n            \"waybill_id\": \"AT399775\",\n            \"client_id\": 4205,\n            \"order_no\": \"77777777\",\n            \"customer_name\": \"Customer Name 2\",\n            \"address\": \"Address 2\",\n            \"phone_no\": \"\",\n            \"description\": \"test order_description\",\n            \"district_id\": 5,\n            \"city_id\": 864,\n            \"suggested_city\": \"\",\n            \"branch_id\": null,\n            \"new_branch_id\": null,\n            \"cod\": 1500,\n            \"collected_cod\": null,\n            \"delivery_charge\": null,\n            \"wight\": null,\n            \"note\": \"remark 2\",\n            \"first_kg\": null,\n            \"after_kg\": null,\n            \"inv_id\": null,\n            \"deposit_id\": null,\n            \"created_at\": \"2023-10-06 17:04:35\",\n            \"updated_at\": \"2023-10-06 17:04:35\",\n            \"status_id\": 14998776,\n            \"delivery_attempts\": null,\n            \"third_party_service\": null,\n            \"current_rider_id\": null,\n            \"latest_rider_assign_id\": null,\n            \"branch_order_id\": null\n        },\n        {\n            \"id\": 1947055,\n            \"waybill_id\": \"AT399776\",\n            \"client_id\": 4205,\n            \"order_no\": \"66666666\",\n            \"customer_name\": \"Customer Name 3\",\n            \"address\": \"Address 3\",\n            \"phone_no\": \"\",\n            \"description\": \"test order_description\",\n            \"district_id\": 5,\n            \"city_id\": 864,\n            \"suggested_city\": \"\",\n            \"branch_id\": null,\n            \"new_branch_id\": null,\n            \"cod\": 1500,\n            \"collected_cod\": null,\n            \"delivery_charge\": null,\n            \"wight\": null,\n            \"note\": \"remark 3\",\n            \"first_kg\": null,\n            \"after_kg\": null,\n            \"inv_id\": null,\n            \"deposit_id\": null,\n            \"created_at\": \"2023-10-06 17:04:35\",\n            \"updated_at\": \"2023-10-06 17:04:35\",\n            \"status_id\": 14998777,\n            \"delivery_attempts\": null,\n            \"third_party_service\": null,\n            \"current_rider_id\": null,\n            \"latest_rider_assign_id\": null,\n            \"branch_order_id\": null\n        }\n    ]\n}"
+        },
+        {
+          "name": "Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "",
+                "value": "",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\r\n    {\r\n        \"order_id\" : 88888888,\r\n        \"customer_name\" : \"Customer Name 1\",\r\n        \"address\" : \"Address 1\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"07777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"district\" : 5,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 1\"\r\n    },\r\n    {\r\n        \"order_id\" : 77777777,\r\n        \"customer_name\" : \"Customer Name 2\",\r\n        \"address\" : \"Address 2\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"district\" : 5,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 2\"\r\n    },\r\n    {\r\n        \"order_id\" : 66666666,\r\n        \"customer_name\" : \"Customer Name 3\",\r\n        \"address\" : \"Address 3\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"district\" : 5,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 3\"\r\n    }\r\n]"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/auto",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "auto"
+              ]
+            }
+          },
+          "status": "Unprocessable Entity (WebDAV) (RFC 4918)",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 11:35:10 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "58",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "Xcc77e1b16f31e1500559a2ac163c2391",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=K62Ueg09MBzgH5axb6hj6ypAkef1lAuwp6MtemrK; expires=Fri, 06-Oct-2023 13:35:10 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"message\": \"The given data was invalid.\",\n    \"errors\": {\n        \"0.customer_phone\": [\n            \" Primary phone number must be at least 10 characters\"\n        ]\n    }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Add bulk orders manual without city",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{client_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "service-provider",
+            "value": "larocher",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "[\r\n    {\r\n        \"way_bill\": 67201919,\r\n        \"order_id\": 240083,\r\n        \"customer_name\": \"Mazeezasraf \",\r\n        \"address\": \"Mainsreet. Kalpitiya\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 772431525,\r\n        \"customer_phone2\": 788844040,\r\n        \"cod_amount\": 1350.0,\r\n        \"city\": \"Puttalam Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"way_bill\": 67201920,\r\n        \"order_id\": 240416,\r\n        \"customer_name\": \"S abdul asis \",\r\n        \"address\": \"53/3/a dehianga muruthalawq\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 763236018,\r\n        \"customer_phone2\": 763236018,\r\n        \"cod_amount\": 1300.0,\r\n        \"city\": \"Kandy City\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"way_bill\": 67201921,\r\n        \"order_id\": 240423,\r\n        \"customer_name\": \"S T Pallewatta \",\r\n        \"address\": \"no 98 Amunugama gunnapana\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 715347372,\r\n        \"customer_phone2\": 715347372,\r\n        \"cod_amount\": 1300.0,\r\n        \"city\": \"Kandy Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"way_bill\": 67201922,\r\n        \"order_id\": 240480,\r\n        \"customer_name\": \"sandika.suranjan \",\r\n        \"address\": \"ViLlyagma.Lhiruyagama,DANKOTUWA ,PUTHTHALAMA\",\r\n        \"order_description\": \"Hearing Amplifier Ear Whisperer\",\r\n        \"customer_phone\": 777483411,\r\n        \"customer_phone2\": 777693411,\r\n        \"cod_amount\": 2000.0,\r\n        \"city\": \"Puttalam Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"way_bill\": 67201923,\r\n        \"order_id\": 240545,\r\n        \"customer_name\": \"Tharaka \",\r\n        \"address\": \"No 30 Papliyana rode nadimala\",\r\n        \"order_description\": \"REFRIGERATOR  LOCK\",\r\n        \"customer_phone\": 758010072,\r\n        \"customer_phone2\": 758010072,\r\n        \"cod_amount\": 1800.0,\r\n        \"city\": \"Nedimala\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"way_bill\": 67201925,\r\n        \"order_id\": 240566,\r\n        \"customer_name\": \"shihan \",\r\n        \"address\": \"146/62A, Aramya Road, Dematagoda, Colombo 9\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 777113955,\r\n        \"customer_phone2\": 757113919,\r\n        \"cod_amount\": 1450.0,\r\n        \"city\": \"Colombo 8 - Borella\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"way_bill\": 67201926,\r\n        \"order_id\": 240583,\r\n        \"customer_name\": \"m.g indika \",\r\n        \"address\": \"gammaddegoda ,Rathgama\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 776090224,\r\n        \"customer_phone2\": 776090224,\r\n        \"cod_amount\": 1450.0,\r\n        \"city\": \"Galle Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"way_bill\": 67201927,\r\n        \"order_id\": 240589,\r\n        \"customer_name\": \"Asma sappideen \",\r\n        \"address\": \"9 new ferry lane colombo 2\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 778537096,\r\n        \"customer_phone2\": 778537096,\r\n        \"cod_amount\": 1450.0,\r\n        \"city\": \"Colombo 02 - Slave Island & Union Place\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"way_bill\": 67201928,\r\n        \"order_id\": 240601,\r\n        \"customer_name\": \"Rinos \",\r\n        \"address\": \"248B Vappayadi Road. Sainthamaruthu 13\",\r\n        \"order_description\": \"Frog Super Viscous Oily Glue\",\r\n        \"customer_phone\": 757572372,\r\n        \"customer_phone2\": 757572372,\r\n        \"cod_amount\": 1450.0,\r\n        \"city\": \"Ampara Town\",\r\n        \"remarks\": \"\"\r\n    },\r\n    {\r\n        \"way_bill\": 67201929,\r\n        \"order_id\": 240624,\r\n        \"customer_name\": \"Dulanga Madara \",\r\n        \"address\": \"3 Alfredo place Colombo\",\r\n        \"order_description\": \"Airpods Pro ( AAA Grade )\",\r\n        \"customer_phone\": 776779200,\r\n        \"customer_phone2\": 771295155,\r\n        \"cod_amount\": 2350.0,\r\n        \"city\": \"Colombo 3 - Kollupitiya\",\r\n        \"remarks\": \"\"\r\n    }\r\n]"
+        },
+        "url": {
+          "raw": "{{url}}/orders/upload/auto-without-city",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "orders",
+            "upload",
+            "auto-without-city"
+          ]
+        },
+        "description": "The following request can be made to add **multiple orders automaticaly** into our system.\n\n## **Request Payload Objects**\n\n**order_data** : _**required : Object**_ - Order Specific Details For A Batch Of Orders\n\n- **order_id** : _**optional : String**_ - Order number of the order\n    \n- **customer_name** : _**required : String**_ - Name of the customer to which the order should be delivered to\n    \n- **address** : _**required : String**_ - Address of the customer to which the order should be delivered to\n    \n- **order_description :** _**optional : String**_ - A short description about the order\n    \n\n(min=0 , max=500 characters)\n\n- **customer_phone** : _**required : String**_ - Contact number of the customer to which the order should be delivered to (min=9 , max=10 digits)\n    \n- **customer_phone 2** : _**optional: String**_ - Other contact number of the customer to which the order should be delivered to\n    \n- **cod_amount** : _**required : Double**_ - Amount which should be collected on delivery of the package to said customer\n    \n- **city** : **String** \\- Respective city of the package should be delivered too\n    \n- **remark** : _**optional : String**_ - Any remarks regarding the order"
+      },
+      "response": [
+        {
+          "name": "Success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "",
+                "value": "",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\r\n    {\r\n        \"order_id\" : 88888888,\r\n        \"customer_name\" : \"Customer Name 1\",\r\n        \"address\" : \"Address 1\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"district\" : 5,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 1\"\r\n    },\r\n    {\r\n        \"order_id\" : 77777777,\r\n        \"customer_name\" : \"Customer Name 2\",\r\n        \"address\" : \"Address 2\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"district\" : 5,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 2\"\r\n    },\r\n    {\r\n        \"order_id\" : 66666666,\r\n        \"customer_name\" : \"Customer Name 3\",\r\n        \"address\" : \"Address 3\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"district\" : 5,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 3\"\r\n    }\r\n]"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/auto",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "auto"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 11:34:35 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "59",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "Xce9ca36ea923d506f1e7d3fd10571883",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=K62Ueg09MBzgH5axb6hj6ypAkef1lAuwp6MtemrK; expires=Fri, 06-Oct-2023 13:34:35 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": \"Record successfully added\",\n    \"orders\": [\n        {\n            \"id\": 1947053,\n            \"waybill_id\": \"AT399774\",\n            \"client_id\": 4205,\n            \"order_no\": \"88888888\",\n            \"customer_name\": \"Customer Name 1\",\n            \"address\": \"Address 1\",\n            \"phone_no\": \"\",\n            \"description\": \"test order_description\",\n            \"district_id\": 5,\n            \"city_id\": 864,\n            \"suggested_city\": \"\",\n            \"branch_id\": null,\n            \"new_branch_id\": null,\n            \"cod\": 1500,\n            \"collected_cod\": null,\n            \"delivery_charge\": null,\n            \"wight\": null,\n            \"note\": \"remark 1\",\n            \"first_kg\": null,\n            \"after_kg\": null,\n            \"inv_id\": null,\n            \"deposit_id\": null,\n            \"created_at\": \"2023-10-06 17:04:35\",\n            \"updated_at\": \"2023-10-06 17:04:35\",\n            \"status_id\": 14998775,\n            \"delivery_attempts\": null,\n            \"third_party_service\": null,\n            \"current_rider_id\": null,\n            \"latest_rider_assign_id\": null,\n            \"branch_order_id\": null\n        },\n        {\n            \"id\": 1947054,\n            \"waybill_id\": \"AT399775\",\n            \"client_id\": 4205,\n            \"order_no\": \"77777777\",\n            \"customer_name\": \"Customer Name 2\",\n            \"address\": \"Address 2\",\n            \"phone_no\": \"\",\n            \"description\": \"test order_description\",\n            \"district_id\": 5,\n            \"city_id\": 864,\n            \"suggested_city\": \"\",\n            \"branch_id\": null,\n            \"new_branch_id\": null,\n            \"cod\": 1500,\n            \"collected_cod\": null,\n            \"delivery_charge\": null,\n            \"wight\": null,\n            \"note\": \"remark 2\",\n            \"first_kg\": null,\n            \"after_kg\": null,\n            \"inv_id\": null,\n            \"deposit_id\": null,\n            \"created_at\": \"2023-10-06 17:04:35\",\n            \"updated_at\": \"2023-10-06 17:04:35\",\n            \"status_id\": 14998776,\n            \"delivery_attempts\": null,\n            \"third_party_service\": null,\n            \"current_rider_id\": null,\n            \"latest_rider_assign_id\": null,\n            \"branch_order_id\": null\n        },\n        {\n            \"id\": 1947055,\n            \"waybill_id\": \"AT399776\",\n            \"client_id\": 4205,\n            \"order_no\": \"66666666\",\n            \"customer_name\": \"Customer Name 3\",\n            \"address\": \"Address 3\",\n            \"phone_no\": \"\",\n            \"description\": \"test order_description\",\n            \"district_id\": 5,\n            \"city_id\": 864,\n            \"suggested_city\": \"\",\n            \"branch_id\": null,\n            \"new_branch_id\": null,\n            \"cod\": 1500,\n            \"collected_cod\": null,\n            \"delivery_charge\": null,\n            \"wight\": null,\n            \"note\": \"remark 3\",\n            \"first_kg\": null,\n            \"after_kg\": null,\n            \"inv_id\": null,\n            \"deposit_id\": null,\n            \"created_at\": \"2023-10-06 17:04:35\",\n            \"updated_at\": \"2023-10-06 17:04:35\",\n            \"status_id\": 14998777,\n            \"delivery_attempts\": null,\n            \"third_party_service\": null,\n            \"current_rider_id\": null,\n            \"latest_rider_assign_id\": null,\n            \"branch_order_id\": null\n        }\n    ]\n}"
+        },
+        {
+          "name": "Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "",
+                "value": "",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\r\n    {\r\n        \"order_id\" : 88888888,\r\n        \"customer_name\" : \"Customer Name 1\",\r\n        \"address\" : \"Address 1\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"07777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"district\" : 5,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 1\"\r\n    },\r\n    {\r\n        \"order_id\" : 77777777,\r\n        \"customer_name\" : \"Customer Name 2\",\r\n        \"address\" : \"Address 2\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"district\" : 5,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 2\"\r\n    },\r\n    {\r\n        \"order_id\" : 66666666,\r\n        \"customer_name\" : \"Customer Name 3\",\r\n        \"address\" : \"Address 3\",\r\n        \"order_description\" : \"test order_description\" ,\r\n        \"customer_phone\" : \"0777777777\",\r\n        \"customer_phone2\" : \"0777777777\",\r\n        \"cod_amount\" : 1500,\r\n        \"district\" : 5,\r\n        \"city\" : 864,\r\n        \"remarks\" : \"remark 3\"\r\n    }\r\n]"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/upload/auto",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "upload",
+                "auto"
+              ]
+            }
+          },
+          "status": "Unprocessable Entity (WebDAV) (RFC 4918)",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 11:35:10 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "58",
+              "enabled": true
+            },
+            {
+              "key": "phpdebugbar-id",
+              "value": "Xcc77e1b16f31e1500559a2ac163c2391",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=K62Ueg09MBzgH5axb6hj6ypAkef1lAuwp6MtemrK; expires=Fri, 06-Oct-2023 13:35:10 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"message\": \"The given data was invalid.\",\n    \"errors\": {\n        \"0.customer_phone\": [\n            \" Primary phone number must be at least 10 characters\"\n        ]\n    }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Single Order Tracking",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "$2y$12$5h3govtJ6V98ijhxM/LYU./wHfh7vWELYDJmr5AXZJZrD1ZxLRBfC",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"waybill_id\" : \"31005083\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{url}}/tracking",
+          "host": [
+            "{{url}}"
+          ],
+          "path": [
+            "tracking"
+          ]
+        },
+        "description": "Can be used to track a particular order providing the respective waybill ID from the system and get the order details. In the reponses the following details will be displayed.\n\n- **waybill_id** _**: String**_ - Waybill number of the order (min count = 8 , max = 8)\n- **order_no** : _**String**_ - Order number of the order\n- **customer_name** : _**String**_ - Name of the customer to which the order should be delivered to\n- **customer_address** : _**String**_ - Address of the customer to which the order should be delivered to\n- **customer_district: String - Name of the District.**\n- **customer_city: String - Name of the City.**\n- **customer_phone_no : int - Phone number of the customer.**\n- **weigh**t: int - Weight of the package.\n- **placed_date**: Date - Order created date.\n- **completed date: Date - Last status updated date of the order.**\n- **Status History: Array- the history of the order status updated.**"
+      },
+      "response": [
+        {
+          "name": "success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"waybill_id\" : \"55555555\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/tracking",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tracking"
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 09:54:33 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "59",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=QfhPIzzrb1ArUVx8LawIGE3IVchfQj2KOX76xz7e; expires=Fri, 06-Oct-2023 11:54:33 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"data\": {\n        \"waybill_id\": \"55555555\",\n        \"order_no\": \"55555555\",\n        \"customer_name\": \"Customer 726528\",\n        \"customer_address\": \"Customer Address 726528\",\n        \"customer_district\": \"Colombo\",\n        \"customer_city\": \"Colombo 01\",\n        \"customer_phone_no\": \"0112555555\",\n        \"weight\": null,\n        \"placed_date\": \"2021-09-27T11:26:25.000000Z\",\n        \"completed date\": null,\n        \"current_status\": \"Canceled\",\n        \"status_history\": [\n            {\n                \"name\": \"Canceled\",\n                \"remarks\": \"Request by Client\",\n                \"added_date\": \"2021-09-30T05:55:34.000000Z\"\n            },\n            {\n                \"name\": \"Processing\",\n                \"remarks\": \"Enter by U DROP INTERNATIONAL (PVT) LTD\",\n                \"added_date\": \"2021-09-27T11:26:25.000000Z\"\n            }\n        ]\n    }\n}"
+        },
+        {
+          "name": "error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"waybill_id\" : \"abc\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/tracking",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tracking"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Server",
+              "value": "nginx/1.18.0 (Ubuntu)",
+              "enabled": true
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "enabled": true
+            },
+            {
+              "key": "Transfer-Encoding",
+              "value": "chunked",
+              "enabled": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "enabled": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, private",
+              "enabled": true
+            },
+            {
+              "key": "Date",
+              "value": "Fri, 06 Oct 2023 11:08:45 GMT",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Limit",
+              "value": "60",
+              "enabled": true
+            },
+            {
+              "key": "X-RateLimit-Remaining",
+              "value": "58",
+              "enabled": true
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "development_trans_express_session=SsN3srhb3CpLFpWlcd1n4GUz2KiFHzM6pTg8h6lv; expires=Fri, 06-Oct-2023 13:08:45 GMT; Max-Age=7200; path=/; httponly",
+              "enabled": true
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"errors\": {\n        \"waybill_id\": [\n            \"The selected waybill id is invalid.\"\n        ]\n    }\n}"
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "url",
+      "value": "http://localhost:8000/api"
+    },
+    {
+      "key": "url",
+      "value": "http://transexpress.parallax.lk/api"
+    },
+    {
+      "key": "url",
+      "value": "https://portal.transexpress.lk/api"
+    }
+  ]
+}

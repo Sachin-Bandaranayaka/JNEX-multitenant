@@ -83,6 +83,14 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                             </Link>
                             <span>/</span>
                             <span>Order #{order.number}</span>
+                            {order.lead && (
+                                <>
+                                    <span>/</span>
+                                    <Link href={`/leads/${order.lead.id}`} className="hover:text-primary transition-colors">
+                                        From Lead →
+                                    </Link>
+                                </>
+                            )}
                         </div>
                         <h1 className="text-3xl font-bold text-foreground tracking-tight">Order Details</h1>
                     </div>

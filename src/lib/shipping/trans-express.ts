@@ -12,6 +12,8 @@ export class TransExpressProvider implements ShippingProvider {
   private apiUrl!: string;
   private readonly CREATE_SHIPMENT_ENDPOINT = '/orders/upload/single-auto';
   private readonly CREATE_SHIPMENT_WITHOUT_CITY_ENDPOINT = '/orders/upload/single-auto-without-city';
+  private readonly CREATE_BULK_SHIPMENT_WITHOUT_CITY_ENDPOINT = '/orders/upload/auto-without-city';
+  private readonly CREATE_BULK_SHIPMENT_ENDPOINT = '/orders/upload/auto';
   private readonly TRACK_SHIPMENT_ENDPOINT = '/tracking';
   private readonly DISTRICTS_ENDPOINT = '/districts';
   private readonly CITIES_ENDPOINT = '/cities';
@@ -209,6 +211,226 @@ export class TransExpressProvider implements ShippingProvider {
       labelUrl: `https://transexpress.lk/print-label/${trackingNumber}`,
       provider: this.getName(),
     };
+  }
+
+  /**
+   * Create multiple shipments in a single API call using city name strings.
+   * Uses the TransExpress 'bulk-auto-without-city' endpoint.
+   * Returns per-order results (success or error) keyed by order_no.
+   */
+  async createBulkShipmentsByCityName(
+    orders: Array<{
+      orderId: string;
+      orderNo: string;
+      customerName: string;
+      customerAddress: string;
+      customerCity: string;
+      customerPhone: string;
+      customerSecondPhone?: string;
+      orderTotal?: number;
+      weight?: number;
+    }>
+  ): Promise<Array<{ orderId: string; orderNo: string; trackingNumber?: string; labelUrl?: string; error?: string }>> {
+    // Bulk endpoint field names (from API docs example — note: different from single-order endpoints)
+    const payload = orders.map((o) => ({
+      order_id: o.orderNo,
+      customer_name: o.customerName,
+      address: o.customerAddress,
+      city: o.customerCity,
+      order_description: `${o.weight ?? 1}kg package`,
+      customer_phone: o.customerPhone,
+      customer_phone2: o.customerSecondPhone || '',
+      cod_amount: o.orderTotal || 0,
+      remarks: 'Shipped via JNEX',
+    }));
+
+    let response: any;
+    try {
+      response = await this.makeRequest(this.CREATE_BULK_SHIPMENT_WITHOUT_CITY_ENDPOINT, 'POST', payload);
+    } catch (err: any) {
+      // Handle 422 validation errors — parse per-order errors from the API response
+      const errMsg = err?.message || '';
+      const bodyMatch = errMsg.match(/body: ([\s\S]+)$/);
+      if (bodyMatch) {
+        try {
+          const errorBody = JSON.parse(bodyMatch[1]);
+          if (errorBody.errors && typeof errorBody.errors === 'object') {
+            // Trans Express returns errors keyed like "0.customer_phone", "1.address" etc.
+            // Map them back to per-order results
+            const perOrderErrors: Record<number, string[]> = {};
+            for (const [key, messages] of Object.entries(errorBody.errors)) {
+              const idx = parseInt(key.split('.')[0], 10);
+              const field = key.split('.').slice(1).join('.');
+              if (!isNaN(idx)) {
+                if (!perOrderErrors[idx]) perOrderErrors[idx] = [];
+                const msgs = Array.isArray(messages) ? messages : [messages];
+                perOrderErrors[idx].push(`${field}: ${msgs.join(', ')}`);
+              }
+            }
+            return orders.map((o, i) => ({
+              orderId: o.orderId,
+              orderNo: o.orderNo,
+              error: perOrderErrors[i]
+                ? perOrderErrors[i].join('; ')
+                : 'Batch rejected due to validation errors in other orders',
+            }));
+          }
+        } catch { /* fall through to generic error */ }
+      }
+      // Generic error — return all orders as failed
+      const genericMsg = err instanceof Error ? err.message : 'Failed to create bulk shipments';
+      return orders.map((o) => ({ orderId: o.orderId, orderNo: o.orderNo, error: genericMsg }));
+    }
+
+    // Normalise response — API returns { success, orders: [...] } or an array directly
+    const orderResults: any[] = Array.isArray(response) ? response : (response.orders ?? []);
+
+    // Build a lookup from order_no/order_id → waybill_id (or error)
+    const resultsByOrderNo: Record<string, any> = {};
+    for (const r of orderResults) {
+      const key = r.order_no || r.order_id;
+      if (key) resultsByOrderNo[key] = r;
+    }
+
+    return orders.map((o) => {
+      const r = resultsByOrderNo[o.orderNo];
+      if (!r) {
+        return { orderId: o.orderId, orderNo: o.orderNo, error: 'No response for this order' };
+      }
+      if (r.waybill_id) {
+        return {
+          orderId: o.orderId,
+          orderNo: o.orderNo,
+          trackingNumber: r.waybill_id,
+          labelUrl: `https://transexpress.lk/print-label/${r.waybill_id}`,
+        };
+      }
+      return { orderId: o.orderId, orderNo: o.orderNo, error: r.error || r.message || 'Unknown error' };
+    });
+  }
+
+  /**
+   * Create multiple shipments using city IDs (precise matching).
+   * Fetches the full city list from Trans Express, resolves each order's city name to an ID,
+   * then calls POST /orders/upload/auto with integer city IDs.
+   * Orders whose city name cannot be resolved are returned as per-order errors.
+   */
+  async createBulkShipments(
+    orders: Array<{
+      orderId: string;
+      orderNo: string;
+      customerName: string;
+      customerAddress: string;
+      customerCity: string;
+      customerPhone: string;
+      customerSecondPhone?: string;
+      orderTotal?: number;
+      weight?: number;
+    }>
+  ): Promise<Array<{ orderId: string; orderNo: string; trackingNumber?: string; labelUrl?: string; error?: string }>> {
+    // 1. Fetch all cities and build a case-insensitive name → ID lookup
+    const cityLookup: Record<string, number> = {};
+    try {
+      const cities: Array<{ id: number; text: string }> = await this.makeRequest(this.CITIES_ENDPOINT, 'GET');
+      for (const c of cities) {
+        cityLookup[c.text.toLowerCase()] = c.id;
+      }
+    } catch {
+      const msg = 'Failed to fetch city list from Trans Express';
+      return orders.map((o) => ({ orderId: o.orderId, orderNo: o.orderNo, error: msg }));
+    }
+
+    // 2. Split orders into those with a resolved city ID and those without
+    const resolved: Array<{ order: (typeof orders)[0]; cityId: number }> = [];
+    const unresolved: Array<{ orderId: string; orderNo: string; error: string }> = [];
+
+    for (const o of orders) {
+      const cityId = cityLookup[o.customerCity.toLowerCase()];
+      if (cityId) {
+        resolved.push({ order: o, cityId });
+      } else {
+        unresolved.push({ orderId: o.orderId, orderNo: o.orderNo, error: `City not found: ${o.customerCity}` });
+      }
+    }
+
+    if (resolved.length === 0) return unresolved;
+
+    // 3. Build payload with integer city IDs for /orders/upload/auto
+    const payload = resolved.map(({ order: o, cityId }) => ({
+      order_id: o.orderNo,
+      customer_name: o.customerName,
+      address: o.customerAddress,
+      city: cityId,
+      order_description: `${o.weight ?? 1}kg package`,
+      customer_phone: o.customerPhone,
+      customer_phone2: o.customerSecondPhone || '',
+      cod_amount: o.orderTotal || 0,
+      remarks: 'Shipped via JNEX',
+    }));
+
+    // 4. Call the API — same 422 error handling pattern as createBulkShipmentsByCityName
+    let response: any;
+    try {
+      response = await this.makeRequest(this.CREATE_BULK_SHIPMENT_ENDPOINT, 'POST', payload);
+    } catch (err: any) {
+      const errMsg = err?.message || '';
+      const bodyMatch = errMsg.match(/body: ([\s\S]+)$/);
+      if (bodyMatch) {
+        try {
+          const errorBody = JSON.parse(bodyMatch[1]);
+          if (errorBody.errors && typeof errorBody.errors === 'object') {
+            const perOrderErrors: Record<number, string[]> = {};
+            for (const [key, messages] of Object.entries(errorBody.errors)) {
+              const idx = parseInt(key.split('.')[0], 10);
+              const field = key.split('.').slice(1).join('.');
+              if (!isNaN(idx)) {
+                if (!perOrderErrors[idx]) perOrderErrors[idx] = [];
+                const msgs = Array.isArray(messages) ? messages : [messages];
+                perOrderErrors[idx].push(`${field}: ${msgs.join(', ')}`);
+              }
+            }
+            return [
+              ...resolved.map(({ order: o }, i) => ({
+                orderId: o.orderId,
+                orderNo: o.orderNo,
+                error: perOrderErrors[i] ? perOrderErrors[i].join('; ') : 'Batch rejected due to validation errors in other orders',
+              })),
+              ...unresolved,
+            ];
+          }
+        } catch { /* fall through to generic error */ }
+      }
+      const genericMsg = err instanceof Error ? err.message : 'Failed to create bulk shipments';
+      return [
+        ...resolved.map(({ order: o }) => ({ orderId: o.orderId, orderNo: o.orderNo, error: genericMsg })),
+        ...unresolved,
+      ];
+    }
+
+    // 5. Map the API response back to per-order results
+    const orderResults: any[] = Array.isArray(response) ? response : (response.orders ?? []);
+    const resultsByOrderNo: Record<string, any> = {};
+    for (const r of orderResults) {
+      const key = String(r.order_no || r.order_id);
+      if (key) resultsByOrderNo[key] = r;
+    }
+
+    return [
+      ...resolved.map(({ order: o }) => {
+        const r = resultsByOrderNo[o.orderNo];
+        if (!r) return { orderId: o.orderId, orderNo: o.orderNo, error: 'No response for this order' };
+        if (r.waybill_id) {
+          return {
+            orderId: o.orderId,
+            orderNo: o.orderNo,
+            trackingNumber: r.waybill_id,
+            labelUrl: `https://transexpress.lk/print-label/${r.waybill_id}`,
+          };
+        }
+        return { orderId: o.orderId, orderNo: o.orderNo, error: r.error || r.message || 'Unknown error' };
+      }),
+      ...unresolved,
+    ];
   }
 
   async trackShipment(trackingNumber: string): Promise<ShipmentStatus> {

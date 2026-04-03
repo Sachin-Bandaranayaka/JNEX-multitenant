@@ -1,4 +1,4 @@
-import { getScopedPrismaClient } from '@/lib/prisma';
+import { getScopedPrismaClient, prisma as globalPrisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
@@ -65,11 +65,21 @@ export default async function OrdersPage({
     ...dateConditions,
   };
 
-  const orders = await prisma.order.findMany({
-    where,
-    include: { product: true, lead: true, assignedTo: true },
-    orderBy,
-  });
+  const [orders, tenant] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      include: { product: true, lead: true, assignedTo: true },
+      orderBy,
+    }),
+    globalPrisma.tenant.findUnique({
+      where: { id: user.tenantId },
+      select: { transExpressApiKey: true, transExpressOrderPrefix: true },
+    }),
+  ]);
+
+  const tenantConfig = {
+    hasTransExpress: !!tenant?.transExpressApiKey,
+  };
 
   return (
     <div className="space-y-8 p-4 sm:p-6 lg:p-8 bg-background">
@@ -105,7 +115,7 @@ export default async function OrdersPage({
       </div>
 
       {/* Render the new client component with the fetched data */}
-      <OrdersClient initialOrders={orders} user={user} />
+      <OrdersClient initialOrders={orders} user={user} tenantConfig={tenantConfig} />
     </div>
   );
 }

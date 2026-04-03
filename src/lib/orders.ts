@@ -62,7 +62,7 @@ export async function createOrderFromLead(data: CreateOrderData) {
           lead: { connect: { id: data.leadId } },
           product: { connect: { id: lead.product.id } },
           assignedTo: { connect: { id: data.userId } },
-          status: OrderStatus.PENDING,
+          status: OrderStatus.CONFIRMED,
           quantity: data.quantity,
           total: total,
           discount: discount,
@@ -70,6 +70,7 @@ export async function createOrderFromLead(data: CreateOrderData) {
           customerPhone: csvData.phone,
           customerSecondPhone: csvData.secondPhone || null,
           customerAddress: csvData.address,
+          customerCity: csvData.city || '',
           customerEmail: csvData.email,
           notes: csvData.notes,
           shippingProvider: tenant.defaultShippingProvider || ShippingProvider.FARDA_EXPRESS,
@@ -134,7 +135,7 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus, te
 
     // Validate status transitions with comprehensive business rules
     const validTransitions = {
-      'PENDING': ['CONFIRMED', 'CANCELLED'],
+      'PENDING': ['CONFIRMED', 'SHIPPED', 'CANCELLED'],
       'CONFIRMED': ['SHIPPED', 'CANCELLED'],
       'SHIPPED': ['DELIVERED'], // Cannot cancel shipped orders
       'DELIVERED': ['RETURNED'],

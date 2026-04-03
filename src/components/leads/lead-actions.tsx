@@ -9,6 +9,8 @@ import type { LeadWithDetails } from '@/app/(authenticated)/leads/page';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ShippingModal } from '@/components/orders/shipping-modal';
+import { toast } from 'sonner';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 // Define the structure for a potential duplicate lead
 interface PotentialDuplicate {
@@ -17,8 +19,54 @@ interface PotentialDuplicate {
     confirmedDate: string;
 }
 
-// --- Confirmation Modal Component ---
-function ConfirmationModal({
+// --- Delete Confirmation Modal ---
+function DeleteConfirmModal({
+    isOpen,
+    onClose,
+    onConfirm,
+    isDeleting,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    isDeleting: boolean;
+}) {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+            <div className="w-full max-w-sm rounded-2xl bg-card p-6 shadow-xl ring-1 ring-border">
+                <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-full bg-red-100 dark:bg-red-500/10">
+                        <ExclamationTriangleIcon className="h-5 w-5 text-red-600 dark:text-red-400" />
+                    </div>
+                    <h2 className="text-base font-semibold text-foreground">Delete Lead</h2>
+                </div>
+                <p className="text-sm text-muted-foreground mb-6">
+                    Are you sure you want to delete this lead? This action cannot be undone.
+                </p>
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        disabled={isDeleting}
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-muted text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={isDeleting}
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                    >
+                        {isDeleting ? 'Deleting...' : 'Delete'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- Duplicate Confirmation Modal ---
+function DuplicateConfirmModal({
     isOpen,
     onClose,
     onConfirm,
@@ -35,13 +83,13 @@ function ConfirmationModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-            <div className="w-full max-w-2xl rounded-lg bg-card p-6 shadow-xl ring-1 ring-border">
+            <div className="w-full max-w-2xl rounded-2xl bg-card p-6 shadow-xl ring-1 ring-border">
                 <h2 className="text-xl font-bold text-card-foreground">Potential Duplicate Leads Found</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
                     This customer has recently purchased similar products from other companies.
                 </p>
 
-                <div className="mt-4 h-64 max-h-[50vh] overflow-y-auto rounded-md border border-border">
+                <div className="mt-4 h-64 max-h-[50vh] overflow-y-auto rounded-xl border border-border">
                     <table className="min-w-full divide-y divide-border">
                         <thead className="bg-muted/50 sticky top-0">
                             <tr>
@@ -62,18 +110,18 @@ function ConfirmationModal({
                     </table>
                 </div>
 
-                <div className="mt-6 flex justify-end space-x-4">
+                <div className="mt-6 flex justify-end gap-3">
                     <button
                         onClick={onClose}
                         disabled={isCreating}
-                        className="rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50"
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-muted text-foreground hover:bg-accent transition-colors disabled:opacity-50"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={onConfirm}
                         disabled={isCreating}
-                        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                         {isCreating ? 'Creating...' : 'Proceed Anyway'}
                     </button>
@@ -105,7 +153,9 @@ export function LeadActions({
 }) {
     const router = useRouter();
     const [isCreating, setIsCreating] = useState(false);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [isShippingModalOpen, setIsShippingModalOpen] = useState(false);
     const [potentialDuplicates, setPotentialDuplicates] = useState<PotentialDuplicate[]>([]);
 
@@ -120,10 +170,7 @@ export function LeadActions({
             const response = await fetch('/api/orders/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    leadId: lead.id,
-                    forceCreate: force,
-                }),
+                body: JSON.stringify({ leadId: lead.id, forceCreate: force }),
             });
 
             const result = await response.json();
@@ -132,40 +179,38 @@ export function LeadActions({
                 throw new Error(result.error || 'Failed to process order creation.');
             }
 
-            // If the API requires confirmation, show the modal
             if (result.requiresConfirmation) {
                 setPotentialDuplicates(result.potentialDuplicates);
-                setIsModalOpen(true);
+                setIsDuplicateModalOpen(true);
             } else {
-                // Otherwise, the order was created, so navigate to it
-                setIsModalOpen(false);
+                setIsDuplicateModalOpen(false);
                 router.push(`/orders/${result.id}?returnTo=leads`);
-                onAction(); // Refresh the leads list
+                onAction();
             }
         } catch (err) {
-            alert(err instanceof Error ? err.message : 'An unknown error occurred.');
-            setIsModalOpen(false);
+            toast.error(err instanceof Error ? err.message : 'An unknown error occurred.');
+            setIsDuplicateModalOpen(false);
         } finally {
             setIsCreating(false);
         }
     };
 
     const handleDelete = async () => {
-        // NOTE: Using a custom modal for this would be better than confirm()
-        if (confirm('Are you sure you want to delete this lead? This action cannot be undone.')) {
-            try {
-                const response = await fetch(`/api/leads/${lead.id}`, {
-                    method: 'DELETE',
-                });
+        setIsDeleting(true);
+        try {
+            const response = await fetch(`/api/leads/${lead.id}`, { method: 'DELETE' });
 
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to delete lead');
-                }
-                onAction();
-            } catch (err) {
-                alert(err instanceof Error ? err.message : 'An error occurred.');
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to delete lead');
             }
+            setIsDeleteModalOpen(false);
+            toast.success('Lead deleted.');
+            onAction();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'An error occurred.');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -182,27 +227,26 @@ export function LeadActions({
                 throw new Error(error.error || 'Failed to update status');
             }
 
-            onAction(); // Refresh the leads list
+            onAction();
         } catch (err) {
-            alert(err instanceof Error ? err.message : 'An error occurred.');
+            toast.error(err instanceof Error ? err.message : 'An error occurred.');
         }
     };
 
-    // Check if order can be shipped (PENDING or CONFIRMED status and not already shipped)
+    // Check if order can be shipped
     const canShipOrder = lead.order &&
         ['PENDING', 'CONFIRMED'].includes(lead.order.status) &&
         !lead.order.shippingProvider &&
         canCreateOrder;
 
-    // Only render actions for PENDING, NO_ANSWER leads, or orders that can be shipped
     if (lead.status !== 'PENDING' && lead.status !== 'NO_ANSWER' && !canShipOrder) {
         return null;
     }
 
     return (
         <>
-            <div className="flex items-center space-x-3">
-                {/* Ship Order Button for orders that can be shipped */}
+            <div className="flex items-center flex-wrap gap-2">
+                {/* Ship Order Button */}
                 {canShipOrder && (
                     <button
                         onClick={() => setIsShippingModalOpen(true)}
@@ -215,7 +259,6 @@ export function LeadActions({
                 {/* Actions for PENDING leads */}
                 {lead.status === 'PENDING' && (
                     <>
-                        {/* --- CREATE ORDER BUTTON --- */}
                         {canCreateOrder && !lead.order && (
                             <button
                                 onClick={() => handleCreateOrder(false)}
@@ -237,7 +280,7 @@ export function LeadActions({
 
                         {canDelete && (
                             <button
-                                onClick={handleDelete}
+                                onClick={() => setIsDeleteModalOpen(true)}
                                 className="px-3 py-1.5 rounded-full text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors"
                             >
                                 Delete
@@ -254,7 +297,7 @@ export function LeadActions({
                                 onClick={() => handleStatusChange('PENDING')}
                                 className="px-3 py-1.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-600 hover:bg-yellow-100 dark:bg-yellow-500/10 dark:text-yellow-400 dark:hover:bg-yellow-500/20 transition-colors"
                             >
-                                Move to Pending
+                                Retry
                             </button>
                         )}
 
@@ -269,7 +312,7 @@ export function LeadActions({
 
                         {canDelete && (
                             <button
-                                onClick={handleDelete}
+                                onClick={() => setIsDeleteModalOpen(true)}
                                 className="px-3 py-1.5 rounded-full text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors"
                             >
                                 Delete
@@ -288,16 +331,21 @@ export function LeadActions({
                 )}
             </div>
 
-            {/* --- RENDER THE CONFIRMATION MODAL --- */}
-            <ConfirmationModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+            <DeleteConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleDelete}
+                isDeleting={isDeleting}
+            />
+
+            <DuplicateConfirmModal
+                isOpen={isDuplicateModalOpen}
+                onClose={() => setIsDuplicateModalOpen(false)}
                 onConfirm={() => handleCreateOrder(true)}
                 duplicates={potentialDuplicates}
                 isCreating={isCreating}
             />
 
-            {/* --- RENDER THE SHIPPING MODAL --- */}
             {canShipOrder && lead.order && tenantConfig && (
                 <ShippingModal
                     isOpen={isShippingModalOpen}

@@ -3,7 +3,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { User } from 'next-auth';
 import { Product } from '@prisma/client';
 import { LeadDetails, type Lead as LeadDetailsType } from './lead-details';
@@ -19,8 +19,9 @@ interface LeadDetailsClientProps {
 
 export function LeadDetailsClient({ initialLead, products, user }: LeadDetailsClientProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [lead, setLead] = useState(initialLead);
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditing, setIsEditing] = useState(searchParams.get('edit') === 'true' && lead.status === 'PENDING');
 
     // --- PERMISSION CHECK ---
     const canEdit = user.role === 'ADMIN' || user.permissions?.includes('EDIT_LEADS');
@@ -53,7 +54,7 @@ export function LeadDetailsClient({ initialLead, products, user }: LeadDetailsCl
                     </p>
                 </div>
                 {/* --- PERMISSION-BASED UI --- */}
-                {canEdit && !isEditing && (
+                {canEdit && !isEditing && lead.status === 'PENDING' && (
                     <button
                         onClick={() => setIsEditing(true)}
                         className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"

@@ -103,6 +103,60 @@ async function getDashboardData(tenantId: string) {
     const convertedLeads = allTimeLeads.filter(l => l.status === LeadStatus.CONFIRMED).length;
     const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
 
+    // Fetch reminder data
+    const todayEnd = new Date(todayStart);
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const [overdueReminders, todayReminders, upcomingReminders] = await Promise.all([
+        prisma.lead.findMany({
+            where: {
+                reminderDate: { lt: todayStart },
+                status: { in: ['PENDING', 'NO_ANSWER'] },
+            },
+            select: {
+                id: true,
+                csvData: true,
+                reminderDate: true,
+                reminderNote: true,
+                product: { select: { name: true } },
+                assignedTo: { select: { name: true } },
+            },
+            orderBy: { reminderDate: 'asc' },
+            take: 10,
+        }),
+        prisma.lead.findMany({
+            where: {
+                reminderDate: { gte: todayStart, lte: todayEnd },
+                status: { in: ['PENDING', 'NO_ANSWER'] },
+            },
+            select: {
+                id: true,
+                csvData: true,
+                reminderDate: true,
+                reminderNote: true,
+                product: { select: { name: true } },
+                assignedTo: { select: { name: true } },
+            },
+            orderBy: { reminderDate: 'asc' },
+        }),
+        prisma.lead.findMany({
+            where: {
+                reminderDate: { gt: todayEnd },
+                status: { in: ['PENDING', 'NO_ANSWER'] },
+            },
+            select: {
+                id: true,
+                csvData: true,
+                reminderDate: true,
+                reminderNote: true,
+                product: { select: { name: true } },
+                assignedTo: { select: { name: true } },
+            },
+            orderBy: { reminderDate: 'asc' },
+            take: 10,
+        }),
+    ]);
+
     return {
         daily: buildPeriodData(todayStart, yesterdayStart, todayStart),
         weekly: buildPeriodData(weekStart, prevWeekStart, weekStart),
@@ -115,6 +169,11 @@ async function getDashboardData(tenantId: string) {
         leadsByStatus,
         noStockCount,
         lowStockCount,
+        reminders: {
+            overdue: overdueReminders as any[],
+            today: todayReminders as any[],
+            upcoming: upcomingReminders as any[],
+        },
     };
 }
 

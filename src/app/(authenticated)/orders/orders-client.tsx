@@ -35,44 +35,65 @@ const STATUS_CONFIG = {
   PENDING: {
     label: 'Pending',
     color: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 ring-yellow-500/20',
-    rowColor: 'border-l-4 border-yellow-400 bg-yellow-50/40 dark:bg-yellow-900/10',
+    rowColor: 'bg-amber-100 dark:bg-amber-900/30',
+    badgeColor: 'bg-yellow-600 text-white',
+    dotColor: 'bg-yellow-400',
     filterActive: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 ring-1 ring-yellow-400/50',
     icon: ClockIcon
   },
   CONFIRMED: {
     label: 'Confirmed',
     color: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 ring-blue-500/20',
-    rowColor: 'border-l-4 border-blue-400 bg-blue-50/40 dark:bg-blue-900/10',
+    rowColor: 'bg-blue-100 dark:bg-blue-900/30',
+    badgeColor: 'bg-blue-600 text-white',
+    dotColor: 'bg-blue-500',
     filterActive: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 ring-1 ring-blue-400/50',
     icon: CheckCircleIcon
   },
   SHIPPED: {
     label: 'Shipped',
     color: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 ring-purple-500/20',
-    rowColor: 'border-l-4 border-purple-400 bg-purple-50/40 dark:bg-purple-900/10',
+    rowColor: 'bg-purple-100 dark:bg-purple-900/30',
+    badgeColor: 'bg-purple-600 text-white',
+    dotColor: 'bg-purple-500',
     filterActive: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 ring-1 ring-purple-400/50',
     icon: TruckIcon
   },
   DELIVERED: {
     label: 'Delivered',
     color: 'bg-green-500/10 text-green-700 dark:text-green-400 ring-green-500/20',
-    rowColor: 'border-l-4 border-green-400 bg-green-50/40 dark:bg-green-900/10',
+    rowColor: 'bg-green-100 dark:bg-green-900/30',
+    badgeColor: 'bg-green-600 text-white',
+    dotColor: 'bg-green-500',
     filterActive: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 ring-1 ring-green-400/50',
     icon: CheckCircleIcon
   },
   RETURNED: {
     label: 'Returned',
     color: 'bg-red-500/10 text-red-700 dark:text-red-400 ring-red-500/20',
-    rowColor: 'border-l-4 border-red-400 bg-red-50/40 dark:bg-red-900/10',
+    rowColor: 'bg-red-100 dark:bg-red-900/30',
+    badgeColor: 'bg-red-600 text-white',
+    dotColor: 'bg-red-500',
     filterActive: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-400/50',
     icon: ArrowPathIcon
   },
   CANCELLED: {
     label: 'Cancelled',
     color: 'bg-gray-500/10 text-gray-700 dark:text-gray-400 ring-gray-500/20',
-    rowColor: 'border-l-4 border-gray-400 bg-gray-50/40 dark:bg-gray-900/10',
+    rowColor: 'bg-gray-100 dark:bg-gray-800/50',
+    badgeColor: 'bg-gray-600 text-white',
+    dotColor: 'bg-gray-400',
     filterActive: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400 ring-1 ring-gray-400/50',
     icon: XCircleIcon
+  },
+  RESCHEDULED: {
+    label: 'Rescheduled',
+    color: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 ring-orange-500/20',
+    rowColor: 'bg-orange-100 dark:bg-orange-900/30',
+    badgeColor: 'bg-orange-600 text-white',
+    dotColor: 'bg-orange-400',
+    filterActive: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 ring-1 ring-orange-400/50',
+    icon: ArrowPathIcon
   },
 };
 
@@ -410,8 +431,18 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
         })}
       </div>
 
+      {/* Status Legend */}
+      <div className="flex flex-wrap items-center gap-4 text-sm">
+        {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+          <div key={key} className="flex items-center gap-1.5">
+            <span className={`h-3 w-3 rounded-full ${cfg.dotColor}`} />
+            <span className="text-muted-foreground">{cfg.label}</span>
+          </div>
+        ))}
+      </div>
+
       {/* Table */}
-      <div className="bg-white dark:bg-card rounded-2xl border border-border/50 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
         {orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="p-4 rounded-full bg-muted mb-4">
@@ -424,8 +455,8 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border/50 bg-muted/30">
-                  <th className="px-4 py-3 w-10">
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="px-3 py-2 w-8">
                     <input
                       type="checkbox"
                       className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
@@ -433,19 +464,20 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
                       onChange={handleSelectAll}
                     />
                   </th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Order #</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Product</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Date</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Total</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Actions</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Order #</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Customer</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden md:table-cell">Product</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden lg:table-cell">Tracking No</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Status</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden sm:table-cell">Date</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs hidden sm:table-cell">Total</th>
+                  <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">
                 {displayedOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground text-sm">
+                    <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground text-sm">
                       No orders in this category
                     </td>
                   </tr>
@@ -457,7 +489,7 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
                         key={order.id}
                         className={`${config?.rowColor ?? ''} hover:brightness-95 dark:hover:brightness-110 transition-all`}
                       >
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2">
                           <input
                             type="checkbox"
                             className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
@@ -465,21 +497,27 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
                             onChange={() => handleSelectOrder(order.id)}
                           />
                         </td>
-                        <td className="px-4 py-3">
-                          <Link
-                            href={`/orders/${order.id}`}
-                            className="font-bold text-foreground hover:text-primary transition-colors"
-                          >
-                            #{order.number || order.id.slice(0, 8)}
+                        <td className="px-3 py-2">
+                          <Link href={`/orders/${order.id}`}>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${config?.badgeColor ?? 'bg-gray-500 text-white'}`}>
+                              {order.number || order.id.slice(0, 8)}
+                            </span>
                           </Link>
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground max-w-[140px] truncate">
+                        <td className="px-3 py-2 font-medium text-foreground max-w-[140px] truncate">
                           {order.customerName}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground hidden md:table-cell max-w-[160px] truncate">
+                        <td className="px-3 py-2 text-muted-foreground hidden md:table-cell max-w-[160px] truncate text-xs">
                           {order.product.name}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2 hidden lg:table-cell">
+                          {order.trackingNumber ? (
+                            <span className="text-xs text-primary font-medium">{order.trackingNumber}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
                           {config && (
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${config.color}`}>
                               <config.icon className="h-3 w-3" />
@@ -487,17 +525,17 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground hidden sm:table-cell whitespace-nowrap">
+                        <td className="px-3 py-2 text-xs text-muted-foreground hidden sm:table-cell whitespace-nowrap">
                           {new Date(order.createdAt).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric'
                           })}
                         </td>
-                        <td className="px-4 py-3 text-right text-xs font-semibold text-foreground hidden sm:table-cell whitespace-nowrap">
+                        <td className="px-3 py-2 text-right text-xs font-semibold text-foreground hidden sm:table-cell whitespace-nowrap">
                           {order.total > 0 ? `LKR ${order.total.toLocaleString()}` : '—'}
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-3 py-2 text-right">
                           <OrderActions order={order} user={user} />
                         </td>
                       </tr>

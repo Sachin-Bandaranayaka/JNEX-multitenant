@@ -13,7 +13,9 @@ import {
     DocumentTextIcon,
     CubeIcon,
     HashtagIcon,
-    CurrencyDollarIcon
+    CurrencyDollarIcon,
+    BellAlertIcon,
+    CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 
 interface Product {
@@ -39,6 +41,8 @@ export interface Lead {
     };
     productCode: string;
     product: Product;
+    reminderDate?: string | null;
+    reminderNote?: string | null;
 }
 
 interface LeadEditFormProps {
@@ -61,6 +65,8 @@ const leadSchema = z.object({
     productCode: z.string().min(1, 'Product is required'),
     quantity: z.number().int().positive().default(1),
     discount: z.number().min(0).default(0),
+    reminderDate: z.string().optional().nullable(),
+    reminderNote: z.string().optional().nullable(),
 });
 
 type LeadFormData = z.infer<typeof leadSchema>;
@@ -81,6 +87,8 @@ export function LeadEditForm({ lead, products, onSuccess, onCancel, isModal = fa
         productCode: lead.productCode || '',
         quantity: lead.csvData.quantity || 1,
         discount: lead.csvData.discount || 0,
+        reminderDate: lead.reminderDate ? new Date(lead.reminderDate).toISOString().split('T')[0] : '',
+        reminderNote: lead.reminderNote || '',
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -112,6 +120,8 @@ export function LeadEditForm({ lead, products, onSuccess, onCancel, isModal = fa
                         discount: validatedData.discount,
                     },
                     productCode: validatedData.productCode,
+                    reminderDate: validatedData.reminderDate ? new Date(validatedData.reminderDate).toISOString() : null,
+                    reminderNote: validatedData.reminderNote || null,
                 }),
             });
 
@@ -337,6 +347,41 @@ export function LeadEditForm({ lead, products, onSuccess, onCancel, isModal = fa
                             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                             rows={3}
                             className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5 resize-none"
+                        />
+                    </div>
+                </div>
+
+                {/* Reminder Date */}
+                <div>
+                    <label htmlFor="reminderDate" className="block text-sm font-medium text-muted-foreground mb-2">
+                        Reminder Date
+                    </label>
+                    <div className="relative">
+                        <CalendarDaysIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input
+                            type="date"
+                            id="reminderDate"
+                            value={formData.reminderDate || ''}
+                            onChange={(e) => setFormData({ ...formData, reminderDate: e.target.value || null })}
+                            className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5"
+                        />
+                    </div>
+                </div>
+
+                {/* Reminder Note */}
+                <div>
+                    <label htmlFor="reminderNote" className="block text-sm font-medium text-muted-foreground mb-2">
+                        Reminder Note
+                    </label>
+                    <div className="relative">
+                        <BellAlertIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input
+                            type="text"
+                            id="reminderNote"
+                            value={formData.reminderNote || ''}
+                            onChange={(e) => setFormData({ ...formData, reminderNote: e.target.value })}
+                            placeholder="e.g., Call back after 3pm"
+                            className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5"
                         />
                     </div>
                 </div>

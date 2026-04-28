@@ -8,7 +8,7 @@ import { z } from 'zod';
 export const dynamic = 'force-dynamic';
 
 const statusSchema = z.object({
-    status: z.enum(['PENDING', 'CONFIRMED', 'NO_ANSWER', 'REJECTED']),
+    status: z.enum(['PENDING', 'CONFIRMED', 'NO_ANSWER', 'REJECTED', 'DELETED']),
 });
 
 export async function PUT(

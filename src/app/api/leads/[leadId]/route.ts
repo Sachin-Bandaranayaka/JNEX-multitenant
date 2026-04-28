@@ -7,6 +7,8 @@ import { z } from 'zod';
 const leadUpdateSchema = z.object({
   productCode: z.string(),
   csvData: z.any(),
+  reminderDate: z.string().nullable().optional(),
+  reminderNote: z.string().nullable().optional(),
 });
 import { Prisma } from '@prisma/client';
 
@@ -156,6 +158,8 @@ export async function PUT(
       data: {
         csvData: validatedData.csvData as unknown as Prisma.JsonObject,
         productCode: validatedData.productCode,
+        reminderDate: validatedData.reminderDate ? new Date(validatedData.reminderDate) : null,
+        reminderNote: validatedData.reminderNote ?? null,
       },
       include: {
         product: true,

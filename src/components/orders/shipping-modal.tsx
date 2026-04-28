@@ -31,6 +31,7 @@ interface ShippingModalProps {
     transExpressOrderPrefix?: string;
     royalExpressOrderPrefix?: string;
     tenantId?: string;
+    orderNumber?: number;
     onSuccess?: () => void;
 }
 
@@ -46,6 +47,7 @@ export function ShippingModal({
     transExpressOrderPrefix,
     royalExpressOrderPrefix,
     tenantId,
+    orderNumber,
     onSuccess,
 }: ShippingModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -134,6 +136,7 @@ export function ShippingModal({
                                     transExpressOrderPrefix={transExpressOrderPrefix}
                                     royalExpressOrderPrefix={royalExpressOrderPrefix}
                                     tenantId={tenantId}
+                                    orderNumber={orderNumber}
                                     onSuccess={handleSuccess}
                                 />
                             </Dialog.Panel>

@@ -152,6 +152,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                                         transExpressOrderPrefix={tenant.transExpressOrderPrefix || undefined}
                                         royalExpressOrderPrefix={tenant.royalExpressOrderPrefix || undefined}
                                         tenantId={tenant.id}
+                                        orderNumber={order.number}
                                     />
                                 </div>
                             </div>

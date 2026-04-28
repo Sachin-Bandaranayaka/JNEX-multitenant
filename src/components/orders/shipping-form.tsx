@@ -43,6 +43,7 @@ interface ShippingFormProps {
     transExpressOrderPrefix?: string;
     royalExpressOrderPrefix?: string;
     tenantId?: string;
+    orderNumber?: number;
     onSuccess?: () => void;
 }
 
@@ -58,6 +59,7 @@ export function ShippingForm({
     transExpressOrderPrefix,
     royalExpressOrderPrefix,
     tenantId,
+    orderNumber,
     onSuccess,
 }: ShippingFormProps) {
     const router = useRouter();
@@ -332,6 +334,7 @@ export function ShippingForm({
                         service: 'Standard',
                         orderTotal: codAmount,
                         orderPrefix: transExpressOrderPrefix,
+                        orderNumber: orderNumber,
                     }),
                 });
 

@@ -33,6 +33,7 @@ export async function GET(request: Request) {
                     { customerName: { contains: query, mode: 'insensitive' } },
                     { customerPhone: { contains: query, mode: 'insensitive' } },
                     { id: { contains: query, mode: 'insensitive' } },
+                    { trackingNumber: { contains: query, mode: 'insensitive' } },
                 ],
             },
             include: {

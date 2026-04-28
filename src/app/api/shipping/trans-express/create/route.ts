@@ -27,6 +27,7 @@ export async function POST(request: Request) {
       service,
       orderTotal,
       orderPrefix,
+      orderNumber,
     } = body;
 
     // Validate required fields
@@ -79,7 +80,8 @@ export async function POST(request: Request) {
       orderTotal || 0,
       tenantId,
       orderId,
-      orderPrefix
+      orderPrefix,
+      orderNumber
     );
 
     return NextResponse.json({

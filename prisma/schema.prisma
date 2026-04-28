@@ -21,6 +21,7 @@ enum LeadStatus {
   CONFIRMED
   NO_ANSWER
   REJECTED
+  DELETED
 }
 
 enum OrderStatus {
@@ -143,6 +144,7 @@ model Product {
 
 model Lead {
   id            String     @id @default(uuid())
+  number        Int        @default(autoincrement())
   csvData       Json
   productCode   String
   product       Product    @relation(fields: [productCode, tenantId], references: [code, tenantId])
@@ -151,6 +153,9 @@ model Lead {
   userId        String?
   order         Order?
   callAttempts  Int        @default(0)
+  notes         String?
+  reminderDate  DateTime?
+  reminderNote  String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
@@ -160,6 +165,7 @@ model Lead {
   @@index([productCode])
   @@index([userId])
   @@index([tenantId])
+  @@index([reminderDate])
 }
 
 model Order {

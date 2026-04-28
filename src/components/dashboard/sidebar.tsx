@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -17,7 +18,9 @@ import {
     CogIcon,
     ArrowRightOnRectangleIcon,
     XMarkIcon,
-    BuildingStorefrontIcon
+    BuildingStorefrontIcon,
+    ChevronDownIcon,
+    ArrowUturnLeftIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -69,6 +72,60 @@ function NavLink({ href, icon, children, isActive, onClick, isOpen, isMobile }: 
                 )}
             </div>
         </Link>
+    );
+}
+
+function NavGroup({ icon, label, isActive, isOpen, isMobile, links, pathname, onNavigate }: {
+    icon: React.ReactNode;
+    label: string;
+    isActive: boolean;
+    isOpen: boolean;
+    isMobile: boolean;
+    links: { href: string; label: string }[];
+    pathname: string;
+    onNavigate?: () => void;
+}) {
+    const [expanded, setExpanded] = useState(isActive);
+    const showText = isOpen || isMobile;
+
+    return (
+        <div>
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className={`flex items-center gap-3 w-full rounded-xl px-3 py-2.5 transition-all duration-200 group ${isActive
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    }`}
+            >
+                <div className="flex-shrink-0">{icon}</div>
+                {showText && (
+                    <>
+                        <span className="font-medium whitespace-nowrap flex-1 text-left">{label}</span>
+                        <ChevronDownIcon className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+                    </>
+                )}
+            </button>
+            {expanded && showText && (
+                <div className="ml-5 mt-1 space-y-0.5 border-l-2 border-border/50 pl-3">
+                    {links.map((link) => {
+                        const linkActive = pathname === link.href;
+                        return (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                onClick={onNavigate}
+                                className={`block rounded-lg px-3 py-2 text-sm transition-colors ${linkActive
+                                    ? 'bg-primary text-primary-foreground font-medium'
+                                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                                    }`}
+                            >
+                                {link.label}
+                            </Link>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -205,42 +262,36 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userPer
                     )}
 
                     {(userRole === 'ADMIN' || userPermissions.includes('VIEW_ORDERS')) && (
-                        <NavLink
-                            href="/orders"
+                        <NavGroup
                             icon={<ClipboardDocumentListIcon className="h-5 w-5" />}
-                            isActive={pathname.startsWith('/orders')}
-                            onClick={closeMobileSidebar}
+                            label="Orders"
+                            isActive={pathname.startsWith('/orders') || pathname.startsWith('/search')}
                             isOpen={isOpen}
                             isMobile={isMobile}
-                        >
-                            Orders
-                        </NavLink>
+                            links={[
+                                { href: '/orders', label: 'Order List' },
+                                { href: '/search', label: 'Search Orders' },
+                            ]}
+                            pathname={pathname}
+                            onNavigate={closeMobileSidebar}
+                        />
                     )}
 
                     {(userRole === 'ADMIN' || userPermissions.includes('VIEW_LEADS')) && (
-                        <NavLink
-                            href="/leads"
+                        <NavGroup
                             icon={<UsersIcon className="h-5 w-5" />}
+                            label="Leads"
                             isActive={pathname.startsWith('/leads')}
-                            onClick={closeMobileSidebar}
                             isOpen={isOpen}
                             isMobile={isMobile}
-                        >
-                            Leads
-                        </NavLink>
-                    )}
-
-                    {(userRole === 'ADMIN' || userPermissions.includes('VIEW_SEARCH')) && (
-                        <NavLink
-                            href="/search"
-                            icon={<MagnifyingGlassIcon className="h-5 w-5" />}
-                            isActive={pathname.startsWith('/search')}
-                            onClick={closeMobileSidebar}
-                            isOpen={isOpen}
-                            isMobile={isMobile}
-                        >
-                            Search
-                        </NavLink>
+                            links={[
+                                { href: '/leads/import', label: 'Import Lead' },
+                                { href: '/leads', label: 'Lead List' },
+                                { href: '/leads/remind-leads', label: 'Remind Leads' },
+                            ]}
+                            pathname={pathname}
+                            onNavigate={closeMobileSidebar}
+                        />
                     )}
 
                     {(userRole === 'ADMIN' || userPermissions.includes('VIEW_SHIPPING')) && (
@@ -255,6 +306,20 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userPer
                             Shipping
                         </NavLink>
                     )}
+
+                    <NavGroup
+                        icon={<ArrowUturnLeftIcon className="h-5 w-5" />}
+                        label="Return"
+                        isActive={pathname.startsWith('/returns')}
+                        isOpen={isOpen}
+                        isMobile={isMobile}
+                        links={[
+                            { href: '/returns/add-return', label: 'Add Return' },
+                            { href: '/returns/returned-list', label: 'Returned List' },
+                        ]}
+                        pathname={pathname}
+                        onNavigate={closeMobileSidebar}
+                    />
 
                     <NavLink
                         href="/store"

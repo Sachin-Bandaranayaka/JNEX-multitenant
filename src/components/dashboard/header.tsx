@@ -1,6 +1,6 @@
 'use client';
 
-import { MagnifyingGlassIcon, Bars3Icon } from '@heroicons/react/24/outline';
+import { Bars3Icon } from '@heroicons/react/24/outline';
 import { Notifications } from './notifications';
 import { Tenant } from '@prisma/client';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -17,15 +17,6 @@ export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; user
                 >
                     <Bars3Icon className="h-6 w-6" />
                 </button>
-
-                <div className="relative w-full max-w-md hidden sm:block">
-                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                        type="text"
-                        placeholder="Try searching 'insights'..."
-                        className="h-10 w-full rounded-full border-none bg-muted/50 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20"
-                    />
-                </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
                 <Notifications />

@@ -103,17 +103,36 @@ export class TransExpressProvider implements ShippingProvider {
 
   /**
    * Generate a structured order_no for multi-tenant tracking.
-   * Format: {orderPrefix}-{orderId short} or {tenantId short}-{orderId short} or random fallback.
+   * Format: {PREFIX}-{orderNumber}-{DDMMYY}
+   * Examples: "SHOP1-1542-290426", "ABC-87-290426"
+   * 
+   * This ensures uniqueness across tenants sharing the same Trans Express API key:
+   * - PREFIX: tenant-specific identifier set in admin (e.g., "SHOP1", "ABC", "JNEX")
+   * - orderNumber: auto-increment order number from the database
+   * - DDMMYY: date stamp for additional uniqueness
+   *
+   * If no prefix/orderNumber, falls back to prefix + random.
    */
-  private generateOrderNo(tenantId?: string, orderId?: string, orderPrefix?: string): string {
-    if (tenantId && orderId) {
-      // Use custom prefix if provided, otherwise first 8 chars of tenantId
-      const prefix = orderPrefix || tenantId.substring(0, 8).toUpperCase();
-      const orderShort = orderId.substring(0, 8).toUpperCase();
-      return `${prefix}-${orderShort}`;
+  private generateOrderNo(tenantId?: string, orderId?: string, orderPrefix?: string, orderNumber?: number): string {
+    const prefix = orderPrefix || (tenantId ? tenantId.substring(0, 6).toUpperCase() : 'ORD');
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    const datePart = `${dd}${mm}${yy}`;
+
+    if (orderNumber) {
+      return `${prefix}-${orderNumber}-${datePart}`;
     }
-    // Fallback to random number if no tenant/order info
-    return Math.floor(Math.random() * 100000000).toString();
+
+    // Fallback: use first 6 chars of orderId if available
+    if (orderId) {
+      const orderShort = orderId.substring(0, 6).toUpperCase();
+      return `${prefix}-${orderShort}-${datePart}`;
+    }
+
+    // Last resort: prefix + random
+    return `${prefix}-${Math.floor(Math.random() * 100000)}-${datePart}`;
   }
 
   async createShipment(
@@ -126,11 +145,12 @@ export class TransExpressProvider implements ShippingProvider {
     orderTotal?: number,
     tenantId?: string,
     orderId?: string,
-    orderPrefix?: string
+    orderPrefix?: string,
+    orderNumber?: number
   ): Promise<ShippingLabel> {
     // Map our data to Trans Express API format
     const data: any = {
-      order_no: this.generateOrderNo(tenantId, orderId, orderPrefix),
+      order_no: this.generateOrderNo(tenantId, orderId, orderPrefix, orderNumber),
       customer_name: destination.name,
       address: destination.street,
       description: `${packageDetails.weight}kg package - ${service}`,
@@ -182,10 +202,11 @@ export class TransExpressProvider implements ShippingProvider {
     orderTotal?: number,
     tenantId?: string,
     orderId?: string,
-    orderPrefix?: string
+    orderPrefix?: string,
+    orderNumber?: number
   ): Promise<ShippingLabel> {
     const data = {
-      order_no: this.generateOrderNo(tenantId, orderId, orderPrefix),
+      order_no: this.generateOrderNo(tenantId, orderId, orderPrefix, orderNumber),
       customer_name: destination.name,
       address: destination.street,
       city: cityName,

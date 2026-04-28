@@ -198,7 +198,12 @@ export function LeadActions({
     const handleDelete = async () => {
         setIsDeleting(true);
         try {
-            const response = await fetch(`/api/leads/${lead.id}`, { method: 'DELETE' });
+            // Soft delete: set status to DELETED instead of hard deleting
+            const response = await fetch(`/api/leads/${lead.id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'DELETED' }),
+            });
 
             if (!response.ok) {
                 const error = await response.json();
@@ -271,7 +276,7 @@ export function LeadActions({
 
                         {canEdit && (
                             <Link
-                                href={`/leads/${lead.id}`}
+                                href={`/leads/${lead.id}?edit=true`}
                                 className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                             >
                                 Edit
@@ -321,7 +326,7 @@ export function LeadActions({
 
                         {canEdit && (
                             <Link
-                                href={`/leads/${lead.id}`}
+                                href={`/leads/${lead.id}?edit=true`}
                                 className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                             >
                                 Edit
@@ -370,6 +375,7 @@ export function LeadActions({
                     royalExpressApiKey={tenantConfig.royalExpressApiKey}
                     transExpressOrderPrefix={tenantConfig.transExpressOrderPrefix}
                     royalExpressOrderPrefix={tenantConfig.royalExpressOrderPrefix}
+                    orderNumber={lead.order.number}
                     onSuccess={onAction}
                 />
             )}

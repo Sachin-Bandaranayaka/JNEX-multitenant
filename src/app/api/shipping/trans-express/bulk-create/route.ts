@@ -64,6 +64,12 @@ export async function POST(request: Request) {
     const provider = new TransExpressProvider(tenant.transExpressApiKey);
     const prefix = tenant.transExpressOrderPrefix || undefined;
 
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    const datePart = `${dd}${mm}${yy}`;
+
     const shipmentInputs = orders.map((o) => {
       // Use customerCity if available, otherwise fall back to the lead's CSV city data
       const leadCsvData = o.lead?.csvData as any;
@@ -79,9 +85,12 @@ export async function POST(request: Request) {
         }
       }
 
+      // Generate order_no: PREFIX-NUMBER-DDMMYY
+      const orderNo = `${prefix || 'ORD'}-${o.number}-${datePart}`;
+
       return {
         orderId: o.id,
-        orderNo: o.number?.toString() || parseInt(o.id.replace(/\D/g, '').substring(0, 8), 10).toString(),
+        orderNo,
         customerName: o.customerName,
         customerAddress: o.customerAddress,
         customerCity: city,

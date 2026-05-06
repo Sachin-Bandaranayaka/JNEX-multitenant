@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
@@ -32,53 +32,75 @@ import {
   BellAlertIcon,
 } from '@heroicons/react/24/outline';
 
+// Production-grade status palette: each status has a clearly distinct hue,
+// a colored left-border stripe, a strong row tint, and a pill badge.
 const STATUS_CONFIG = {
   PENDING: {
     label: 'Pending',
-    color: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 ring-yellow-500/20',
-    rowColor: 'bg-amber-100 dark:bg-amber-900/30',
-    badgeColor: 'bg-blue-600 text-white',
-    filterActive: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 ring-1 ring-yellow-400/50',
-    dotColor: 'bg-gray-400',
+    rowBg: 'bg-amber-50 dark:bg-amber-950/40',
+    leftBorder: 'border-l-amber-400 dark:border-l-amber-500',
+    badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 ring-1 ring-amber-300/60 dark:ring-amber-700/60',
+    numBadge: 'bg-amber-500 text-white',
+    dot: 'bg-amber-400',
+    chipActive: 'bg-amber-500 text-white border-amber-500 shadow-sm',
+    chipIdle: 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60 dark:hover:bg-amber-950/70',
     icon: ClockIcon,
   },
   NO_ANSWER: {
     label: 'No Answer',
-    color: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 ring-orange-500/20',
-    rowColor: 'bg-yellow-50 dark:bg-yellow-900/20',
-    badgeColor: 'bg-blue-600 text-white',
-    filterActive: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 ring-1 ring-orange-400/50',
-    dotColor: 'bg-yellow-400',
+    rowBg: 'bg-orange-50 dark:bg-orange-950/40',
+    leftBorder: 'border-l-orange-500 dark:border-l-orange-500',
+    badge: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200 ring-1 ring-orange-300/60 dark:ring-orange-700/60',
+    numBadge: 'bg-orange-500 text-white',
+    dot: 'bg-orange-500',
+    chipActive: 'bg-orange-500 text-white border-orange-500 shadow-sm',
+    chipIdle: 'bg-orange-50 text-orange-800 border-orange-200 hover:bg-orange-100 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800/60 dark:hover:bg-orange-950/70',
     icon: PhoneXMarkIcon,
-  },
-  REJECTED: {
-    label: 'Rejected',
-    color: 'bg-red-500/10 text-red-600 dark:text-red-400 ring-red-500/20',
-    rowColor: 'bg-red-50 dark:bg-red-900/20',
-    badgeColor: 'bg-red-600 text-white',
-    filterActive: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 ring-1 ring-red-400/50',
-    dotColor: 'bg-red-500',
-    icon: XCircleIcon,
   },
   CONFIRMED: {
     label: 'Ok',
-    color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20',
-    rowColor: 'bg-green-100 dark:bg-green-900/30',
-    badgeColor: 'bg-green-600 text-white',
-    filterActive: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 ring-1 ring-emerald-400/50',
-    dotColor: 'bg-green-500',
+    rowBg: 'bg-emerald-50 dark:bg-emerald-950/40',
+    leftBorder: 'border-l-emerald-500 dark:border-l-emerald-500',
+    badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200 ring-1 ring-emerald-300/60 dark:ring-emerald-700/60',
+    numBadge: 'bg-emerald-600 text-white',
+    dot: 'bg-emerald-500',
+    chipActive: 'bg-emerald-600 text-white border-emerald-600 shadow-sm',
+    chipIdle: 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60 dark:hover:bg-emerald-950/70',
     icon: CheckCircleIcon,
+  },
+  REJECTED: {
+    label: 'Rejected',
+    rowBg: 'bg-rose-50 dark:bg-rose-950/40',
+    leftBorder: 'border-l-rose-500 dark:border-l-rose-500',
+    badge: 'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-200 ring-1 ring-rose-300/60 dark:ring-rose-700/60',
+    numBadge: 'bg-rose-600 text-white',
+    dot: 'bg-rose-500',
+    chipActive: 'bg-rose-600 text-white border-rose-600 shadow-sm',
+    chipIdle: 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60 dark:hover:bg-rose-950/70',
+    icon: XCircleIcon,
   },
   DELETED: {
     label: 'Deleted',
-    color: 'bg-pink-500/10 text-pink-600 dark:text-pink-400 ring-pink-500/20',
-    rowColor: 'bg-pink-50 dark:bg-pink-900/20',
-    badgeColor: 'bg-pink-600 text-white',
-    filterActive: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400 ring-1 ring-pink-400/50',
-    dotColor: 'bg-pink-400',
+    rowBg: 'bg-slate-100/70 dark:bg-slate-900/50',
+    leftBorder: 'border-l-slate-400 dark:border-l-slate-500',
+    badge: 'bg-slate-200 text-slate-700 dark:bg-slate-800/70 dark:text-slate-300 ring-1 ring-slate-300/60 dark:ring-slate-700/60',
+    numBadge: 'bg-slate-500 text-white',
+    dot: 'bg-slate-400',
+    chipActive: 'bg-slate-600 text-white border-slate-600 shadow-sm',
+    chipIdle: 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-800/60 dark:hover:bg-slate-900/70',
     icon: TrashIcon,
   },
-};
+} as const;
+
+type StatusKey = keyof typeof STATUS_CONFIG;
+
+// Format a Date as local YYYY-MM-DD (avoids UTC shift from toISOString())
+function toYMD(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 function ContactIcons({ phone }: { phone: string | undefined }) {
   if (!phone) return <span className="text-muted-foreground">—</span>;
@@ -124,32 +146,127 @@ export function LeadsClient({
   const [isBulkLoading, setIsBulkLoading] = useState(false);
   const [tableSearch, setTableSearch] = useState('');
 
-  // Filter bar state
+  // Filter bar state — initialized from URL search params
   const [statusFilter, setStatusFilter] = useState((searchParams.status as string) || 'ANY');
   const [userFilter, setUserFilter] = useState((searchParams.userId as string) || 'ANY');
   const [startDate, setStartDate] = useState((searchParams.startDate as string) || '');
   const [endDate, setEndDate] = useState((searchParams.endDate as string) || '');
+  const showAll = searchParams.all === '1';
+
+  // Keep server-provided initialLeads in sync after navigation (filter changes)
+  useEffect(() => { setLeads(initialLeads); setSelectedIds([]); }, [initialLeads]);
+
+  // Sync local filter state when URL changes (browser back/forward, manual nav)
+  useEffect(() => {
+    setStatusFilter((searchParams.status as string) || 'ANY');
+    setUserFilter((searchParams.userId as string) || 'ANY');
+    setStartDate((searchParams.startDate as string) || '');
+    setEndDate((searchParams.endDate as string) || '');
+  }, [searchParams.status, searchParams.userId, searchParams.startDate, searchParams.endDate, searchParams.all]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  const buildUrl = (overrides: Record<string, string | number>) => {
+  // Build URL from current filters; overrides win over current state.
+  // Pass `null` in overrides to explicitly clear a key.
+  const buildUrl = (overrides: Record<string, string | number | null | undefined> = {}) => {
     const params = new URLSearchParams();
-    const vals: Record<string, string | number> = {
-      status: statusFilter, userId: userFilter, startDate, endDate, page: currentPage, pageSize, ...overrides,
+    const base: Record<string, string | number | null | undefined> = {
+      status: statusFilter,
+      userId: userFilter,
+      startDate,
+      endDate,
+      all: showAll ? '1' : '',
+      page: currentPage,
+      pageSize,
     };
-    Object.entries(vals).forEach(([k, v]) => {
-      if (v && v !== 'ANY' && v !== '') params.set(k, String(v));
+    const merged = { ...base, ...overrides };
+    Object.entries(merged).forEach(([k, v]) => {
+      if (v === null || v === undefined) return;
+      const s = String(v);
+      if (s && s !== 'ANY') params.set(k, s);
     });
     return `/leads?${params.toString()}`;
   };
 
-  const handleSearch = () => { router.push(buildUrl({ page: 1 })); };
+  const navigate = (overrides: Record<string, string | number | null | undefined>) => {
+    router.push(buildUrl({ page: 1, ...overrides }));
+  };
+
+  const handleSearch = () => { navigate({}); };
 
   const handlePageChange = (newPage: number) => { router.push(buildUrl({ page: newPage })); };
 
   const handlePageSizeChange = (newSize: number) => { router.push(buildUrl({ pageSize: newSize, page: 1 })); };
 
   const refreshLeads = () => { router.refresh(); setSelectedIds([]); };
+
+  // Status filter chip click — auto-applies
+  const handleStatusChip = (key: string) => {
+    setStatusFilter(key);
+    navigate({ status: key });
+  };
+
+  // User filter dropdown — auto-applies
+  const handleUserChange = (val: string) => {
+    setUserFilter(val);
+    navigate({ userId: val });
+  };
+
+  // Quick date range filters
+  type QuickRange = 'today' | 'yesterday' | 'week' | 'month' | 'all';
+  const applyQuickRange = (range: QuickRange) => {
+    const today = new Date();
+    if (range === 'all') {
+      setStartDate(''); setEndDate('');
+      navigate({ startDate: '', endDate: '', all: '1' });
+      return;
+    }
+    let s: Date, e: Date;
+    if (range === 'today') {
+      s = new Date(today); e = new Date(today);
+    } else if (range === 'yesterday') {
+      s = new Date(today); s.setDate(s.getDate() - 1);
+      e = new Date(s);
+    } else if (range === 'week') {
+      s = new Date(today); s.setDate(s.getDate() - 6);
+      e = new Date(today);
+    } else { // month
+      s = new Date(today.getFullYear(), today.getMonth(), 1);
+      e = new Date(today);
+    }
+    const sStr = toYMD(s);
+    const eStr = toYMD(e);
+    setStartDate(sStr); setEndDate(eStr);
+    navigate({ startDate: sStr, endDate: eStr, all: '' });
+  };
+
+  // Detect which quick-range chip is currently active (for highlighting)
+  const activeQuickRange: QuickRange | 'custom' | null = useMemo(() => {
+    if (showAll) return 'all';
+    if (!startDate && !endDate) return 'today'; // server defaults to today
+    const todayStr = toYMD(new Date());
+    const yest = new Date(); yest.setDate(yest.getDate() - 1);
+    const yestStr = toYMD(yest);
+    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 6);
+    const weekStartStr = toYMD(weekStart);
+    const monthStart = toYMD(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+    if (startDate === todayStr && endDate === todayStr) return 'today';
+    if (startDate === yestStr && endDate === yestStr) return 'yesterday';
+    if (startDate === weekStartStr && endDate === todayStr) return 'week';
+    if (startDate === monthStart && endDate === todayStr) return 'month';
+    return 'custom';
+  }, [startDate, endDate, showAll]);
+
+  const resetFilters = () => {
+    setStatusFilter('ANY');
+    setUserFilter('ANY');
+    setStartDate('');
+    setEndDate('');
+    router.push('/leads');
+  };
+
+  const hasActiveCustomFilters =
+    statusFilter !== 'ANY' || userFilter !== 'ANY' || showAll || activeQuickRange === 'custom';
 
   // Client-side table search filter
   const displayedLeads = tableSearch
@@ -268,6 +385,26 @@ export function LeadsClient({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Lead List</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {(() => {
+              const labels: Record<string, string> = {
+                today: "Showing today's leads",
+                yesterday: "Showing yesterday's leads",
+                week: 'Showing leads from the last 7 days',
+                month: 'Showing leads from this month',
+                all: 'Showing all leads',
+                custom: startDate && endDate ? `Showing leads from ${startDate} to ${endDate}` : 'Showing leads',
+              };
+              const base = labels[activeQuickRange ?? 'today'] || 'Showing leads';
+              const extras: string[] = [];
+              if (statusFilter !== 'ANY') extras.push(`status: ${STATUS_CONFIG[statusFilter as StatusKey]?.label ?? statusFilter}`);
+              if (userFilter !== 'ANY') {
+                const u = teamMembers.find((m) => m.id === userFilter);
+                if (u) extras.push(`user: ${u.name || u.email}`);
+              }
+              return extras.length ? `${base} \u2022 ${extras.join(' \u2022 ')}` : base;
+            })()}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           {canCreate && (
@@ -283,61 +420,103 @@ export function LeadsClient({
         </div>
       </div>
 
-      {/* Filter Bar — Genzo style */}
-      <div className="flex flex-wrap items-end gap-3 p-4 bg-white dark:bg-card rounded-xl border border-border/50 shadow-sm">
-        {/* Status dropdown */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-muted-foreground">Status</label>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none">
-            <option value="ANY">Any</option>
-            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-              <option key={key} value={key}>{cfg.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* User dropdown */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-muted-foreground">User</label>
-          <select value={userFilter} onChange={(e) => setUserFilter(e.target.value)}
-            className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none">
-            <option value="ANY">Any</option>
-            {teamMembers.map((m) => (
-              <option key={m.id} value={m.id}>{m.name || m.email}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Start Date */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-muted-foreground">Start Date</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-            className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none" />
-        </div>
-
-        {/* End Date */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-muted-foreground">End Date</label>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-            className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none" />
-        </div>
-
-        {/* Search button */}
-        <button onClick={handleSearch}
-          className="h-9 px-5 rounded-lg bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-colors shadow-sm">
-          Search
-        </button>
-      </div>
-
-      {/* Status Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-sm">
-        {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-          <div key={key} className="flex items-center gap-1.5">
-            <span className={`h-3 w-3 rounded-full ${cfg.dotColor}`} />
-            <span className="text-muted-foreground">{cfg.label}</span>
+      {/* Filter Bar */}
+      <div className="space-y-3 p-4 bg-white dark:bg-card rounded-xl border border-border/50 shadow-sm">
+        {/* Row 1: Quick date ranges */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mr-1">
+            <CalendarDaysIcon className="h-4 w-4" /> Period:
           </div>
-        ))}
+          {([
+            { key: 'today', label: 'Today' },
+            { key: 'yesterday', label: 'Yesterday' },
+            { key: 'week', label: 'Last 7 days' },
+            { key: 'month', label: 'This Month' },
+            { key: 'all', label: 'All Time' },
+          ] as { key: QuickRange; label: string }[]).map(({ key, label }) => {
+            const isActive = activeQuickRange === key;
+            return (
+              <button key={key} type="button" onClick={() => applyQuickRange(key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                }`}>
+                {label}
+              </button>
+            );
+          })}
+          {activeQuickRange === 'custom' && (
+            <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/30">
+              Custom
+            </span>
+          )}
+        </div>
+
+        {/* Row 2: Status filter chips (auto-apply) */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="text-xs font-medium text-muted-foreground mr-1">Status:</div>
+          <button type="button" onClick={() => handleStatusChip('ANY')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              statusFilter === 'ANY'
+                ? 'bg-foreground text-background border-foreground shadow-sm'
+                : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+            }`}>
+            All
+          </button>
+          {(Object.entries(STATUS_CONFIG) as [StatusKey, typeof STATUS_CONFIG[StatusKey]][]).map(([key, cfg]) => {
+            const Icon = cfg.icon;
+            const isActive = statusFilter === key;
+            return (
+              <button key={key} type="button" onClick={() => handleStatusChip(key)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  isActive ? cfg.chipActive : cfg.chipIdle
+                }`}>
+                <Icon className="h-3.5 w-3.5" />
+                {cfg.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Row 3: User dropdown + custom date range + reset */}
+        <div className="flex flex-wrap items-end gap-3 pt-1">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-muted-foreground">User</label>
+            <select value={userFilter} onChange={(e) => handleUserChange(e.target.value)}
+              className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none">
+              <option value="ANY">Any</option>
+              {teamMembers.map((m) => (
+                <option key={m.id} value={m.id}>{m.name || m.email}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-muted-foreground">Start Date</label>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+              className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none" />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-muted-foreground">End Date</label>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+              className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none" />
+          </div>
+
+          <button onClick={handleSearch}
+            className="h-9 px-5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
+            Apply
+          </button>
+
+          {hasActiveCustomFilters && (
+            <button onClick={resetFilters}
+              className="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-background text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              title="Reset all filters">
+              <XMarkIcon className="h-4 w-4" /> Reset
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search + Export toolbar */}
@@ -397,6 +576,7 @@ export function LeadsClient({
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">#</th>
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Lead No</th>
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Lead Date</th>
+                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Status</th>
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Customer Name</th>
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden lg:table-cell">Address</th>
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Contact No</th>
@@ -409,30 +589,41 @@ export function LeadsClient({
             </thead>
             <tbody className="divide-y divide-border/30">
               {displayedLeads.length === 0 ? (
-                <tr><td colSpan={12} className="px-4 py-12 text-center text-muted-foreground">No leads found</td></tr>
+                <tr><td colSpan={13} className="px-4 py-12 text-center text-muted-foreground">No leads found</td></tr>
               ) : (
                 displayedLeads.map((lead, idx) => {
-                  const config = STATUS_CONFIG[lead.status as keyof typeof STATUS_CONFIG];
+                  const config = STATUS_CONFIG[lead.status as StatusKey];
                   const csvData = lead.csvData as any;
                   const isSelected = selectedIds.includes(lead.id);
                   const rowIdx = ((currentPage - 1) * pageSize) + idx + 1;
+                  const StatusIcon = config?.icon;
 
                   return (
                     <tr key={lead.id}
-                      className={`${config?.rowColor ?? ''} ${isSelected ? 'ring-2 ring-inset ring-primary/30' : ''} hover:brightness-95 dark:hover:brightness-110 transition-all`}>
+                      className={`${config?.rowBg ?? ''} border-l-4 ${config?.leftBorder ?? 'border-l-transparent'} ${isSelected ? 'ring-2 ring-inset ring-primary/30' : ''} hover:brightness-[0.98] dark:hover:brightness-110 transition-all`}>
                       <td className="px-3 py-2">
                         <input type="checkbox" className="h-4 w-4 rounded border-border text-primary" checked={isSelected} onChange={() => toggleSelect(lead.id)} />
                       </td>
                       <td className="px-3 py-2 text-xs text-muted-foreground">{rowIdx}</td>
                       <td className="px-3 py-2">
                         <Link href={`/leads/${lead.id}`}>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${config?.badgeColor ?? 'bg-gray-500 text-white'}`}>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${config?.numBadge ?? 'bg-gray-500 text-white'}`}>
                             {lead.number}
                           </span>
                         </Link>
                       </td>
                       <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
                         {format(new Date(lead.createdAt), 'yyyy-MM-dd HH:mm:ss')}
+                      </td>
+                      <td className="px-3 py-2">
+                        {config ? (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${config.badge}`}>
+                            {StatusIcon && <StatusIcon className="h-3 w-3" />}
+                            {config.label}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{lead.status}</span>
+                        )}
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-1.5">

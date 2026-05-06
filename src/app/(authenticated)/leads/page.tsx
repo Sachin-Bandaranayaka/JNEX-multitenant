@@ -56,6 +56,7 @@ export default async function LeadsPage({
   const statusFilter = resolvedSearchParams.status as string | undefined;
   const userFilter = resolvedSearchParams.userId as string | undefined;
   const searchQuery = resolvedSearchParams.query as string | undefined;
+  const showAll = resolvedSearchParams.all === '1';
   const page = parseInt(resolvedSearchParams.page as string || '1', 10);
   const pageSize = parseInt(resolvedSearchParams.pageSize as string || '25', 10);
 
@@ -67,7 +68,7 @@ export default async function LeadsPage({
     where.userId = session.user.id;
   }
 
-  // Date range filter
+  // Date range filter — default to TODAY when no date range is set and `all=1` is not passed
   if (startDate || endDate) {
     where.createdAt = {};
     if (startDate) {
@@ -78,6 +79,12 @@ export default async function LeadsPage({
       end.setHours(23, 59, 59, 999);
       where.createdAt.lte = end;
     }
+  } else if (!showAll) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    where.createdAt = { gte: start, lte: end };
   }
 
   // Status filter

@@ -271,6 +271,9 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userPer
                             links={[
                                 { href: '/orders', label: 'Order List' },
                                 { href: '/search', label: 'Search Orders' },
+                                ...(userRole === 'ADMIN'
+                                    ? [{ href: '/orders/bulk-update', label: 'Update from Courier' }]
+                                    : []),
                             ]}
                             pathname={pathname}
                             onNavigate={closeMobileSidebar}

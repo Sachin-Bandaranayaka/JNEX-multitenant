@@ -148,16 +148,17 @@ model Lead {
   csvData       Json
   productCode   String
   product       Product    @relation(fields: [productCode, tenantId], references: [code, tenantId])
-  status        LeadStatus @default(PENDING)
-  assignedTo    User?      @relation(fields: [userId], references: [id])
-  userId        String?
-  order         Order?
-  callAttempts  Int        @default(0)
-  notes         String?
-  reminderDate  DateTime?
-  reminderNote  String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  status          LeadStatus @default(PENDING)
+  assignedTo      User?      @relation(fields: [userId], references: [id])
+  userId          String?
+  order           Order?
+  callAttempts    Int        @default(0)
+  notes           String?
+  reminderDate    DateTime?
+  reminderNote    String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  statusChangedAt DateTime   @default(now())
 
   tenantId      String
   tenant        Tenant     @relation(fields: [tenantId], references: [id])
@@ -166,6 +167,7 @@ model Lead {
   @@index([userId])
   @@index([tenantId])
   @@index([reminderDate])
+  @@index([statusChangedAt])
 }
 
 model Order {

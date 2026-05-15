@@ -46,12 +46,18 @@ export async function PUT(
             );
         }
 
-        // Update lead status (and increment callAttempts when marking as NO_ANSWER)
+        // Update lead status (and increment callAttempts when marking as NO_ANSWER).
+        // statusChangedAt is bumped whenever the status actually changes — so that
+        // an old NO_ANSWER lead reactivated as PENDING today will appear in today's
+        // "Status Changed" filter.
+        const statusActuallyChanged = lead.status !== validatedData.status;
+
         const updatedLead = await prisma.lead.update({
             where: { id: resolvedParams.leadId },
             data: {
                 status: validatedData.status,
                 ...(validatedData.status === 'NO_ANSWER' ? { callAttempts: { increment: 1 } } : {}),
+                ...(statusActuallyChanged ? { statusChangedAt: new Date() } : {}),
             },
             include: {
                 product: true,

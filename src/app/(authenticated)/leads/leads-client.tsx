@@ -151,6 +151,10 @@ export function LeadsClient({
   const [userFilter, setUserFilter] = useState((searchParams.userId as string) || 'ANY');
   const [startDate, setStartDate] = useState((searchParams.startDate as string) || '');
   const [endDate, setEndDate] = useState((searchParams.endDate as string) || '');
+  // Which date field the date-range applies to: 'createdAt' (default) or 'statusChangedAt'
+  const [dateField, setDateField] = useState<'createdAt' | 'statusChangedAt'>(
+    (searchParams.dateField as string) === 'statusChangedAt' ? 'statusChangedAt' : 'createdAt'
+  );
   const showAll = searchParams.all === '1';
 
   // Keep server-provided initialLeads in sync after navigation (filter changes)
@@ -162,7 +166,8 @@ export function LeadsClient({
     setUserFilter((searchParams.userId as string) || 'ANY');
     setStartDate((searchParams.startDate as string) || '');
     setEndDate((searchParams.endDate as string) || '');
-  }, [searchParams.status, searchParams.userId, searchParams.startDate, searchParams.endDate, searchParams.all]);
+    setDateField((searchParams.dateField as string) === 'statusChangedAt' ? 'statusChangedAt' : 'createdAt');
+  }, [searchParams.status, searchParams.userId, searchParams.startDate, searchParams.endDate, searchParams.all, searchParams.dateField]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -175,6 +180,8 @@ export function LeadsClient({
       userId: userFilter,
       startDate,
       endDate,
+      // Only emit dateField when it's not the default — keeps URLs clean.
+      dateField: dateField === 'statusChangedAt' ? 'statusChangedAt' : '',
       all: showAll ? '1' : '',
       page: currentPage,
       pageSize,
@@ -188,9 +195,61 @@ export function LeadsClient({
     return `/leads?${params.toString()}`;
   };
 
-  const navigate = (overrides: Record<string, string | number | null | undefined>) => {
-    router.push(buildUrl({ page: 1, ...overrides }));
+  // localStorage key for filter persistence. Versioned so we can change
+  // the shape later without poisoning users with stale data.
+  const FILTER_STORAGE_KEY = 'jnex_leads_filters_v1';
+
+  // Which search-param keys are considered "filters" for the purpose of
+  // restoration. Pagination is intentionally NOT persisted — when you come
+  // back to the list, you want page 1 of your filters, not page 47.
+  const FILTER_KEYS = ['status', 'userId', 'startDate', 'endDate', 'all', 'dateField'] as const;
+
+  const persistFilters = (url: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+      const qs = url.includes('?') ? url.slice(url.indexOf('?') + 1) : '';
+      const params = new URLSearchParams(qs);
+      const saved: Record<string, string> = {};
+      for (const k of FILTER_KEYS) {
+        const v = params.get(k);
+        if (v) saved[k] = v;
+      }
+      window.localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(saved));
+    } catch {
+      /* ignore quota / privacy-mode errors */
+    }
   };
+
+  const navigate = (overrides: Record<string, string | number | null | undefined>) => {
+    const url = buildUrl({ page: 1, ...overrides });
+    persistFilters(url);
+    router.push(url);
+  };
+
+  // On mount only: if the URL has no filter params at all (i.e. user
+  // clicked the "Leads" nav link or hit /leads directly), restore from
+  // localStorage. URL wins — if any filter is in the URL, we leave it alone.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hasFilterInUrl = FILTER_KEYS.some((k) => searchParams[k] != null && searchParams[k] !== '');
+    if (hasFilterInUrl) return;
+
+    try {
+      const raw = window.localStorage.getItem(FILTER_STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as Record<string, string>;
+      const keys = Object.keys(saved).filter((k) => saved[k]);
+      if (keys.length === 0) return;
+
+      const params = new URLSearchParams();
+      for (const k of keys) params.set(k, saved[k]);
+      // replace, not push — we don't want bare /leads sitting in history.
+      router.replace(`/leads?${params.toString()}`);
+    } catch {
+      /* ignore parse errors */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSearch = () => { navigate({}); };
 
@@ -262,6 +321,15 @@ export function LeadsClient({
     setUserFilter('ANY');
     setStartDate('');
     setEndDate('');
+    setDateField('createdAt');
+    // Wipe persisted filters so the user actually gets a clean slate next time.
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem(FILTER_STORAGE_KEY);
+      } catch {
+        /* ignore */
+      }
+    }
     router.push('/leads');
   };
 
@@ -397,6 +465,7 @@ export function LeadsClient({
               };
               const base = labels[activeQuickRange ?? 'today'] || 'Showing leads';
               const extras: string[] = [];
+              if (dateField === 'statusChangedAt') extras.push('by status change date');
               if (statusFilter !== 'ANY') extras.push(`status: ${STATUS_CONFIG[statusFilter as StatusKey]?.label ?? statusFilter}`);
               if (userFilter !== 'ANY') {
                 const u = teamMembers.find((m) => m.id === userFilter);
@@ -422,6 +491,39 @@ export function LeadsClient({
 
       {/* Filter Bar */}
       <div className="space-y-3 p-4 bg-white dark:bg-card rounded-xl border border-border/50 shadow-sm">
+        {/* Row 0: Date-field toggle (NEW) — pick whether the date range below
+            applies to lead creation date or status-change date. The latter
+            answers "show me leads that became Pending today" even for old leads. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mr-1">
+            <CalendarDaysIcon className="h-4 w-4" /> Filter by:
+          </div>
+          {([
+            { key: 'createdAt' as const, label: 'Lead Date', hint: 'When the lead was first created' },
+            { key: 'statusChangedAt' as const, label: 'Status Change Date', hint: 'When the lead status was last changed' },
+          ]).map(({ key, label, hint }) => {
+            const isActive = dateField === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                title={hint}
+                onClick={() => {
+                  setDateField(key);
+                  navigate({ dateField: key === 'statusChangedAt' ? 'statusChangedAt' : '' });
+                }}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Row 1: Quick date ranges */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mr-1">

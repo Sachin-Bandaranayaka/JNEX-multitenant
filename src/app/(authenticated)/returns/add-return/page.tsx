@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { playSuccessSound, playErrorSound } from '@/lib/sounds';
 import {
   ArrowPathIcon,
   MagnifyingGlassIcon,
@@ -30,6 +31,7 @@ export default function AddReturnPage() {
 
   const handleAddReturn = async () => {
     if (!waybill.trim()) {
+      playErrorSound();
       toast.error('Please enter a waybill number');
       return;
     }
@@ -53,11 +55,13 @@ export default function AddReturnPage() {
       setReturnedOrders((prev) => [data, ...prev]);
       setSuccessMessage('Return Added Successfully!');
       setWaybill('');
+      playSuccessSound();
       toast.success('Return added successfully');
 
       // Clear success message after 4 seconds
       setTimeout(() => setSuccessMessage(''), 4000);
     } catch (err) {
+      playErrorSound();
       toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);

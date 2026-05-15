@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { ArrowLeft, Package, AlertCircle, CheckCircle } from 'lucide-react';
+import { playSuccessSound, playErrorSound } from '@/lib/sounds';
 
 interface OrderDetails {
   id: string;
@@ -100,6 +101,7 @@ function ReturnProcessContent() {
     e.preventDefault();
     
     if (!formData.reason || !formData.description || !formData.refundMethod || !formData.returnShipping) {
+      playErrorSound();
       toast.error('Please fill in all required fields');
       return;
     }
@@ -124,9 +126,11 @@ function ReturnProcessContent() {
         throw new Error(errorData.error || 'Failed to process return');
       }
 
+      playSuccessSound();
       toast.success('Return request submitted successfully!');
       router.push('/returns/success');
     } catch (error) {
+      playErrorSound();
       toast.error(error instanceof Error ? error.message : 'Failed to process return');
     } finally {
       setProcessing(false);

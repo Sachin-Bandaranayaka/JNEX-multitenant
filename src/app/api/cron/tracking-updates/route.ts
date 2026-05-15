@@ -151,69 +151,23 @@ export async function GET(request: Request) {
                             newStatus: shipmentStatus,
                         };
                     } else if (order.shippingProvider === ShippingProvider.TRANS_EXPRESS) {
-                        try {
-                            const transApiKey = order.tenant?.transExpressApiKey;
-
-                            if (!transApiKey) {
-                                console.warn(`Trans Express API key missing for tenant ${order.tenantId}`);
-                                return {
-                                    orderId: order.id,
-                                    success: false,
-                                    error: 'Trans Express API key missing',
-                                };
-                            }
-
-                            const transExpressService = new TransExpressProvider(transApiKey);
-                            const shipmentStatus = await transExpressService.trackShipment(order.trackingNumber!);
-
-                            // Update order status
-                            const updatedOrder = await prisma.order.update({
-                                where: { id: order.id },
-                                data: {
-                                    status: statusMap[shipmentStatus],
-                                    deliveredAt: shipmentStatus === ShipmentStatus.DELIVERED ? new Date() : null,
-                                    trackingUpdates: {
-                                        create: {
-                                            status: shipmentStatus,
-                                            timestamp: new Date(),
-                                            tenantId: order.tenantId,
-                                        },
-                                    },
-                                },
-                            });
-
-                            // Create notification for delivery
-                            if (shipmentStatus === ShipmentStatus.DELIVERED) {
-                                await createNotification(
-                                    order.tenantId,
-                                    'Order Delivered',
-                                    `Order #${order.id} has been delivered via Trans Express.`,
-                                    'DELIVERY',
-                                    order.id
-                                );
-                            } else if (shipmentStatus === ShipmentStatus.RETURNED) {
-                                await createNotification(
-                                    order.tenantId,
-                                    'Order Returned',
-                                    `Order #${order.id} has been returned via Trans Express.`,
-                                    'RETURN',
-                                    order.id
-                                );
-                            }
-
-                            return {
-                                orderId: order.id,
-                                success: true,
-                                newStatus: shipmentStatus,
-                            };
-                        } catch (error) {
-                            console.error(`Error updating Trans Express tracking for order ${order.id}:`, error);
-                            return {
-                                orderId: order.id,
-                                success: false,
-                                error: error instanceof Error ? error.message : 'Unknown Trans Express tracking error',
-                            };
-                        }
+                        // NOTE: Trans Express automated tracking is intentionally disabled.
+                        // Their tracking API is unreliable — it frequently returns a stale
+                        // PENDING status even for delivered orders, which means orders never
+                        // get marked DELIVERED automatically.
+                        //
+                        // Operators now bulk-import the daily Trans Express delivery export
+                        // (Excel/CSV) via the /orders/bulk-update page, which matches against
+                        // Order.trackingNumber and updates statuses reliably.
+                        //
+                        // The original API-based implementation can be recovered from git history
+                        // (this commit) if it's ever needed again.
+                        return {
+                            orderId: order.id,
+                            success: true,
+                            skipped: true,
+                            reason: 'Trans Express auto-tracking disabled; use /orders/bulk-update',
+                        } as any;
                     } else if (order.shippingProvider === ShippingProvider.ROYAL_EXPRESS) {
                         try {
                             const royalApiKey = order.tenant?.royalExpressApiKey;

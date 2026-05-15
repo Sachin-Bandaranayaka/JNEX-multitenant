@@ -60,6 +60,15 @@ export default async function LeadsPage({
   const page = parseInt(resolvedSearchParams.page as string || '1', 10);
   const pageSize = parseInt(resolvedSearchParams.pageSize as string || '25', 10);
 
+  // Which date column to filter against:
+  //   'createdAt'       — when the lead was first imported/created (default)
+  //   'statusChangedAt' — the last time the lead's status changed
+  // The latter is what users want when they say "show today's pending leads"
+  // even for leads imported months ago that were just re-activated today.
+  const rawDateField = resolvedSearchParams.dateField as string | undefined;
+  const dateField: 'createdAt' | 'statusChangedAt' =
+    rawDateField === 'statusChangedAt' ? 'statusChangedAt' : 'createdAt';
+
   // 4. BUILD SECURE WHERE CLAUSE
   const where: Prisma.LeadWhereInput = {};
 
@@ -68,23 +77,34 @@ export default async function LeadsPage({
     where.userId = session.user.id;
   }
 
-  // Date range filter — default to TODAY when no date range is set and `all=1` is not passed
-  if (startDate || endDate) {
-    where.createdAt = {};
-    if (startDate) {
-      where.createdAt.gte = new Date(startDate);
+  // Date range filter — default to TODAY when no date range is set and `all=1` is not passed.
+  // Applied to either createdAt or statusChangedAt depending on `dateField`.
+  const buildDateRange = (): { gte?: Date; lte?: Date } | null => {
+    if (startDate || endDate) {
+      const range: { gte?: Date; lte?: Date } = {};
+      if (startDate) range.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        range.lte = end;
+      }
+      return range;
     }
-    if (endDate) {
-      const end = new Date(endDate);
+    if (!showAll) {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date();
       end.setHours(23, 59, 59, 999);
-      where.createdAt.lte = end;
+      return { gte: start, lte: end };
     }
-  } else if (!showAll) {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
-    where.createdAt = { gte: start, lte: end };
+    return null;
+  };
+
+  const dateRange = buildDateRange();
+  if (dateRange) {
+    // Dynamic key — cast through any so we can pick between createdAt / statusChangedAt
+    // without TypeScript inferring an over-narrow type.
+    (where as any)[dateField] = dateRange;
   }
 
   // Status filter

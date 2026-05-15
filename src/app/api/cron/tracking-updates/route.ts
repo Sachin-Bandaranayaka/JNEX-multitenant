@@ -1,4 +1,5 @@
-import { PrismaClient, OrderStatus, ShippingProvider } from '@prisma/client';
+import { OrderStatus, ShippingProvider } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { FardaExpressService } from '@/lib/shipping/farda-express';
 import { TransExpressProvider } from '@/lib/shipping/trans-express';
@@ -10,8 +11,6 @@ import { createNotification } from '@/lib/notifications';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
-
-const prisma = new PrismaClient();
 
 // Map ShipmentStatus to OrderStatus
 const statusMap: Record<ShipmentStatus, OrderStatus> = {

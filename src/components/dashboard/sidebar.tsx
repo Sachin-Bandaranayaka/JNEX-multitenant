@@ -8,19 +8,18 @@ import { signOut } from 'next-auth/react';
 import { Tenant } from '@prisma/client';
 import {
     HomeIcon,
-    ShoppingBagIcon,
+    ShoppingCartIcon,
     ArchiveBoxIcon,
     ClipboardDocumentListIcon,
     UsersIcon,
     ChartBarIcon,
-    MagnifyingGlassIcon,
     TruckIcon,
     CogIcon,
     ArrowRightOnRectangleIcon,
     XMarkIcon,
-    BuildingStorefrontIcon,
-    ChevronDownIcon,
+    ChevronLeftIcon,
     ArrowUturnLeftIcon,
+    UserGroupIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -29,84 +28,59 @@ interface SidebarProps {
     isMobile: boolean;
     tenant: Tenant;
     userRole: string;
+    userName?: string | null;
     userPermissions: string[];
 }
 
-function NavLink({ href, icon, children, isActive, onClick, isOpen, isMobile }: {
+/* ---- Single nav link (Genzo style: amber left-border when active) ---- */
+function NavLink({ href, icon, children, isActive, onClick }: {
     href: string;
     icon: React.ReactNode;
     children: React.ReactNode;
     isActive: boolean;
     onClick?: () => void;
-    isOpen: boolean;
-    isMobile: boolean;
 }) {
-    const showText = isOpen || isMobile;
-
     return (
         <Link href={href} onClick={onClick} className="block group">
             <div
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 ${isActive
-                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                className={`flex items-center gap-3 px-5 py-3 border-l-[3px] font-semibold text-[14px] transition-colors ${isActive
+                    ? 'bg-[#eceef1] text-slate-700 border-[#e89c31]'
+                    : 'text-slate-500 border-transparent hover:bg-[#f5f6f8] hover:text-slate-700'
                     }`}
             >
-                <div className={`flex-shrink-0 transition-colors ${isActive ? 'text-primary-foreground' : 'group-hover:text-foreground'}`}>
-                    {icon}
-                </div>
-
-                <span
-                    className={`font-medium whitespace-nowrap transition-all duration-300 origin-left ${showText ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 w-0 overflow-hidden'
-                        }`}
-                >
-                    {children}
-                </span>
-
-                {/* Tooltip for collapsed state on desktop */}
-                {!showText && !isMobile && (
-                    <div className="absolute left-16 z-50 hidden group-hover:block">
-                        <div className="bg-popover text-popover-foreground text-xs font-medium px-2 py-1 rounded shadow-md border border-border whitespace-nowrap">
-                            {children}
-                        </div>
-                    </div>
-                )}
+                <span className="flex-shrink-0 opacity-85">{icon}</span>
+                <span className="flex-1 whitespace-nowrap">{children}</span>
             </div>
         </Link>
     );
 }
 
-function NavGroup({ icon, label, isActive, isOpen, isMobile, links, pathname, onNavigate }: {
+/* ---- Collapsible nav group ---- */
+function NavGroup({ icon, label, isActive, links, pathname, onNavigate }: {
     icon: React.ReactNode;
     label: string;
     isActive: boolean;
-    isOpen: boolean;
-    isMobile: boolean;
     links: { href: string; label: string }[];
     pathname: string;
     onNavigate?: () => void;
 }) {
     const [expanded, setExpanded] = useState(isActive);
-    const showText = isOpen || isMobile;
 
     return (
         <div>
             <button
                 onClick={() => setExpanded(!expanded)}
-                className={`flex items-center gap-3 w-full rounded-xl px-3 py-2.5 transition-all duration-200 group ${isActive
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                className={`flex items-center gap-3 w-full px-5 py-3 border-l-[3px] font-semibold text-[14px] transition-colors ${isActive
+                    ? 'bg-[#eceef1] text-slate-700 border-[#e89c31]'
+                    : 'text-slate-500 border-transparent hover:bg-[#f5f6f8] hover:text-slate-700'
                     }`}
             >
-                <div className="flex-shrink-0">{icon}</div>
-                {showText && (
-                    <>
-                        <span className="font-medium whitespace-nowrap flex-1 text-left">{label}</span>
-                        <ChevronDownIcon className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
-                    </>
-                )}
+                <span className="flex-shrink-0 opacity-85">{icon}</span>
+                <span className="flex-1 text-left whitespace-nowrap">{label}</span>
+                <ChevronLeftIcon className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${expanded ? '-rotate-90' : ''}`} />
             </button>
-            {expanded && showText && (
-                <div className="ml-5 mt-1 space-y-0.5 border-l-2 border-border/50 pl-3">
+            {expanded && (
+                <div className="bg-[#fafbfc]">
                     {links.map((link) => {
                         const linkActive = pathname === link.href;
                         return (
@@ -114,9 +88,9 @@ function NavGroup({ icon, label, isActive, isOpen, isMobile, links, pathname, on
                                 key={link.href}
                                 href={link.href}
                                 onClick={onNavigate}
-                                className={`block rounded-lg px-3 py-2 text-sm transition-colors ${linkActive
-                                    ? 'bg-primary text-primary-foreground font-medium'
-                                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                                className={`block pl-[51px] pr-5 py-2.5 text-[13px] font-semibold transition-colors ${linkActive
+                                    ? 'bg-[#eceef1] text-slate-800'
+                                    : 'text-slate-500 hover:bg-[#f0f1f4] hover:text-slate-700'
                                     }`}
                             >
                                 {link.label}
@@ -129,285 +103,167 @@ function NavGroup({ icon, label, isActive, isOpen, isMobile, links, pathname, on
     );
 }
 
-export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userPermissions }: SidebarProps) {
+export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userName, userPermissions }: SidebarProps) {
     const pathname = usePathname();
-
-    const closeMobileSidebar = () => {
-        if (isMobile) {
-            setIsOpen(false);
-        }
-    };
-
-    const showText = isOpen || isMobile;
+    const closeMobileSidebar = () => { if (isMobile) setIsOpen(false); };
+    const has = (perm: string) => userRole === 'ADMIN' || userPermissions.includes(perm);
 
     return (
         <>
-            {/* Mobile Overlay */}
             {isMobile && isOpen && (
-                <div
-                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
-                    onClick={() => setIsOpen(false)}
-                />
+                <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsOpen(false)} />
             )}
 
             <aside
-                className={`fixed lg:sticky top-0 h-screen z-50 flex flex-col bg-card border-r border-border transition-all duration-300 ease-in-out print:hidden ${isMobile
-                    ? isOpen ? 'translate-x-0 w-72' : '-translate-x-full w-72'
-                    : isOpen ? 'w-72' : 'w-20'
+                className={`fixed lg:sticky top-0 h-screen z-50 flex flex-col bg-white border-r border-[#e3e6ea] transition-all duration-300 ease-in-out print:hidden w-[232px] ${isMobile
+                    ? isOpen ? 'translate-x-0' : '-translate-x-full'
+                    : 'translate-x-0'
                     }`}
             >
-                {/* Header / Logo Area */}
-                <div className={`flex items-center h-20 px-6 border-b border-border/40 ${!showText && !isMobile ? 'justify-center px-2' : 'justify-between'}`}>
-                    {(showText || isMobile) ? (
-                        <div className="flex items-center gap-3 overflow-hidden">
-                            <div className="relative h-10 w-10 flex-shrink-0 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden">
-                                {tenant.logoUrl ? (
-                                    <Image
-                                        src={tenant.logoUrl}
-                                        alt="Logo"
-                                        fill
-                                        className="object-contain p-1"
-                                        sizes="40px"
-                                    />
-                                ) : (
-                                    <Image
-                                        src="/IMAGES/logo.svg"
-                                        alt="Logo"
-                                        fill
-                                        className="object-contain p-1"
-                                        sizes="40px"
-                                    />
-                                )}
+                {/* Brand */}
+                <div className="flex items-center justify-between pt-4 px-5 pb-2">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                        {tenant.logoUrl ? (
+                            <div className="relative h-8 w-8 flex-shrink-0">
+                                <Image src={tenant.logoUrl} alt="Logo" fill className="object-contain" sizes="32px" />
                             </div>
-                            <div className="flex flex-col min-w-0">
-                                <h1 className="text-sm font-bold text-foreground truncate leading-tight">
-                                    {tenant.businessName || 'Dashboard'}
-                                </h1>
-                                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                                    Enterprise
-                                </span>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="relative h-10 w-10 flex-shrink-0 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden">
-                            {tenant.logoUrl ? (
-                                <Image
-                                    src={tenant.logoUrl}
-                                    alt="Logo"
-                                    fill
-                                    className="object-contain p-1"
-                                    sizes="40px"
-                                />
-                            ) : (
-                                <Image
-                                    src="/IMAGES/logo.svg"
-                                    alt="Logo"
-                                    fill
-                                    className="object-contain p-1"
-                                    sizes="40px"
-                                />
-                            )}
-                        </div>
-                    )}
-
+                        ) : (
+                            <span className="text-[#e89c31] text-2xl leading-none">★</span>
+                        )}
+                        <span className="text-2xl font-extrabold tracking-wide text-slate-500">
+                            {tenant.logoUrl ? '' : <>GEN<span className="text-[#e89c31]">ZO</span></>}
+                        </span>
+                    </div>
                     {isMobile && (
-                        <button
-                            onClick={() => setIsOpen(false)}
-                            className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground transition-colors"
-                        >
+                        <button onClick={() => setIsOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-slate-500">
                             <XMarkIcon className="h-6 w-6" />
                         </button>
                     )}
                 </div>
 
-                {/* Navigation Links */}
-                <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1 custom-scrollbar">
-                    {(userRole === 'ADMIN' || userPermissions.includes('VIEW_DASHBOARD')) && (
-                        <NavLink
-                            href="/dashboard"
-                            icon={<HomeIcon className="h-5 w-5" />}
-                            isActive={pathname === '/dashboard'}
-                            onClick={closeMobileSidebar}
-                            isOpen={isOpen}
-                            isMobile={isMobile}
-                        >
-                            Dashboard
-                        </NavLink>
+                {/* Profile block */}
+                <div className="px-5 pb-3.5 border-b border-[#e3e6ea]">
+                    <div className="font-bold text-slate-500 text-[13px] truncate">
+                        {tenant.businessName || 'Srilanka'} 🇱🇰
+                    </div>
+                    <div className="font-bold text-slate-700 mt-2 text-[15px] truncate">{userName || 'User'}</div>
+                    <div className="text-[#aab2bf] text-[11px] tracking-widest uppercase">{userRole}</div>
+                </div>
+
+                {/* Nav */}
+                <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin">
+                    {has('VIEW_DASHBOARD') && (
+                        <NavLink href="/dashboard" icon={<HomeIcon className="h-[18px] w-[18px]" />}
+                            isActive={pathname === '/dashboard'} onClick={closeMobileSidebar}>Dashboard</NavLink>
                     )}
 
-                    {(userRole === 'ADMIN' || userPermissions.includes('VIEW_PRODUCTS')) && (
-                        <NavLink
-                            href="/products"
-                            icon={<ShoppingBagIcon className="h-5 w-5" />}
-                            isActive={pathname.startsWith('/products')}
-                            onClick={closeMobileSidebar}
-                            isOpen={isOpen}
-                            isMobile={isMobile}
-                        >
-                            Products
-                        </NavLink>
-                    )}
+                    {/* Products Purchase */}
+                    <NavGroup
+                        icon={<ShoppingCartIcon className="h-[18px] w-[18px]" />}
+                        label="Products Purchase"
+                        isActive={pathname.startsWith('/store')}
+                        links={[
+                            { href: '/store', label: 'Buy Products' },
+                            { href: '/store/purchases', label: 'My Invoices' },
+                            { href: '/store/cart', label: 'Cart' },
+                        ]}
+                        pathname={pathname} onNavigate={closeMobileSidebar}
+                    />
 
-                    {(userRole === 'ADMIN' || userPermissions.includes('VIEW_INVENTORY')) && (
-                        <NavLink
-                            href="/inventory"
-                            icon={<ArchiveBoxIcon className="h-5 w-5" />}
-                            isActive={pathname.startsWith('/inventory')}
-                            onClick={closeMobileSidebar}
-                            isOpen={isOpen}
-                            isMobile={isMobile}
-                        >
-                            Inventory
-                        </NavLink>
-                    )}
-
-                    {(userRole === 'ADMIN' || userPermissions.includes('VIEW_ORDERS')) && (
+                    {has('VIEW_INVENTORY') && (
                         <NavGroup
-                            icon={<ClipboardDocumentListIcon className="h-5 w-5" />}
-                            label="Orders"
-                            isActive={pathname.startsWith('/orders') || pathname.startsWith('/search')}
-                            isOpen={isOpen}
-                            isMobile={isMobile}
+                            icon={<ArchiveBoxIcon className="h-[18px] w-[18px]" />}
+                            label="Stock"
+                            isActive={pathname.startsWith('/inventory') || pathname.startsWith('/products')}
                             links={[
-                                { href: '/orders', label: 'Order List' },
-                                { href: '/search', label: 'Search Orders' },
-                                ...(userRole === 'ADMIN'
-                                    ? [{ href: '/orders/bulk-update', label: 'Update from Courier' }]
-                                    : []),
+                                { href: '/inventory', label: 'Stock List' },
+                                { href: '/products', label: 'Products' },
                             ]}
-                            pathname={pathname}
-                            onNavigate={closeMobileSidebar}
+                            pathname={pathname} onNavigate={closeMobileSidebar}
                         />
                     )}
 
-                    {(userRole === 'ADMIN' || userPermissions.includes('VIEW_LEADS')) && (
+                    {has('VIEW_SHIPPING') && (
                         <NavGroup
-                            icon={<UsersIcon className="h-5 w-5" />}
+                            icon={<TruckIcon className="h-[18px] w-[18px]" />}
+                            label="Shipping"
+                            isActive={pathname.startsWith('/shipping')}
+                            links={[
+                                { href: '/shipping', label: 'Ship' },
+                                { href: '/shipping?tab=shipped', label: 'Shipped List' },
+                                { href: '/shipping?tab=tracking', label: 'Tracking Details' },
+                            ]}
+                            pathname={pathname} onNavigate={closeMobileSidebar}
+                        />
+                    )}
+
+                    {has('VIEW_LEADS') && (
+                        <NavGroup
+                            icon={<UserGroupIcon className="h-[18px] w-[18px]" />}
                             label="Leads"
                             isActive={pathname.startsWith('/leads')}
-                            isOpen={isOpen}
-                            isMobile={isMobile}
                             links={[
                                 { href: '/leads/import', label: 'Import Lead' },
                                 { href: '/leads', label: 'Lead List' },
                                 { href: '/leads/remind-leads', label: 'Remind Leads' },
                             ]}
-                            pathname={pathname}
-                            onNavigate={closeMobileSidebar}
+                            pathname={pathname} onNavigate={closeMobileSidebar}
                         />
                     )}
 
-                    {(userRole === 'ADMIN' || userPermissions.includes('VIEW_SHIPPING')) && (
-                        <NavLink
-                            href="/shipping"
-                            icon={<TruckIcon className="h-5 w-5" />}
-                            isActive={pathname.startsWith('/shipping')}
-                            onClick={closeMobileSidebar}
-                            isOpen={isOpen}
-                            isMobile={isMobile}
-                        >
-                            Shipping
-                        </NavLink>
+                    {has('VIEW_ORDERS') && (
+                        <NavGroup
+                            icon={<ClipboardDocumentListIcon className="h-[18px] w-[18px]" />}
+                            label="Orders"
+                            isActive={pathname.startsWith('/orders') || pathname.startsWith('/search')}
+                            links={[
+                                { href: '/leads/new', label: 'New Order' },
+                                { href: '/orders', label: 'Pending Orders' },
+                                { href: '/search', label: 'Search Orders' },
+                                ...(userRole === 'ADMIN' ? [{ href: '/orders/bulk-update', label: 'Update from Courier' }] : []),
+                            ]}
+                            pathname={pathname} onNavigate={closeMobileSidebar}
+                        />
                     )}
 
                     <NavGroup
-                        icon={<ArrowUturnLeftIcon className="h-5 w-5" />}
+                        icon={<ArrowUturnLeftIcon className="h-[18px] w-[18px]" />}
                         label="Return"
                         isActive={pathname.startsWith('/returns')}
-                        isOpen={isOpen}
-                        isMobile={isMobile}
                         links={[
                             { href: '/returns/add-return', label: 'Add Return' },
                             { href: '/returns/returned-list', label: 'Returned List' },
                         ]}
-                        pathname={pathname}
-                        onNavigate={closeMobileSidebar}
+                        pathname={pathname} onNavigate={closeMobileSidebar}
                     />
 
-                    <NavLink
-                        href="/store"
-                        icon={<BuildingStorefrontIcon className="h-5 w-5" />}
-                        isActive={pathname.startsWith('/store')}
-                        onClick={closeMobileSidebar}
-                        isOpen={isOpen}
-                        isMobile={isMobile}
-                    >
-                        Store
-                    </NavLink>
-
-                    {/* Management Section */}
-                    {(userRole === 'ADMIN' || userPermissions.includes('VIEW_REPORTS') || userPermissions.includes('MANAGE_USERS') || userPermissions.includes('MANAGE_SETTINGS')) && (
-                        <>
-                            <div className={`mt-8 mb-2 px-3 ${!showText && !isMobile ? 'hidden' : 'block'}`}>
-                                <span className="text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider">
-                                    Management
-                                </span>
-                            </div>
-                            {/* Divider for collapsed state */}
-                            {!showText && !isMobile && <div className="my-4 border-t border-border/40 mx-2" />}
-
-                            {(userRole === 'ADMIN' || userPermissions.includes('VIEW_REPORTS')) && (
-                                <NavLink
-                                    href="/reports"
-                                    icon={<ChartBarIcon className="h-5 w-5" />}
-                                    isActive={pathname.startsWith('/reports')}
-                                    onClick={closeMobileSidebar}
-                                    isOpen={isOpen}
-                                    isMobile={isMobile}
-                                >
-                                    Reports
-                                </NavLink>
-                            )}
-
-                            {(userRole === 'ADMIN' || userPermissions.includes('MANAGE_USERS')) && (
-                                <NavLink
-                                    href="/users"
-                                    icon={<UsersIcon className="h-5 w-5" />}
-                                    isActive={pathname.startsWith('/users')}
-                                    onClick={closeMobileSidebar}
-                                    isOpen={isOpen}
-                                    isMobile={isMobile}
-                                >
-                                    Users
-                                </NavLink>
-                            )}
-
-                            {(userRole === 'ADMIN' || userPermissions.includes('MANAGE_SETTINGS')) && (
-                                <NavLink
-                                    href="/settings"
-                                    icon={<CogIcon className="h-5 w-5" />}
-                                    isActive={pathname.startsWith('/settings')}
-                                    onClick={closeMobileSidebar}
-                                    isOpen={isOpen}
-                                    isMobile={isMobile}
-                                >
-                                    Settings
-                                </NavLink>
-                            )}
-                        </>
+                    {has('MANAGE_USERS') && (
+                        <NavLink href="/users" icon={<UsersIcon className="h-[18px] w-[18px]" />}
+                            isActive={pathname.startsWith('/users')} onClick={closeMobileSidebar}>Staff</NavLink>
                     )}
-                </nav>
 
-                {/* Footer / Logout */}
-                <div className="p-4 border-t border-border/40">
+                    {has('VIEW_REPORTS') && (
+                        <NavLink href="/reports" icon={<ChartBarIcon className="h-[18px] w-[18px]" />}
+                            isActive={pathname.startsWith('/reports')} onClick={closeMobileSidebar}>Reports</NavLink>
+                    )}
+
+                    {has('MANAGE_SETTINGS') && (
+                        <NavLink href="/settings" icon={<CogIcon className="h-[18px] w-[18px]" />}
+                            isActive={pathname.startsWith('/settings')} onClick={closeMobileSidebar}>Settings</NavLink>
+                    )}
+
+                    {/* Logout */}
                     <button
                         onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-                        className={`flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive group ${!showText && !isMobile ? 'justify-center' : ''
-                            }`}
+                        className="flex items-center gap-3 w-full px-5 py-3 border-l-[3px] border-transparent font-semibold text-[14px] text-slate-500 hover:bg-[#fdeceb] hover:text-[#c9453f] transition-colors"
                     >
-                        <ArrowRightOnRectangleIcon className="h-5 w-5 flex-shrink-0" />
-                        {(showText || isMobile) && (
-                            <span className="font-medium whitespace-nowrap">Logout</span>
-                        )}
-                        {/* Tooltip for collapsed state */}
-                        {!showText && !isMobile && (
-                            <div className="absolute left-16 z-50 hidden group-hover:block">
-                                <div className="bg-popover text-popover-foreground text-xs font-medium px-2 py-1 rounded shadow-md border border-border whitespace-nowrap">
-                                    Logout
-                                </div>
-                            </div>
-                        )}
+                        <ArrowRightOnRectangleIcon className="h-[18px] w-[18px]" />
+                        <span>Log out</span>
                     </button>
+                </nav>
+
+                <div className="px-5 py-3 border-t border-[#e3e6ea] text-[11px] text-[#aab2bf]">
+                    Copyright Genzo IT © {new Date().getFullYear()}
                 </div>
             </aside>
         </>

@@ -4,35 +4,42 @@
 
 @layer base {
   :root {
-    --background: 210 40% 96.1%; /* #f3f4f6 - Light grey background */
-    --foreground: 222.2 84% 4.9%; /* #020817 - Very dark blue/black */
+    /* ===== Genzo palette ===== */
+    --background: 216 16% 91%; /* #e6e8ec - Genzo light grey content bg */
+    --foreground: 218 16% 32%; /* #454d5d - Genzo slate text */
 
-    --card: 0 0% 100%; /* White */
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 218 16% 32%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 218 16% 32%;
 
-    --primary: 222.2 47.4% 11.2%; /* #0f172a - Dark slate for primary actions */
-    --primary-foreground: 210 40% 98%;
+    --primary: 34 79% 55%; /* #e89c31 - Genzo amber */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 216 16% 94%;
+    --secondary-foreground: 218 16% 32%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 216 16% 94%;
+    --muted-foreground: 214 11% 58%; /* #8a93a2 */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 36 60% 95%; /* amber tint hover */
+    --accent-foreground: 32 80% 38%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 2 53% 52%; /* #c9453f - Genzo red */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 214 14% 90%; /* #e3e6ea */
+    --input: 214 14% 86%;
+    --ring: 34 79% 55%;
 
-    --radius: 1rem; /* More rounded corners */
+    /* Genzo brand helpers */
+    --genzo-header: 218 16% 28%;    /* #3c4452 top bar */
+    --genzo-amber: 34 79% 55%;      /* #e89c31 */
+    --genzo-amber-dark: 35 88% 45%; /* #d4860f */
+    --genzo-teal: 184 38% 47%;      /* #4aa3a8 */
+
+    --radius: 0.5rem; /* Genzo squarer corners */
   }
 
   .dark {
@@ -186,4 +193,69 @@
   .invoice-page {
     page-break-after: always;
   }
+}
+/* =========================================================
+   GENZO DESIGN SYSTEM — shared component classes
+   ========================================================= */
+@layer components {
+  /* Page title */
+  .genzo-page-title { @apply text-lg font-bold text-slate-600 mb-4; }
+
+  /* Card */
+  .genzo-card { @apply bg-white rounded-md p-5 shadow-sm border border-[#e3e6ea]; }
+
+  /* Buttons */
+  .genzo-btn { @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors; }
+  .genzo-btn-amber { @apply genzo-btn bg-[#e89c31] text-white hover:bg-[#d4860f]; }
+  .genzo-btn-teal  { @apply genzo-btn bg-[#4aa3a8] text-white hover:bg-[#3d8a8e]; }
+  .genzo-btn-red   { @apply genzo-btn bg-[#c9453f] text-white hover:bg-[#b03a35]; }
+  .genzo-btn-gray  { @apply genzo-btn bg-[#eceef1] text-slate-600 hover:bg-[#e1e4e8]; }
+  .genzo-btn-out   { @apply genzo-btn bg-white border border-[#c9453f] text-[#c9453f] hover:bg-[#fdeceb]; }
+
+  /* DataTables-style toolbar + table */
+  .genzo-toolbar { @apply flex flex-wrap items-center justify-between gap-3 mb-3 text-sm text-slate-600; }
+  .genzo-export button { @apply border border-[#ccd2da] bg-white text-slate-600 px-2.5 py-1 rounded text-xs hover:bg-[#f1f3f5] transition-colors; }
+  .genzo-table { @apply w-full border-collapse; }
+  .genzo-table thead th { @apply text-left px-3 py-3 text-slate-600 font-bold text-[13px] border-b-2 border-[#e6e9ed] whitespace-nowrap; }
+  .genzo-table tbody td { @apply px-3 py-3.5 border-b border-[#eef0f3] text-[#5d6573] text-[13px] align-top; }
+  .genzo-table tbody tr:hover { @apply bg-[#fafbfc]; }
+  .genzo-entries { @apply text-[#8a93a2] text-[13px] mb-2.5; }
+
+  /* Pagination */
+  .genzo-pager a { @apply px-3 py-1.5 border border-[#e0e4e9] rounded text-slate-600 cursor-pointer text-[13px]; }
+  .genzo-pager a.cur { @apply bg-[#e89c31] text-white border-[#e89c31]; }
+
+  /* Row action icons */
+  .genzo-act { @apply inline-flex w-[30px] h-[30px] items-center justify-center rounded cursor-pointer mr-1 border border-transparent; }
+  .genzo-act-edit { @apply text-[#3a8ee6] hover:bg-[#eaf4fd]; }
+  .genzo-act-del  { @apply text-[#c9453f] hover:bg-[#fdeceb]; }
+
+  /* Status tags */
+  .genzo-tag { @apply inline-block rounded px-2.5 py-0.5 text-[11px] font-bold; }
+  .genzo-tag-green  { @apply bg-[#e3f3e3] text-[#3c8c3c]; }
+  .genzo-tag-red    { @apply bg-[#fae6e5] text-[#c9453f]; }
+  .genzo-tag-orange { @apply bg-[#fbeeda] text-[#c07d18]; }
+  .genzo-tag-blue   { @apply bg-[#e4f0fb] text-[#2f7cc4]; }
+  .genzo-tag-gray   { @apply bg-[#eceef1] text-[#6b7483]; }
+
+  /* Dashboard stat cards */
+  .genzo-stat { @apply flex-1 min-w-[155px] rounded-md px-4 py-4 text-white; }
+  .genzo-stat .lbl { @apply text-[13px] font-semibold mb-2; }
+  .genzo-stat .big { @apply text-xl font-bold; }
+  .genzo-stat .com { @apply text-[11px] mt-2 flex justify-between opacity-95; }
+  .genzo-stat-blue   { @apply bg-[#aed3f0] text-[#2c3e50]; }
+  .genzo-stat-gray   { @apply bg-[#9aa3ad]; }
+  .genzo-stat-orange { @apply bg-[#e89c31]; }
+  .genzo-stat-red    { @apply bg-[#c9453f]; }
+  .genzo-stat-green  { @apply bg-[#5cb85c]; }
+
+  /* Product card (Buy Products) */
+  .genzo-pcard { @apply border border-[#e7eaee] rounded-md overflow-hidden bg-white flex flex-col; }
+  .genzo-pcard .img { @apply h-[150px] bg-[#f3f5f7] flex items-center justify-center; }
+  .genzo-pcard .buy { @apply mt-auto bg-[#e89c31] text-white text-center py-3 font-bold cursor-pointer hover:bg-[#d4860f] transition-colors; }
+
+  /* Form rows */
+  .genzo-frow { @apply grid grid-cols-[140px_1fr] items-center gap-3 mb-4; }
+  .genzo-frow label { @apply font-semibold text-slate-600; }
+  .genzo-input { @apply w-full border border-[#d4d9e0] rounded-md px-3 py-2 text-[13px] text-slate-600 focus:outline-none focus:border-[#e89c31]; }
 }

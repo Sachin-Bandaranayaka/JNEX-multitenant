@@ -64,6 +64,7 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
         isMobile={isMobile}
         tenant={tenant}
         userRole={userRole}
+        userName={session.user.name}
         userPermissions={userPermissions}
       />
 

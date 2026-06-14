@@ -87,8 +87,8 @@ export function Notifications() {
                 <>
                     <Popover.Button
                         className={`
-                relative rounded-full p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors focus:outline-none
-                ${open ? 'bg-accent text-foreground' : ''}
+                relative rounded-full p-2 text-gray-200 hover:bg-white/10 hover:text-white transition-colors focus:outline-none
+                ${open ? 'bg-white/10 text-white' : ''}
             `}
                     >
                         <BellIcon className="h-5 w-5" />

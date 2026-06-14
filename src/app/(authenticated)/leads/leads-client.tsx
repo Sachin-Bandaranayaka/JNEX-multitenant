@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { LeadActions } from '@/components/leads/lead-actions';
+import { LeadQuickActions } from '@/components/leads/lead-quick-actions';
 import { DataExport } from '@/components/leads/data-export';
 import type { LeadWithDetails } from './page';
 import { User } from 'next-auth';
@@ -19,12 +20,10 @@ import {
   TrashIcon,
   PhoneArrowDownLeftIcon,
   MagnifyingGlassIcon,
-  ShoppingCartIcon,
   ChatBubbleLeftIcon,
   PhoneIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  ArrowPathIcon,
   UserGroupIcon,
   CalendarDaysIcon,
   XMarkIcon,
@@ -742,16 +741,7 @@ export function LeadsClient({
                       <td className="px-3 py-2 text-muted-foreground hidden md:table-cell text-xs">{lead.product.code}</td>
                       <td className="px-3 py-2 hidden xl:table-cell text-xs text-muted-foreground">{lead.assignedTo?.name || '—'}</td>
                       <td className="px-3 py-2">
-                        {lead.status === 'CONFIRMED' && lead.order ? (
-                          <Link href={`/orders/${lead.order.id}`} className="text-green-600 hover:text-green-700">
-                            <ShoppingCartIcon className="h-4 w-4" />
-                          </Link>
-                        ) : (lead.status === 'PENDING' || lead.status === 'NO_ANSWER') && !lead.order ? (
-                          <div className="flex items-center gap-1">
-                            <ShoppingCartIcon className="h-4 w-4 text-blue-600 cursor-pointer" title="Add Order" />
-                            <ArrowPathIcon className="h-4 w-4 text-blue-600 cursor-pointer" title="Return" />
-                          </div>
-                        ) : null}
+                        <LeadQuickActions lead={lead} user={user} onAction={refreshLeads} />
                       </td>
                       <td className="px-3 py-2 text-right">
                         <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} />

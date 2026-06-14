@@ -491,45 +491,62 @@ export function LeadsClient({
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="space-y-3 p-4 bg-white dark:bg-card rounded-xl border border-border/50 shadow-sm">
-        {/* Row 0: Date-field toggle (NEW) — pick whether the date range below
-            applies to lead creation date or status-change date. The latter
-            answers "show me leads that became Pending today" even for old leads. */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mr-1">
-            <CalendarDaysIcon className="h-4 w-4" /> Filter by:
+      {/* Filter Bar — Genzo horizontal dropdown layout */}
+      <div className="p-4 bg-white rounded-md border border-[#e3e6ea] shadow-sm space-y-3">
+        {/* Genzo primary row: Status · User · Start Date · End Date · Search */}
+        <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-slate-500">Status</label>
+            <select value={statusFilter} onChange={(e) => handleStatusChip(e.target.value as StatusKey | 'ANY')}
+              className="h-9 px-3 rounded-md border border-[#d4d9e0] bg-white text-sm text-slate-600 focus:ring-2 focus:ring-[#e89c31]/20 focus:border-[#e89c31] focus:outline-none">
+              <option value="ANY">Any</option>
+              {(Object.entries(STATUS_CONFIG) as [StatusKey, typeof STATUS_CONFIG[StatusKey]][]).map(([key, cfg]) => (
+                <option key={key} value={key}>{cfg.label}</option>
+              ))}
+            </select>
           </div>
-          {([
-            { key: 'createdAt' as const, label: 'Lead Date', hint: 'When the lead was first created' },
-            { key: 'statusChangedAt' as const, label: 'Status Change Date', hint: 'When the lead status was last changed' },
-          ]).map(({ key, label, hint }) => {
-            const isActive = dateField === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                title={hint}
-                onClick={() => {
-                  setDateField(key);
-                  navigate({ dateField: key === 'statusChangedAt' ? 'statusChangedAt' : '' });
-                }}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                  isActive
-                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                    : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-slate-500">User</label>
+            <select value={userFilter} onChange={(e) => handleUserChange(e.target.value)}
+              className="h-9 px-3 rounded-md border border-[#d4d9e0] bg-white text-sm text-slate-600 focus:ring-2 focus:ring-[#e89c31]/20 focus:border-[#e89c31] focus:outline-none">
+              <option value="ANY">Any</option>
+              {teamMembers.map((m) => (
+                <option key={m.id} value={m.id}>{m.name || m.email}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-slate-500">Start Date</label>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+              className="h-9 px-3 rounded-md border border-[#d4d9e0] bg-white text-sm text-slate-600 focus:ring-2 focus:ring-[#e89c31]/20 focus:border-[#e89c31] focus:outline-none" />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-slate-500">End Date</label>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+              className="h-9 px-3 rounded-md border border-[#d4d9e0] bg-white text-sm text-slate-600 focus:ring-2 focus:ring-[#e89c31]/20 focus:border-[#e89c31] focus:outline-none" />
+          </div>
+
+          <button onClick={handleSearch}
+            className="h-9 px-6 rounded-md bg-[#e89c31] text-white text-sm font-semibold hover:bg-[#d4860f] transition-colors">
+            Search
+          </button>
+
+          {hasActiveCustomFilters && (
+            <button onClick={resetFilters}
+              className="h-9 px-3 inline-flex items-center gap-1.5 rounded-md border border-[#d4d9e0] bg-white text-sm font-medium text-slate-500 hover:bg-gray-50 hover:text-slate-700 transition-colors"
+              title="Reset all filters">
+              <XMarkIcon className="h-4 w-4" /> Reset
+            </button>
+          )}
         </div>
 
-        {/* Row 1: Quick date ranges */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mr-1">
-            <CalendarDaysIcon className="h-4 w-4" /> Period:
+        {/* Secondary row: quick period ranges + which date field they apply to (enhancements over Genzo) */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[#eef0f3]">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 mr-1 pt-2">
+            <CalendarDaysIcon className="h-4 w-4" /> Quick:
           </div>
           {([
             { key: 'today', label: 'Today' },
@@ -541,85 +558,33 @@ export function LeadsClient({
             const isActive = activeQuickRange === key;
             return (
               <button key={key} type="button" onClick={() => applyQuickRange(key)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                className={`mt-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                   isActive
-                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                    : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'
+                    ? 'bg-[#e89c31] text-white border-[#e89c31] shadow-sm'
+                    : 'bg-white text-slate-500 border-[#e0e4e9] hover:bg-gray-50 hover:text-slate-700'
                 }`}>
                 {label}
               </button>
             );
           })}
-          {activeQuickRange === 'custom' && (
-            <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/30">
-              Custom
-            </span>
-          )}
-        </div>
-
-        {/* Row 2: Status filter chips (auto-apply) */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="text-xs font-medium text-muted-foreground mr-1">Status:</div>
-          <button type="button" onClick={() => handleStatusChip('ANY')}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-              statusFilter === 'ANY'
-                ? 'bg-foreground text-background border-foreground shadow-sm'
-                : 'bg-background text-muted-foreground border-border hover:bg-muted hover:text-foreground'
-            }`}>
-            All
-          </button>
-          {(Object.entries(STATUS_CONFIG) as [StatusKey, typeof STATUS_CONFIG[StatusKey]][]).map(([key, cfg]) => {
-            const Icon = cfg.icon;
-            const isActive = statusFilter === key;
+          <span className="mx-2 text-[#e0e4e9]">|</span>
+          {([
+            { key: 'createdAt' as const, label: 'By Lead Date' },
+            { key: 'statusChangedAt' as const, label: 'By Status Change' },
+          ]).map(({ key, label }) => {
+            const isActive = dateField === key;
             return (
-              <button key={key} type="button" onClick={() => handleStatusChip(key)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                  isActive ? cfg.chipActive : cfg.chipIdle
+              <button key={key} type="button"
+                onClick={() => { setDateField(key); navigate({ dateField: key === 'statusChangedAt' ? 'statusChangedAt' : '' }); }}
+                className={`mt-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  isActive
+                    ? 'bg-slate-600 text-white border-slate-600 shadow-sm'
+                    : 'bg-white text-slate-500 border-[#e0e4e9] hover:bg-gray-50 hover:text-slate-700'
                 }`}>
-                <Icon className="h-3.5 w-3.5" />
-                {cfg.label}
+                {label}
               </button>
             );
           })}
-        </div>
-
-        {/* Row 3: User dropdown + custom date range + reset */}
-        <div className="flex flex-wrap items-end gap-3 pt-1">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">User</label>
-            <select value={userFilter} onChange={(e) => handleUserChange(e.target.value)}
-              className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none">
-              <option value="ANY">Any</option>
-              {teamMembers.map((m) => (
-                <option key={m.id} value={m.id}>{m.name || m.email}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Start Date</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none" />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">End Date</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-              className="h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none" />
-          </div>
-
-          <button onClick={handleSearch}
-            className="h-9 px-5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm">
-            Apply
-          </button>
-
-          {hasActiveCustomFilters && (
-            <button onClick={resetFilters}
-              className="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-background text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              title="Reset all filters">
-              <XMarkIcon className="h-4 w-4" /> Reset
-            </button>
-          )}
         </div>
       </div>
 

@@ -35,59 +35,61 @@ import {
 // Production-grade status palette: each status has a clearly distinct hue,
 // a colored left-border stripe, a strong row tint, and a pill badge.
 const STATUS_CONFIG = {
+  // Colors matched to Genzo's lead-table legend:
+  // Pending = lavender, Ok = green, No Answer = yellow, Rejected = salmon, Deleted = pale pink.
   PENDING: {
     label: 'Pending',
-    rowBg: 'bg-amber-50 dark:bg-amber-950/40',
-    leftBorder: 'border-l-amber-400 dark:border-l-amber-500',
-    badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 ring-1 ring-amber-300/60 dark:ring-amber-700/60',
-    numBadge: 'bg-amber-500 text-white',
-    dot: 'bg-amber-400',
-    chipActive: 'bg-amber-500 text-white border-amber-500 shadow-sm',
-    chipIdle: 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60 dark:hover:bg-amber-950/70',
+    rowBg: 'bg-[#e9eaf7]',
+    leftBorder: 'border-l-[#9499d8]',
+    badge: 'bg-[#e3e4f5] text-[#5b60a8] ring-1 ring-[#c9cdef]',
+    numBadge: 'bg-[#8b90d4] text-white',
+    dot: 'bg-[#b7bbe0]',
+    chipActive: 'bg-[#8b90d4] text-white border-[#8b90d4] shadow-sm',
+    chipIdle: 'bg-[#eceefa] text-[#5b60a8] border-[#c9cdef] hover:bg-[#dde0f4]',
     icon: ClockIcon,
   },
   NO_ANSWER: {
     label: 'No Answer',
-    rowBg: 'bg-orange-50 dark:bg-orange-950/40',
-    leftBorder: 'border-l-orange-500 dark:border-l-orange-500',
-    badge: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200 ring-1 ring-orange-300/60 dark:ring-orange-700/60',
-    numBadge: 'bg-orange-500 text-white',
-    dot: 'bg-orange-500',
-    chipActive: 'bg-orange-500 text-white border-orange-500 shadow-sm',
-    chipIdle: 'bg-orange-50 text-orange-800 border-orange-200 hover:bg-orange-100 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800/60 dark:hover:bg-orange-950/70',
+    rowBg: 'bg-[#fbf7cf]',
+    leftBorder: 'border-l-[#e0cf3a]',
+    badge: 'bg-[#faf4c2] text-[#8a7a1a] ring-1 ring-[#ece0a0]',
+    numBadge: 'bg-[#d9c83a] text-white',
+    dot: 'bg-[#e6d84a]',
+    chipActive: 'bg-[#d9c83a] text-white border-[#d9c83a] shadow-sm',
+    chipIdle: 'bg-[#fbf7cf] text-[#8a7a1a] border-[#ece0a0] hover:bg-[#f7f1b8]',
     icon: PhoneXMarkIcon,
   },
   CONFIRMED: {
     label: 'Ok',
-    rowBg: 'bg-emerald-50 dark:bg-emerald-950/40',
-    leftBorder: 'border-l-emerald-500 dark:border-l-emerald-500',
-    badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200 ring-1 ring-emerald-300/60 dark:ring-emerald-700/60',
-    numBadge: 'bg-emerald-600 text-white',
-    dot: 'bg-emerald-500',
-    chipActive: 'bg-emerald-600 text-white border-emerald-600 shadow-sm',
-    chipIdle: 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60 dark:hover:bg-emerald-950/70',
+    rowBg: 'bg-[#e4f5e0]',
+    leftBorder: 'border-l-[#5cb85c]',
+    badge: 'bg-[#e3f3e3] text-[#3c8c3c] ring-1 ring-[#bce3bc]',
+    numBadge: 'bg-[#5cb85c] text-white',
+    dot: 'bg-[#86d486]',
+    chipActive: 'bg-[#5cb85c] text-white border-[#5cb85c] shadow-sm',
+    chipIdle: 'bg-[#e4f5e0] text-[#3c8c3c] border-[#bce3bc] hover:bg-[#d4efce]',
     icon: CheckCircleIcon,
   },
   REJECTED: {
     label: 'Rejected',
-    rowBg: 'bg-rose-50 dark:bg-rose-950/40',
-    leftBorder: 'border-l-rose-500 dark:border-l-rose-500',
-    badge: 'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-200 ring-1 ring-rose-300/60 dark:ring-rose-700/60',
-    numBadge: 'bg-rose-600 text-white',
-    dot: 'bg-rose-500',
-    chipActive: 'bg-rose-600 text-white border-rose-600 shadow-sm',
-    chipIdle: 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60 dark:hover:bg-rose-950/70',
+    rowBg: 'bg-[#fbe7e4]',
+    leftBorder: 'border-l-[#d9655c]',
+    badge: 'bg-[#fae6e5] text-[#c9453f] ring-1 ring-[#f0c2bd]',
+    numBadge: 'bg-[#d9655c] text-white',
+    dot: 'bg-[#e98a80]',
+    chipActive: 'bg-[#d9655c] text-white border-[#d9655c] shadow-sm',
+    chipIdle: 'bg-[#fbe7e4] text-[#c9453f] border-[#f0c2bd] hover:bg-[#f7d8d3]',
     icon: XCircleIcon,
   },
   DELETED: {
     label: 'Deleted',
-    rowBg: 'bg-slate-100/70 dark:bg-slate-900/50',
-    leftBorder: 'border-l-slate-400 dark:border-l-slate-500',
-    badge: 'bg-slate-200 text-slate-700 dark:bg-slate-800/70 dark:text-slate-300 ring-1 ring-slate-300/60 dark:ring-slate-700/60',
-    numBadge: 'bg-slate-500 text-white',
-    dot: 'bg-slate-400',
-    chipActive: 'bg-slate-600 text-white border-slate-600 shadow-sm',
-    chipIdle: 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-800/60 dark:hover:bg-slate-900/70',
+    rowBg: 'bg-[#f3ece8]',
+    leftBorder: 'border-l-[#c9b3a8]',
+    badge: 'bg-[#f1e8e3] text-[#8a7268] ring-1 ring-[#ddccc3]',
+    numBadge: 'bg-[#bfa99e] text-white',
+    dot: 'bg-[#d8c2b8]',
+    chipActive: 'bg-[#bfa99e] text-white border-[#bfa99e] shadow-sm',
+    chipIdle: 'bg-[#f3ece8] text-[#8a7268] border-[#ddccc3] hover:bg-[#ebe0d9]',
     icon: TrashIcon,
   },
 } as const;
@@ -619,6 +621,16 @@ export function LeadsClient({
             </button>
           )}
         </div>
+      </div>
+
+      {/* Status color legend (Genzo-style) */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        {(Object.entries(STATUS_CONFIG) as [StatusKey, typeof STATUS_CONFIG[StatusKey]][]).map(([key, cfg]) => (
+          <div key={key} className="flex items-center gap-2 text-sm text-slate-600">
+            <span className={`h-3.5 w-3.5 rounded-full ${cfg.dot}`} />
+            {cfg.label}
+          </div>
+        ))}
       </div>
 
       {/* Search + Export toolbar */}

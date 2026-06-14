@@ -18,7 +18,15 @@ interface PeriodChanges {
     avgOrderValue: number | null;
 }
 
+interface StatusBucket { count: number; total: number; }
 interface PeriodStats {
+    statusCounts: {
+        total: StatusBucket;
+        pending: StatusBucket;
+        shipped: StatusBucket;
+        returned: StatusBucket;
+        delivered: StatusBucket;
+    };
     orders: number;
     revenue: number;
     leads: number;
@@ -91,29 +99,81 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
     };
 
     const currentData = initialData[activeFilter];
+    const sc = currentData.statusCounts;
+    const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const filterLabels: Record<TimeFilter, string> = { daily: 'Today', weekly: 'This Week', monthly: 'This Month' };
 
     return (
-        <div className="space-y-8">
-            {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-5">
+            {/* ===== Genzo announcement banner ===== */}
+            <div className="rounded-lg px-8 py-6 text-white flex items-center justify-between overflow-hidden"
+                style={{ background: 'linear-gradient(100deg,#3a2d1a,#5e4427 55%,#7a5a2f)' }}>
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">New report</h1>
-                    <p className="text-muted-foreground mt-1">Overview of your store's performance.</p>
+                    <h1 className="text-3xl font-extrabold text-[#f5b94d] leading-tight drop-shadow">Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>
+                    <p className="mt-1.5 text-sm opacity-90 max-w-md">{greeting} — here&apos;s how your business is performing today.</p>
                 </div>
+                <div className="hidden md:flex items-center gap-2 text-[#f5b94d]">
+                    <CalendarIcon className="h-5 w-5" />
+                    <span className="font-semibold">{format(new Date(), 'EEEE, MMM d')}</span>
+                </div>
+            </div>
 
-                <div className="flex items-center gap-3 bg-card p-1 rounded-full border border-border/50 shadow-sm">
-                    {(['daily', 'weekly', 'monthly'] as TimeFilter[]).map((filter) => (
-                        <button
-                            key={filter}
-                            onClick={() => setActiveFilter(filter)}
-                            className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all duration-200 ${activeFilter === filter
-                                    ? 'bg-foreground text-background shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
-                                }`}
-                        >
-                            {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                        </button>
-                    ))}
+            {/* ===== Company List + Leader Board ===== */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="genzo-card">
+                    <h3 className="font-bold text-slate-600 mb-3">Company List</h3>
+                    <div className="text-4xl text-center my-1">🏙️</div>
+                    <div className="font-semibold text-slate-600">My Business Partners</div>
+                    <Link href="/users" className="text-[#5aa6e0] font-semibold text-sm">View</Link>
+                </div>
+                <div className="genzo-card lg:col-span-2">
+                    <h3 className="font-bold text-slate-600 mb-3">Leader Board <Link href="/reports" className="float-right text-[#5aa6e0] font-semibold text-sm">View</Link></h3>
+                    <div className="flex gap-2.5 flex-wrap mt-1.5">
+                        {[['Best Call Center Agent', 'bg-[#e3f3e6] text-[#3c8c4c]'], ['Top Purchase', 'bg-[#fae8e6] text-[#c4655c]'],
+                          ['Highest Income', 'bg-[#e7eefa] text-[#4a6fb0]'], ['Highest Day Sale', 'bg-[#fceee0] text-[#c08a3c]'],
+                          ['Emerging Entrepreneur', 'bg-[#fcf6dd] text-[#b39a2a]']].map(([label, cls]) => (
+                            <div key={label} className={`flex-1 min-w-[110px] text-center py-3 px-2 rounded-md font-bold text-[13px] ${cls}`}>{label}</div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* ===== Stat cards with period filter ===== */}
+            <div className="genzo-card">
+                <div className="flex flex-wrap gap-3.5">
+                    <div className="min-w-[120px] flex flex-col gap-1.5 pt-1">
+                        {(['daily', 'weekly', 'monthly'] as TimeFilter[]).map((filter) => (
+                            <button key={filter} onClick={() => setActiveFilter(filter)}
+                                className={`text-left text-[15px] ${activeFilter === filter ? 'font-bold text-slate-700' : 'text-[#aab2bf] hover:text-[#d4860f]'}`}>
+                                {filterLabels[filter]}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="genzo-stat genzo-stat-blue">
+                        <div className="lbl">Total Orders</div>
+                        <div className="big">{sc.total.count} | Rs. {money(sc.total.total)}</div>
+                        <div className="com"><span>Orders</span><span>{filterLabels[activeFilter]}</span></div>
+                    </div>
+                    <div className="genzo-stat genzo-stat-gray">
+                        <div className="lbl">Pending Orders</div>
+                        <div className="big">{sc.pending.count} | Rs.{money(sc.pending.total)}</div>
+                        <div className="com"><span>Awaiting</span><span>—</span></div>
+                    </div>
+                    <div className="genzo-stat genzo-stat-orange">
+                        <div className="lbl">Shipped Orders</div>
+                        <div className="big">{sc.shipped.count} | Rs.{money(sc.shipped.total)}</div>
+                        <div className="com"><span>In transit</span><span>—</span></div>
+                    </div>
+                    <div className="genzo-stat genzo-stat-red">
+                        <div className="lbl">Returned</div>
+                        <div className="big">{sc.returned.count} | Rs.{money(sc.returned.total)}</div>
+                        <div className="com"><span>Returned</span><span>—</span></div>
+                    </div>
+                    <div className="genzo-stat genzo-stat-green">
+                        <div className="lbl">Delivered</div>
+                        <div className="big">{sc.delivered.count} | Rs.{money(sc.delivered.total)}</div>
+                        <div className="com"><span>Completed</span><span>—</span></div>
+                    </div>
                 </div>
             </div>
 

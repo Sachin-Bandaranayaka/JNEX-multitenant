@@ -28,7 +28,7 @@ async function getDashboardData(tenantId: string) {
     const [orders, allTimeLeads, products] = await Promise.all([
         prisma.order.findMany({
             where: { createdAt: { gte: prevMonthStart } },
-            select: { total: true, createdAt: true }
+            select: { total: true, createdAt: true, status: true }
         }),
         prisma.lead.findMany({
             select: { status: true, createdAt: true }
@@ -58,7 +58,19 @@ async function getDashboardData(tenantId: string) {
         const leadCount = periodLeads.length;
         const conversionRate = periodLeads.length > 0 ? (periodConvertedLeads.length / periodLeads.length) * 100 : 0;
 
+        const sumBy = (statuses: string[]) => periodOrders
+            .filter(o => statuses.includes(o.status as string))
+            .reduce((acc, o) => ({ count: acc.count + 1, total: acc.total + o.total }), { count: 0, total: 0 });
+        const statusCounts = {
+            total: { count: orderCount, total: revenue },
+            pending: sumBy(['PENDING', 'CONFIRMED', 'RESCHEDULED']),
+            shipped: sumBy(['SHIPPED']),
+            returned: sumBy(['RETURNED', 'CANCELLED']),
+            delivered: sumBy(['DELIVERED']),
+        };
+
         return {
+            statusCounts,
             orders: orderCount,
             revenue,
             leads: leadCount,

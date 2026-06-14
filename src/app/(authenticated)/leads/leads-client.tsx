@@ -667,26 +667,26 @@ export function LeadsClient({
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-md border border-[#e3e6ea] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/40">
+              <tr className="border-b-2 border-[#e6e9ed] bg-white">
                 <th className="px-3 py-2 w-8">
                   <input type="checkbox" className="h-4 w-4 rounded border-border text-primary" checked={allSelected} onChange={toggleSelectAll} />
                 </th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">#</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Lead No</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Lead Date</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Status</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Customer Name</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden lg:table-cell">Address</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Contact No</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden xl:table-cell">Contact No 2</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden md:table-cell">Product Code</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden xl:table-cell">Staff</th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Add Order</th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs">Actions</th>
+                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">#</th>
+                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Lead No</th>
+                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Lead Date</th>
+                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Status</th>
+                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Customer Name</th>
+                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden lg:table-cell">Address</th>
+                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Contact No</th>
+                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden xl:table-cell">Contact No 2</th>
+                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden md:table-cell">Product Code</th>
+                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden xl:table-cell">Staff</th>
+                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Add Order</th>
+                <th className="text-right px-3 py-2 font-bold text-slate-600 text-[13px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">

@@ -79,16 +79,16 @@ export function ReturnedListClient({ orders }: { orders: ReturnedOrder[] }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/40">
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">#</th>
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">Order ID</th>
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">Customer</th>
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">Products</th>
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">Tracking No</th>
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">Price (Rs)</th>
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">Qty</th>
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs hidden md:table-cell">Staff</th>
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs hidden lg:table-cell">Return Date</th>
+              <tr className="border-b-2 border-[#e6e9ed] bg-white">
+                <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px]">#</th>
+                <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px]">Order ID</th>
+                <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px]">Customer</th>
+                <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px]">Products</th>
+                <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px]">Tracking No</th>
+                <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px]">Price (Rs)</th>
+                <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px]">Qty</th>
+                <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px] hidden md:table-cell">Staff</th>
+                <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px] hidden lg:table-cell">Return Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">

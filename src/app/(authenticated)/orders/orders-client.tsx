@@ -455,7 +455,7 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/40">
+                <tr className="border-b-2 border-[#e6e9ed] bg-white">
                   <th className="px-3 py-2 w-8">
                     <input
                       type="checkbox"
@@ -464,14 +464,14 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
                       onChange={handleSelectAll}
                     />
                   </th>
-                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Order #</th>
-                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Customer</th>
-                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden md:table-cell">Product</th>
-                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden lg:table-cell">Tracking No</th>
-                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Status</th>
-                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs hidden sm:table-cell">Date</th>
-                  <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs hidden sm:table-cell">Total</th>
-                  <th className="text-right px-3 py-2 font-medium text-muted-foreground text-xs">Actions</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Order #</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Customer</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden md:table-cell">Product</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden lg:table-cell">Tracking No</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Status</th>
+                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden sm:table-cell">Date</th>
+                  <th className="text-right px-3 py-2 font-bold text-slate-600 text-[13px] hidden sm:table-cell">Total</th>
+                  <th className="text-right px-3 py-2 font-bold text-slate-600 text-[13px]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">

@@ -44,22 +44,22 @@ export default async function NewLeadPage() {
         <div className="max-w-4xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-foreground">New Lead</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">New Order</h1>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Add a new lead to the system
+                        Customer Form — capture the customer and product details
                     </p>
                 </div>
                 <Link
                     href="/leads"
-                    className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                    className="inline-flex items-center justify-center rounded-md border border-input bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
                 >
                     <ArrowLeftIcon className="mr-2 h-4 w-4" />
                     Back to Leads
                 </Link>
             </div>
 
-            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-                <div className="p-6 sm:p-8">
+            <div className="genzo-card overflow-hidden">
+                <div className="p-2 sm:p-3">
                     <LeadForm products={products} />
                 </div>
             </div>

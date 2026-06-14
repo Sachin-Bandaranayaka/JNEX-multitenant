@@ -139,16 +139,35 @@ export function StoreClient({ initialProducts, initialCartCount }: StoreClientPr
   const lowStockCount = products.filter(p => p.stock > 0 && p.stock <= 10).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+    <div className="min-h-screen">
+      <div className="space-y-5 max-w-[1600px] mx-auto">
+        {/* Genzo product source tabs */}
+        <div className="flex flex-wrap justify-center gap-2.5">
+          {[
+            { key: 'all', label: 'All Products' },
+            { key: 'in-stock', label: 'In Stock' },
+            { key: 'low-stock', label: 'Low Stock' },
+          ].map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setStockFilter(t.key as typeof stockFilter)}
+              className={`border border-[#e89c31] px-6 py-2 rounded-md font-semibold text-sm transition-colors ${
+                stockFilter === t.key ? 'bg-[#e89c31] text-white' : 'bg-white text-slate-600 hover:bg-[#fbeeda]'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
+            <div className="p-2.5 rounded-md bg-[#fbeeda] text-[#d4860f]">
               <ShoppingBagIcon className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Store</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Buy Products</h1>
               <p className="text-sm text-muted-foreground">
                 {filteredAndSortedProducts.length} products available
               </p>
@@ -412,7 +431,7 @@ function ProductCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ delay: index * 0.03 }}
-      className={`group relative rounded-2xl bg-card border border-border overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-black/5 hover:-translate-y-1 ${
+      className={`group relative rounded-md bg-card border border-[#e7eaee] overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-black/5 ${
         isRecentlyAdded ? 'ring-2 ring-green-500 ring-offset-2 ring-offset-background' : ''
       }`}
     >
@@ -538,21 +557,21 @@ function ProductCard({
             <button
               onClick={onAddToCart}
               disabled={isAdding}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all duration-200 shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
+              className="w-full flex items-center justify-center gap-2 rounded-md bg-[#e89c31] px-4 py-3 text-sm font-bold text-white hover:bg-[#d4860f] disabled:opacity-50 transition-colors"
             >
               {isAdding ? (
                 <>
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
+                    className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full"
                   />
                   Adding...
                 </>
               ) : (
                 <>
                   <ShoppingCartIcon className="h-4 w-4" />
-                  Add to Cart
+                  Buy Now
                 </>
               )}
             </button>

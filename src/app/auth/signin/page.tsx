@@ -40,8 +40,15 @@ export default function SignInPage() {
       <div className="w-full lg:w-[40%] flex flex-col justify-center px-8 sm:px-14 py-10">
         <div className="w-full max-w-sm mx-auto">
           {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <img src="/IMAGES/logo.svg" alt="Logo" className="h-16 w-16 object-contain" />
+          <div className="flex flex-col items-center mb-6">
+            <div className="h-16 w-16 rounded-2xl bg-[#e89c31] flex items-center justify-center shadow-sm">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="h-9 w-9 text-white">
+                <path d="M12 2l2.9 6.26 6.9.6-5.2 4.52 1.56 6.74L12 17.27 5.84 20.12 7.4 13.38 2.2 8.86l6.9-.6z" />
+              </svg>
+            </div>
+            <span className="mt-3 text-xl font-extrabold tracking-wide text-slate-600">
+              JNEX<span className="text-[#e89c31]">OMS</span>
+            </span>
           </div>
 
           <h1 className="text-center text-2xl font-light text-slate-400 mb-8">

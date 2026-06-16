@@ -1,37 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Loader2, Sun, Moon, ArrowRight, CheckCircle2, Eye, EyeOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
-function ThemeToggle() {
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
-  useEffect(() => {
-    const saved = (localStorage.getItem("theme") as "light" | "dark") || "dark";
-    setTheme(saved);
-    const root = document.documentElement;
-    if (saved === "dark") root.classList.add("dark");
-    else root.classList.remove("dark");
-  }, []);
-  const toggle = () => {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    localStorage.setItem("theme", next);
-    const root = document.documentElement;
-    if (next === "dark") root.classList.add("dark");
-    else root.classList.remove("dark");
-  };
-  return (
-    <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme" className="rounded-full hover:bg-muted">
-      {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-    </Button>
-  );
-}
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -63,173 +35,113 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row overflow-hidden bg-background text-foreground">
-      {/* Left Side - Branding & Visuals */}
-      <motion.div
-        initial={{ opacity: 0, x: -50 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="lg:w-1/2 relative flex flex-col justify-between p-8 lg:p-12 bg-zinc-900 text-white overflow-hidden"
-      >
-        {/* Background Pattern */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1920&auto=format&fit=crop"
-            alt="System Analytics"
-            className="w-full h-full object-cover opacity-40 mix-blend-overlay"
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-black via-zinc-900/90 to-primary/20 mix-blend-multiply" />
-        </div>
-
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 font-bold text-xl tracking-tighter">
-            <div className="w-10 h-10 relative">
-              <img src="/IMAGES/logo.svg" alt="Logo" className="w-full h-full object-contain" />
-            </div>
-            <span className="text-2xl">Jnex Holdings</span>
+    <div className="min-h-screen w-full flex bg-white text-slate-700">
+      {/* ===== Left: Login form ===== */}
+      <div className="w-full lg:w-[40%] flex flex-col justify-center px-8 sm:px-14 py-10">
+        <div className="w-full max-w-sm mx-auto">
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            <img src="/IMAGES/logo.svg" alt="Logo" className="h-16 w-16 object-contain" />
           </div>
-        </div>
 
-        <div className="relative z-10 mt-12 lg:mt-0 space-y-6">
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-4xl lg:text-6xl font-bold tracking-tight leading-tight"
-          >
-            Sales <span className="text-primary">Management</span> System
-          </motion.h1>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-            className="space-y-4"
-          >
-            <p className="text-lg text-zinc-300 max-w-md leading-relaxed">
-              Streamline your sales operations, track performance, and drive growth with our comprehensive management solution.
-            </p>
-            <div className="flex flex-col gap-3 pt-4">
-              <div className="flex items-center gap-2 text-zinc-400">
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-                <span>Real-time inventory tracking</span>
-              </div>
-              <div className="flex items-center gap-2 text-zinc-400">
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-                <span>Advanced order management</span>
-              </div>
-              <div className="flex items-center gap-2 text-zinc-400">
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-                <span>Seamless shipping integration</span>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        <div className="relative z-10 text-sm text-zinc-500 mt-8">
-          © {new Date().getFullYear()} Jnex Holdings. All rights reserved.
-        </div>
-      </motion.div>
-
-      {/* Right Side - Login Form */}
-      <div className="lg:w-1/2 flex items-center justify-center p-6 lg:p-12 relative bg-background">
-        <div className="absolute top-6 right-6">
-          <ThemeToggle />
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="w-full max-w-md space-y-8"
-        >
-          <div className="text-center lg:text-left space-y-2">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">Welcome back</h2>
-            <p className="text-muted-foreground">
-              Please enter your details to sign in.
-            </p>
-          </div>
+          <h1 className="text-center text-2xl font-light text-slate-400 mb-8">
+            Login to Your Account
+          </h1>
 
           {error && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              className="p-4 rounded-2xl bg-destructive/10 text-destructive text-sm font-medium border border-destructive/20 flex items-center gap-2"
-            >
-              <div className="h-2 w-2 rounded-full bg-destructive" />
+            <div className="mb-5 p-3 rounded-md bg-[#fdeceb] text-[#c9453f] text-sm font-medium border border-[#f0c2bd] flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-[#c9453f]" />
               {error}
-            </motion.div>
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="ml-1 text-muted-foreground">Email Address</Label>
-              <Input
+            <div>
+              <label htmlFor="email" className="block text-sm font-semibold text-slate-500 mb-1.5">
+                Username
+              </label>
+              <input
                 id="email"
                 type="email"
-                placeholder="name@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-12 rounded-full px-5 border-input bg-background/50 hover:bg-background focus:ring-2 focus:ring-primary/20 transition-all"
+                autoComplete="username"
+                className="w-full border-0 border-b-2 border-[#e3e6ea] bg-transparent py-2 text-slate-700 focus:border-[#e89c31] focus:outline-none focus:ring-0 transition-colors"
               />
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between ml-1">
-                <Label htmlFor="password" className="text-muted-foreground">Password</Label>
-                <a href="#" className="text-sm font-medium text-primary hover:underline hover:text-primary/80 transition-colors">
-                  Forgot password?
-                </a>
-              </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-semibold text-slate-500 mb-1.5">
+                Password
+              </label>
               <div className="relative">
-                <Input
+                <input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="h-12 rounded-full px-5 pr-12 border-input bg-background/50 hover:bg-background focus:ring-2 focus:ring-primary/20 transition-all"
+                  autoComplete="current-password"
+                  className="w-full border-0 border-b-2 border-[#e3e6ea] bg-transparent py-2 pr-9 text-slate-700 focus:border-[#e89c31] focus:outline-none focus:ring-0 transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full h-12 rounded-full text-base font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:scale-[1.02]"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  Sign in <ArrowRight className="ml-2 h-5 w-5" />
-                </>
-              )}
-            </Button>
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-[#e89c31] px-8 py-2.5 text-sm font-semibold text-white hover:bg-[#d4860f] disabled:opacity-60 transition-colors"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Signing in...
+                  </>
+                ) : (
+                  "SIGN IN"
+                )}
+              </button>
+            </div>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <a href="#" className="font-medium text-primary hover:underline hover:text-primary/80 transition-colors">
-              Contact Admin
-            </a>
+          <p className="mt-10 text-center text-xs text-slate-400 leading-relaxed px-2">
+            Seamless shopping, reliable shipping &ndash; satisfaction to your doorstep
+            with our innovative sales system!
           </p>
-        </motion.div>
+        </div>
+      </div>
+
+      {/* ===== Right: Hero ===== */}
+      <div className="hidden lg:block lg:w-[60%] relative overflow-hidden">
+        <img
+          src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?q=80&w=1920&auto=format&fit=crop"
+          alt="Logistics"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(120deg, rgba(58,45,26,0.78), rgba(122,90,47,0.45) 60%, rgba(0,0,0,0.25))" }}
+        />
+        <div className="relative z-10 flex h-full flex-col justify-center px-14 text-white max-w-2xl">
+          <h2 className="text-5xl font-extrabold tracking-tight drop-shadow">
+            JNEX <span className="text-[#f5b94d]">OMS</span>
+          </h2>
+          <p className="mt-3 text-sm font-medium text-[#f5b94d]">Order Management System</p>
+          <p className="mt-4 text-lg leading-relaxed text-white/90">
+            Welcome to Jnex! Effortlessly organize, access, and collaborate on your products.
+            Streamline workflows, manage orders, and boost your sales game. Let&apos;s make your
+            business journey smooth and successful!
+          </p>
+        </div>
       </div>
     </div>
   );

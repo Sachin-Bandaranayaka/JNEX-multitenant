@@ -123,16 +123,11 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                 {/* Brand */}
                 <div className="flex items-center justify-between pt-4 px-5 pb-2">
                     <div className="flex items-center gap-2 overflow-hidden">
-                        {tenant.logoUrl ? (
+                        {tenant.logoUrl && (
                             <div className="relative h-8 w-8 flex-shrink-0">
                                 <Image src={tenant.logoUrl} alt="Logo" fill className="object-contain" sizes="32px" />
                             </div>
-                        ) : (
-                            <span className="text-[#e89c31] text-2xl leading-none">★</span>
                         )}
-                        <span className="text-2xl font-extrabold tracking-wide text-slate-500">
-                            {tenant.logoUrl ? '' : <>GEN<span className="text-[#e89c31]">ZO</span></>}
-                        </span>
                     </div>
                     {isMobile && (
                         <button onClick={() => setIsOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-slate-500">

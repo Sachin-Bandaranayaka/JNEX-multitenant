@@ -28,8 +28,11 @@ export default async function OrdersPage({
 
   const user = session.user as User;
   const canViewAll = user.role === 'ADMIN' || user.permissions?.includes('VIEW_ORDERS');
+  // Team members without VIEW_ORDERS may still open the page — they just see
+  // their own orders (enforced by the userId filter in `where` below).
+  const canViewOwn = user.role === 'TEAM_MEMBER';
 
-  if (!canViewAll) {
+  if (!canViewAll && !canViewOwn) {
     return redirect('/unauthorized');
   }
 

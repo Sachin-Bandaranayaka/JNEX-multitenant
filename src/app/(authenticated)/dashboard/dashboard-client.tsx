@@ -118,25 +118,6 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
                 </div>
             </div>
 
-            {/* ===== Company List + Leader Board ===== */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="genzo-card">
-                    <h3 className="font-bold text-slate-600 mb-3">Company List</h3>
-                    <div className="text-4xl text-center my-1">🏙️</div>
-                    <div className="font-semibold text-slate-600">My Business Partners</div>
-                    <Link href="/users" className="text-[#5aa6e0] font-semibold text-sm">View</Link>
-                </div>
-                <div className="genzo-card lg:col-span-2">
-                    <h3 className="font-bold text-slate-600 mb-3">Leader Board <Link href="/reports" className="float-right text-[#5aa6e0] font-semibold text-sm">View</Link></h3>
-                    <div className="flex gap-2.5 flex-wrap mt-1.5">
-                        {[['Best Call Center Agent', 'bg-[#e3f3e6] text-[#3c8c4c]'], ['Top Purchase', 'bg-[#fae8e6] text-[#c4655c]'],
-                          ['Highest Income', 'bg-[#e7eefa] text-[#4a6fb0]'], ['Highest Day Sale', 'bg-[#fceee0] text-[#c08a3c]'],
-                          ['Emerging Entrepreneur', 'bg-[#fcf6dd] text-[#b39a2a]']].map(([label, cls]) => (
-                            <div key={label} className={`flex-1 min-w-[110px] text-center py-3 px-2 rounded-md font-bold text-[13px] ${cls}`}>{label}</div>
-                        ))}
-                    </div>
-                </div>
-            </div>
 
             {/* ===== Stat cards with period filter ===== */}
             <div className="genzo-card">

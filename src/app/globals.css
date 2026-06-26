@@ -259,3 +259,93 @@
   .genzo-frow label { @apply font-semibold text-slate-600; }
   .genzo-input { @apply w-full border border-[#d4d9e0] rounded-md px-3 py-2 text-[13px] text-slate-600 focus:outline-none focus:border-[#e89c31]; }
 }
+
+/* =========================================================
+   GENZO GLOBALS OVERRIDES (Unifies Modern Next.js components to Genzo)
+   ========================================================= */
+
+/* Unify modern cards, panels, modals */
+.rounded-3xl, .rounded-2xl, .rounded-xl {
+  border-radius: 0.375rem !important; /* Genzo standard rounded-md */
+}
+
+/* Unify inputs, textareas, select dropdowns to match Genzo input style */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input:not([type]),
+select,
+textarea {
+  border-radius: 0.375rem !important;
+  border-color: #d4d9e0 !important;
+}
+
+/* Standardize heights, paddings, and font sizes of form fields */
+input.rounded-full,
+input.rounded-3xl,
+input.rounded-2xl,
+select.rounded-full,
+select.rounded-3xl,
+select.rounded-2xl,
+.rounded-full.border-input,
+.rounded-3xl.border-input,
+.rounded-2xl.border-input {
+  height: 2.25rem !important; /* ~36px */
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+  font-size: 13px !important;
+}
+
+/* Ensure textareas scale nicely but have Genzo font size and padding */
+textarea.rounded-3xl,
+textarea.rounded-2xl,
+textarea.rounded-xl {
+  height: auto !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 13px !important;
+}
+
+/* Unify action buttons and links that are styled as pills (rounded-full) to match Genzo button styles */
+button.rounded-full[class*="px-"],
+a.rounded-full[class*="px-"],
+button.rounded-3xl[class*="px-"],
+a.rounded-3xl[class*="px-"],
+button.rounded-2xl[class*="px-"],
+a.rounded-2xl[class*="px-"],
+button.rounded-xl[class*="px-"],
+a.rounded-xl[class*="px-"] {
+  border-radius: 0.375rem !important; /* 6px / rounded-md */
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+  font-size: 13px !important;
+  line-height: 1.25rem !important;
+}
+
+/* Make all tables default to the Genzo data-table layout */
+table:not(.no-genzo-override) {
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+table:not(.no-genzo-override) thead th {
+  text-align: left !important;
+  padding: 0.75rem 0.75rem !important; /* py-3 */
+  color: #4b5563 !important; /* text-slate-600 */
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  border-bottom: 2px solid #e6e9ed !important;
+  white-space: nowrap !important;
+}
+table:not(.no-genzo-override) tbody td {
+  padding: 0.875rem 0.75rem !important; /* py-3.5 px-3 */
+  border-bottom: 1px solid #eef0f3 !important;
+  color: #5d6573 !important;
+  font-size: 13px !important;
+  vertical-align: top !important;
+}
+table:not(.no-genzo-override) tbody tr:hover {
+  background-color: #fafbfc !important;
+}

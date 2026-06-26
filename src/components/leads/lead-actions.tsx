@@ -244,95 +244,88 @@ export function LeadActions({
         !lead.order.shippingProvider &&
         canCreateOrder;
 
-    if (lead.status !== 'PENDING' && lead.status !== 'NO_ANSWER' && !canShipOrder) {
+    // A lead is "open" (still being worked) while PENDING or NO_ANSWER.
+    const isOpen = lead.status === 'PENDING' || lead.status === 'NO_ANSWER';
+    // A confirmed lead that already has an order gets a quick link to it.
+    const isConfirmedWithOrder = lead.status === 'CONFIRMED' && !!lead.order;
+
+    // Nothing to show for closed leads (rejected/deleted) with no shippable order.
+    if (!isOpen && !isConfirmedWithOrder && !canShipOrder) {
         return null;
     }
+
+    // Shared pill styles so the single Actions column reads consistently.
+    const pill = 'px-3 py-1.5 rounded-full text-xs font-medium transition-colors';
+    const styles = {
+        order: `${pill} bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/20 disabled:opacity-50`,
+        view: `${pill} bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/20`,
+        ship: `${pill} bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20`,
+        warn: `${pill} bg-yellow-50 text-yellow-600 hover:bg-yellow-100 dark:bg-yellow-500/10 dark:text-yellow-400 dark:hover:bg-yellow-500/20`,
+        edit: `${pill} bg-muted text-muted-foreground hover:bg-accent hover:text-foreground`,
+        danger: `${pill} bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20`,
+    };
 
     return (
         <>
             <div className="flex items-center flex-wrap gap-2">
-                {/* Ship Order Button */}
+                {/* Confirmed lead → jump straight to its order */}
+                {isConfirmedWithOrder && lead.order && (
+                    <Link href={`/orders/${lead.order.id}`} className={styles.view}>
+                        View Order
+                    </Link>
+                )}
+
+                {/* Ship Order — whenever an order exists and is still shippable */}
                 {canShipOrder && (
-                    <button
-                        onClick={() => setIsShippingModalOpen(true)}
-                        className="px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 transition-colors"
-                    >
+                    <button onClick={() => setIsShippingModalOpen(true)} className={styles.ship}>
                         Ship Order
                     </button>
                 )}
 
-                {/* Actions for PENDING leads */}
-                {lead.status === 'PENDING' && (
-                    <>
-                        {canCreateOrder && !lead.order && (
-                            <button
-                                onClick={() => handleCreateOrder(false)}
-                                disabled={isCreating}
-                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/20 disabled:opacity-50 transition-colors"
-                            >
-                                {isCreating ? 'Processing...' : 'Create Order'}
-                            </button>
-                        )}
-
-                        {canEdit && (
-                            <Link
-                                href={`/leads/${lead.id}?edit=true`}
-                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                            >
-                                Edit
-                            </Link>
-                        )}
-
-                        {canDelete && (
-                            <button
-                                onClick={() => setIsDeleteModalOpen(true)}
-                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors"
-                            >
-                                Delete
-                            </button>
-                        )}
-                    </>
+                {/* --- Open leads (PENDING / NO_ANSWER) --- */}
+                {isOpen && canCreateOrder && !lead.order && (
+                    <button
+                        onClick={() => handleCreateOrder(false)}
+                        disabled={isCreating}
+                        className={styles.order}
+                    >
+                        {isCreating ? 'Processing...' : 'Add Order'}
+                    </button>
                 )}
 
-                {/* Actions for NO_ANSWER leads */}
-                {lead.status === 'NO_ANSWER' && (
-                    <>
-                        {canEdit && (
-                            <button
-                                onClick={() => handleStatusChange('PENDING')}
-                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-600 hover:bg-yellow-100 dark:bg-yellow-500/10 dark:text-yellow-400 dark:hover:bg-yellow-500/20 transition-colors"
-                            >
-                                Retry
-                            </button>
-                        )}
+                {/* PENDING → can't reach customer */}
+                {lead.status === 'PENDING' && canEdit && (
+                    <button onClick={() => handleStatusChange('NO_ANSWER')} className={styles.warn}>
+                        No answer
+                    </button>
+                )}
 
-                        {canEdit && (
-                            <button
-                                onClick={() => handleStatusChange('REJECTED')}
-                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors"
-                            >
-                                Reject
-                            </button>
-                        )}
+                {/* NO_ANSWER → put back in the call queue */}
+                {lead.status === 'NO_ANSWER' && canEdit && (
+                    <button onClick={() => handleStatusChange('PENDING')} className={styles.warn}>
+                        Retry
+                    </button>
+                )}
 
-                        {canDelete && (
-                            <button
-                                onClick={() => setIsDeleteModalOpen(true)}
-                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 transition-colors"
-                            >
-                                Delete
-                            </button>
-                        )}
+                {isOpen && canEdit && (
+                    <Link href={`/leads/${lead.id}?edit=true`} className={styles.edit}>
+                        Edit
+                    </Link>
+                )}
 
-                        {canEdit && (
-                            <Link
-                                href={`/leads/${lead.id}?edit=true`}
-                                className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                            >
-                                Edit
-                            </Link>
-                        )}
-                    </>
+                {isOpen && canEdit && (
+                    <button
+                        onClick={() => { if (window.confirm('Reject this lead?')) handleStatusChange('REJECTED'); }}
+                        className={styles.danger}
+                    >
+                        Reject
+                    </button>
+                )}
+
+                {isOpen && canDelete && (
+                    <button onClick={() => setIsDeleteModalOpen(true)} className={styles.danger}>
+                        Delete
+                    </button>
                 )}
             </div>
 

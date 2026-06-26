@@ -109,21 +109,64 @@ export async function GET(request: Request) {
                         const fardaService = new FardaExpressService(fardaClientId, fardaApiKey);
                         const shipmentStatus = await fardaService.trackShipment(order.trackingNumber!);
 
-                        // Update order status
-                        const updatedOrder = await prisma.order.update({
-                            where: { id: order.id },
-                            data: {
-                                status: statusMap[shipmentStatus],
-                                deliveredAt: shipmentStatus === ShipmentStatus.DELIVERED ? new Date() : null,
-                                trackingUpdates: {
-                                    create: {
-                                        status: shipmentStatus,
-                                        timestamp: new Date(),
-                                        tenantId: order.tenantId,
-                                    },
+                        const newStatus = statusMap[shipmentStatus];
+                        const orderUpdateData = {
+                            status: newStatus,
+                            deliveredAt: shipmentStatus === ShipmentStatus.DELIVERED ? new Date() : null,
+                            trackingUpdates: {
+                                create: {
+                                    status: shipmentStatus,
+                                    timestamp: new Date(),
+                                    tenantId: order.tenantId,
                                 },
                             },
-                        });
+                        };
+
+                        // If the shipment was returned, restock the product and
+                        // record the adjustment — mirroring the Royal Express
+                        // path. Without this, inventory silently drifts on every
+                        // returned Farda Express order.
+                        if (newStatus === OrderStatus.RETURNED && order.status !== OrderStatus.RETURNED) {
+                            const product = await prisma.product.findUnique({
+                                where: { id: order.productId },
+                            });
+
+                            if (product) {
+                                await prisma.$transaction([
+                                    prisma.order.update({
+                                        where: { id: order.id },
+                                        data: orderUpdateData,
+                                    }),
+                                    prisma.product.update({
+                                        where: { id: order.productId },
+                                        data: { stock: { increment: order.quantity } },
+                                    }),
+                                    prisma.stockAdjustment.create({
+                                        data: {
+                                            productId: order.productId,
+                                            quantity: order.quantity,
+                                            reason: `Order Returned (Auto-detected via Farda Express: ${order.trackingNumber})`,
+                                            previousStock: product.stock,
+                                            newStock: product.stock + order.quantity,
+                                            userId: order.userId,
+                                            tenantId: order.tenantId,
+                                        },
+                                    }),
+                                ]);
+                            } else {
+                                // Product not found, just update the order status.
+                                await prisma.order.update({
+                                    where: { id: order.id },
+                                    data: orderUpdateData,
+                                });
+                            }
+                        } else {
+                            // Normal update without stock adjustment.
+                            await prisma.order.update({
+                                where: { id: order.id },
+                                data: orderUpdateData,
+                            });
+                        }
 
                         // Create notification for delivery
                         if (shipmentStatus === ShipmentStatus.DELIVERED) {

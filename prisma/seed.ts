@@ -16,14 +16,28 @@ async function main() {
     },
   })
 
-  // 2. Create the Super Admin user
-  const superAdminPassword = await hash('superadmin123', 12)
+  // 2. Create the Super Admin user.
+  // Credentials are read from the environment so production seeds never use a
+  // hardcoded, repository-known password. The fallbacks exist only for local
+  // development; set SEED_SUPERADMIN_EMAIL / SEED_SUPERADMIN_PASSWORD before
+  // seeding anything that is internet-reachable.
+  const superAdminEmail = process.env.SEED_SUPERADMIN_EMAIL || 'superadmin@jnex.com'
+  const superAdminPasswordPlain = process.env.SEED_SUPERADMIN_PASSWORD
+
+  if (!superAdminPasswordPlain) {
+    console.warn(
+      '⚠️  SEED_SUPERADMIN_PASSWORD is not set — falling back to an insecure ' +
+      'development default. Do NOT use this in production.'
+    )
+  }
+
+  const superAdminPassword = await hash(superAdminPasswordPlain || 'superadmin123', 12)
 
   const superAdmin = await prisma.user.upsert({
-    where: { email: 'superadmin@jnex.com' },
+    where: { email: superAdminEmail },
     update: {},
     create: {
-      email: 'superadmin@jnex.com',
+      email: superAdminEmail,
       name: 'Super Admin',
       password: superAdminPassword,
       role: Role.SUPER_ADMIN, // Use the SUPER_ADMIN role

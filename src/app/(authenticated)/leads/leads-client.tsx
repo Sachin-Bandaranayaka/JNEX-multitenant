@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { LeadActions } from '@/components/leads/lead-actions';
-import { LeadQuickActions } from '@/components/leads/lead-quick-actions';
 import { DataExport } from '@/components/leads/data-export';
 import type { LeadWithDetails } from './page';
 import { User } from 'next-auth';
@@ -661,13 +660,12 @@ export function LeadsClient({
                 <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden xl:table-cell">Contact No 2</th>
                 <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden md:table-cell">Product Code</th>
                 <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden xl:table-cell">Staff</th>
-                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Add Order</th>
                 <th className="text-right px-3 py-2 font-bold text-slate-600 text-[13px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
               {displayedLeads.length === 0 ? (
-                <tr><td colSpan={13} className="px-4 py-12 text-center text-muted-foreground">No leads found</td></tr>
+                <tr><td colSpan={12} className="px-4 py-12 text-center text-muted-foreground">No leads found</td></tr>
               ) : (
                 displayedLeads.map((lead, idx) => {
                   const config = STATUS_CONFIG[lead.status as StatusKey];
@@ -740,9 +738,6 @@ export function LeadsClient({
                       <td className="px-3 py-2 hidden xl:table-cell"><ContactIcons phone={csvData.secondPhone} /></td>
                       <td className="px-3 py-2 text-muted-foreground hidden md:table-cell text-xs">{lead.product.code}</td>
                       <td className="px-3 py-2 hidden xl:table-cell text-xs text-muted-foreground">{lead.assignedTo?.name || '—'}</td>
-                      <td className="px-3 py-2">
-                        <LeadQuickActions lead={lead} user={user} onAction={refreshLeads} />
-                      </td>
                       <td className="px-3 py-2 text-right">
                         <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} />
                       </td>

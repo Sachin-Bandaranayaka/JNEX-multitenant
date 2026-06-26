@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { getScopedPrismaClient } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -14,9 +14,13 @@ export async function GET(
         
     const resolvedParams = await params;const session = await getServerSession(authOptions);
 
-        if (!session?.user) {
+        if (!session?.user?.tenantId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
+
+        // Tenant-scoped client: stock history (incl. employee names/emails) is
+        // only ever returned for products owned by the caller's tenant.
+        const prisma = getScopedPrismaClient(session.user.tenantId);
 
         const stockAdjustments = await prisma.stockAdjustment.findMany({
             where: {

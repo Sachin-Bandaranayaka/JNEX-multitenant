@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { getScopedPrismaClient } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -18,12 +18,16 @@ export async function GET(
         
     const resolvedParams = await params;const session = await getServerSession(authOptions);
 
-        if (!session?.user) {
+        if (!session?.user?.tenantId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
 
+        // Tenant-scoped client: prevents triggering carrier API calls (and
+        // consuming carrier API quota/keys) against another tenant's order.
+        const prisma = getScopedPrismaClient(session.user.tenantId);
+
         // Get order with shipping details
-        const order = await prisma.order.findUnique({
+        const order = await prisma.order.findFirst({
             where: { id: resolvedParams.orderId },
             select: {
                 id: true,

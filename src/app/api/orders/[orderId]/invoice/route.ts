@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { getScopedPrismaClient } from '@/lib/prisma';
 import { generateInvoicePDF } from '@/lib/generate-invoice';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -15,11 +15,15 @@ export async function GET(
     
     const resolvedParams = await params;const session = await getServerSession(authOptions);
 
-    if (!session?.user) {
+    if (!session?.user?.tenantId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const order = await prisma.order.findUnique({
+    // Tenant-scoped client: the order can only be found if it belongs to the
+    // current user's tenant, preventing cross-tenant invoice/PII access.
+    const prisma = getScopedPrismaClient(session.user.tenantId);
+
+    const order = await prisma.order.findFirst({
       where: { id: resolvedParams.orderId },
       include: {
         product: true,

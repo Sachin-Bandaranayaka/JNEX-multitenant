@@ -147,9 +147,82 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
 
                 {/* Nav */}
                 <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin">
+                    {/* --- Ordered to follow the daily workflow: Leads -> Orders -> Shipping -> Return --- */}
                     {has('VIEW_DASHBOARD') && (
                         <NavLink href="/dashboard" icon={<HomeIcon className="h-[18px] w-[18px]" />}
                             isActive={pathname === '/dashboard'} onClick={closeMobileSidebar}>Dashboard</NavLink>
+                    )}
+
+                    {/* 1. Leads — import & call */}
+                    {has('VIEW_LEADS') && (
+                        <NavGroup
+                            icon={<UserGroupIcon className="h-[18px] w-[18px]" />}
+                            label="Leads"
+                            isActive={pathname.startsWith('/leads')}
+                            links={[
+                                { href: '/leads/import', label: 'Import Lead' },
+                                { href: '/leads', label: 'Lead List' },
+                                { href: '/leads/remind-leads', label: 'Remind Leads' },
+                            ]}
+                            pathname={pathname} onNavigate={closeMobileSidebar}
+                        />
+                    )}
+
+                    {/* 2. Orders — confirm, print invoice & mark delivered */}
+                    {has('VIEW_ORDERS') && (
+                        <NavGroup
+                            icon={<ClipboardDocumentListIcon className="h-[18px] w-[18px]" />}
+                            label="Orders"
+                            isActive={pathname.startsWith('/orders') || pathname.startsWith('/search')}
+                            links={[
+                                { href: '/orders', label: 'Pending Orders' },
+                                ...(userRole === 'ADMIN' ? [{ href: '/orders/bulk-update', label: 'Update from Courier' }] : []),
+                                { href: '/leads/new', label: 'New Order' },
+                                { href: '/search', label: 'Search Orders' },
+                            ]}
+                            pathname={pathname} onNavigate={closeMobileSidebar}
+                        />
+                    )}
+
+                    {/* 3. Shipping */}
+                    {has('VIEW_SHIPPING') && (
+                        <NavGroup
+                            icon={<TruckIcon className="h-[18px] w-[18px]" />}
+                            label="Shipping"
+                            isActive={pathname.startsWith('/shipping')}
+                            links={[
+                                { href: '/shipping', label: 'Ship' },
+                                { href: '/shipping?tab=shipped', label: 'Shipped List' },
+                                { href: '/shipping?tab=tracking', label: 'Tracking Details' },
+                            ]}
+                            pathname={pathname} onNavigate={closeMobileSidebar}
+                        />
+                    )}
+
+                    {/* 4. Return */}
+                    <NavGroup
+                        icon={<ArrowUturnLeftIcon className="h-[18px] w-[18px]" />}
+                        label="Return"
+                        isActive={pathname.startsWith('/returns')}
+                        links={[
+                            { href: '/returns/add-return', label: 'Add Return' },
+                            { href: '/returns/returned-list', label: 'Returned List' },
+                        ]}
+                        pathname={pathname} onNavigate={closeMobileSidebar}
+                    />
+
+                    {/* --- Supporting / inventory / admin --- */}
+                    {has('VIEW_INVENTORY') && (
+                        <NavGroup
+                            icon={<ArchiveBoxIcon className="h-[18px] w-[18px]" />}
+                            label="Stock"
+                            isActive={pathname.startsWith('/inventory') || pathname.startsWith('/products')}
+                            links={[
+                                { href: '/inventory', label: 'Stock List' },
+                                { href: '/products', label: 'Products' },
+                            ]}
+                            pathname={pathname} onNavigate={closeMobileSidebar}
+                        />
                     )}
 
                     {/* Products Purchase */}
@@ -165,81 +238,14 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                         pathname={pathname} onNavigate={closeMobileSidebar}
                     />
 
-                    {has('VIEW_INVENTORY') && (
-                        <NavGroup
-                            icon={<ArchiveBoxIcon className="h-[18px] w-[18px]" />}
-                            label="Stock"
-                            isActive={pathname.startsWith('/inventory') || pathname.startsWith('/products')}
-                            links={[
-                                { href: '/inventory', label: 'Stock List' },
-                                { href: '/products', label: 'Products' },
-                            ]}
-                            pathname={pathname} onNavigate={closeMobileSidebar}
-                        />
+                    {has('VIEW_REPORTS') && (
+                        <NavLink href="/reports" icon={<ChartBarIcon className="h-[18px] w-[18px]" />}
+                            isActive={pathname.startsWith('/reports')} onClick={closeMobileSidebar}>Reports</NavLink>
                     )}
-
-                    {has('VIEW_SHIPPING') && (
-                        <NavGroup
-                            icon={<TruckIcon className="h-[18px] w-[18px]" />}
-                            label="Shipping"
-                            isActive={pathname.startsWith('/shipping')}
-                            links={[
-                                { href: '/shipping', label: 'Ship' },
-                                { href: '/shipping?tab=shipped', label: 'Shipped List' },
-                                { href: '/shipping?tab=tracking', label: 'Tracking Details' },
-                            ]}
-                            pathname={pathname} onNavigate={closeMobileSidebar}
-                        />
-                    )}
-
-                    {has('VIEW_LEADS') && (
-                        <NavGroup
-                            icon={<UserGroupIcon className="h-[18px] w-[18px]" />}
-                            label="Leads"
-                            isActive={pathname.startsWith('/leads')}
-                            links={[
-                                { href: '/leads/import', label: 'Import Lead' },
-                                { href: '/leads', label: 'Lead List' },
-                                { href: '/leads/remind-leads', label: 'Remind Leads' },
-                            ]}
-                            pathname={pathname} onNavigate={closeMobileSidebar}
-                        />
-                    )}
-
-                    {has('VIEW_ORDERS') && (
-                        <NavGroup
-                            icon={<ClipboardDocumentListIcon className="h-[18px] w-[18px]" />}
-                            label="Orders"
-                            isActive={pathname.startsWith('/orders') || pathname.startsWith('/search')}
-                            links={[
-                                { href: '/leads/new', label: 'New Order' },
-                                { href: '/orders', label: 'Pending Orders' },
-                                { href: '/search', label: 'Search Orders' },
-                                ...(userRole === 'ADMIN' ? [{ href: '/orders/bulk-update', label: 'Update from Courier' }] : []),
-                            ]}
-                            pathname={pathname} onNavigate={closeMobileSidebar}
-                        />
-                    )}
-
-                    <NavGroup
-                        icon={<ArrowUturnLeftIcon className="h-[18px] w-[18px]" />}
-                        label="Return"
-                        isActive={pathname.startsWith('/returns')}
-                        links={[
-                            { href: '/returns/add-return', label: 'Add Return' },
-                            { href: '/returns/returned-list', label: 'Returned List' },
-                        ]}
-                        pathname={pathname} onNavigate={closeMobileSidebar}
-                    />
 
                     {has('MANAGE_USERS') && (
                         <NavLink href="/users" icon={<UsersIcon className="h-[18px] w-[18px]" />}
                             isActive={pathname.startsWith('/users')} onClick={closeMobileSidebar}>Staff</NavLink>
-                    )}
-
-                    {has('VIEW_REPORTS') && (
-                        <NavLink href="/reports" icon={<ChartBarIcon className="h-[18px] w-[18px]" />}
-                            isActive={pathname.startsWith('/reports')} onClick={closeMobileSidebar}>Reports</NavLink>
                     )}
 
                     {has('MANAGE_SETTINGS') && (

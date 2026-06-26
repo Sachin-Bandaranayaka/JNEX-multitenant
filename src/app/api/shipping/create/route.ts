@@ -1,5 +1,5 @@
 import { ShippingProviderFactory } from '@/lib/shipping/factory';
-import { prisma } from '@/lib/prisma';
+import { prisma, getScopedPrismaClient } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user) {
+    if (!session?.user?.tenantId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
@@ -50,6 +50,11 @@ export async function POST(request: Request) {
 
     // Get the shipping provider
     const tenantId = session.user.tenantId;
+
+    // The Tenant model itself is not tenant-scoped (it has no tenantId column),
+    // so look it up by id with the raw client. Order writes below use a
+    // tenant-scoped client to avoid cross-tenant shipment creation.
+    const scopedPrisma = getScopedPrismaClient(tenantId);
 
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -82,8 +87,9 @@ export async function POST(request: Request) {
       data.service
     );
 
-    // Update the order with shipping information
-    const updatedOrder = await prisma.order.update({
+    // Update the order with shipping information (scoped: cross-tenant order
+    // ids will not match and the update affects no rows).
+    const updatedOrder = await scopedPrisma.order.update({
       where: { id: data.orderId },
       data: {
         status: 'SHIPPED',

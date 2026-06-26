@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma, getScopedPrismaClient } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -117,8 +117,11 @@ export async function POST(request: Request) {
 
         // Database operations with detailed error handling
         try {
-            const lead = await prisma.lead.findUnique({
-                where: { id: validatedData.leadId },
+            // Tenant-scoped lead lookup: a user of Tenant A cannot reference a
+            // lead belonging to Tenant B (which would corrupt order/lead links
+            // and let them drive stock changes against another tenant).
+            const lead = await prisma.lead.findFirst({
+                where: { id: validatedData.leadId, tenantId: session.user.tenantId },
                 include: { product: true }
             });
             console.log('Lead lookup result:', {
@@ -150,14 +153,29 @@ export async function POST(request: Request) {
                 );
             }
 
+            // The order is assigned to (and the stock adjustment is attributed
+            // to) validatedData.userId. Verify that user belongs to the caller's
+            // tenant so an order can't be linked to another tenant's user.
+            const assignedUser = await prisma.user.findFirst({
+                where: { id: validatedData.userId, tenantId: session.user.tenantId },
+                select: { id: true },
+            });
+
+            if (!assignedUser) {
+                return NextResponse.json(
+                    { error: 'Assigned user not found in your organization' },
+                    { status: 400 }
+                );
+            }
+
             // Transaction with detailed logging
             const result = await prisma.$transaction(async (tx) => {
                 // Pass the transaction client to generateOrderId
                 const orderId = await generateOrderId(tx);
                 console.log('Generated orderId:', orderId);
 
-                const product = await tx.product.findUnique({
-                    where: { id: validatedData.productId },
+                const product = await tx.product.findFirst({
+                    where: { id: validatedData.productId, tenantId: session.user.tenantId },
                     select: { price: true }
                 });
                 console.log('Product lookup result:', {
@@ -216,8 +234,8 @@ export async function POST(request: Request) {
                 });
 
                 // Adjust product stock based on order quantity
-                const currentProduct = await tx.product.findUnique({
-                    where: { id: validatedData.productId }
+                const currentProduct = await tx.product.findFirst({
+                    where: { id: validatedData.productId, tenantId: session.user.tenantId }
                 });
 
                 if (!currentProduct) {
@@ -299,9 +317,13 @@ export async function GET(request: Request) {
     try {
         const session = await getServerSession(authOptions);
 
-        if (!session?.user) {
+        if (!session?.user?.tenantId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+
+        // Tenant-scoped client adds an implicit tenant filter on top of the
+        // per-user filter below.
+        const prisma = getScopedPrismaClient(session.user.tenantId);
 
         // Get the status from URL query params
         const { searchParams } = new URL(request.url);

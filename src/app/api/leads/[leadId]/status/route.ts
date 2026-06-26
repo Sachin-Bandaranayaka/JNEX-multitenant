@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { getScopedPrismaClient } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -18,16 +18,21 @@ export async function PUT(
     try {
         const session = await getServerSession(authOptions);
 
-        if (!session?.user) {
+        if (!session?.user?.tenantId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
+
+        // Tenant-scoped client: an ADMIN of one tenant can no longer read or
+        // mutate leads belonging to another tenant — the lookup below returns
+        // null for any lead outside the caller's tenant.
+        const prisma = getScopedPrismaClient(session.user.tenantId);
 
         const resolvedParams = await params;
         const data = await request.json();
         const validatedData = statusSchema.parse(data);
 
         // Get the lead and verify it exists
-        const lead = await prisma.lead.findUnique({
+        const lead = await prisma.lead.findFirst({
             where: { id: resolvedParams.leadId },
         });
 

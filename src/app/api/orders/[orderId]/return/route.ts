@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { getScopedPrismaClient } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -16,9 +16,13 @@ export async function POST(
     const resolvedParams = await params;
     const session = await getServerSession(authOptions);
 
-    if (!session?.user) {
+    if (!session?.user?.tenantId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
+
+    // Tenant-scoped client: refund/return processing and the resulting stock
+    // increment can only ever touch the caller's own tenant data.
+    const prisma = getScopedPrismaClient(session.user.tenantId);
 
     const body = await request.json();
     const { reason, description, refundMethod, returnShipping } = body;
@@ -31,8 +35,8 @@ export async function POST(
       );
     }
 
-    // Get the order and verify it exists
-    const order = await prisma.order.findUnique({
+    // Get the order and verify it exists (scoped to the caller's tenant)
+    const order = await prisma.order.findFirst({
       where: { id: resolvedParams.orderId },
       include: {
         product: true

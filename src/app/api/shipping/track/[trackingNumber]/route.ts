@@ -1,5 +1,5 @@
 import { ShippingProviderFactory } from '@/lib/shipping/factory';
-import { prisma } from '@/lib/prisma';
+import { prisma, getScopedPrismaClient } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
@@ -19,14 +19,18 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user) {
+    if (!session?.user?.tenantId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const resolvedParams = await params;
 
+    // Tenant-scoped client: a tracking number is only resolvable to an order
+    // within the caller's own tenant.
+    const scopedPrisma = getScopedPrismaClient(session.user.tenantId);
+
     // Find the order with this tracking number
-    const order = await prisma.order.findFirst({
+    const order = await scopedPrisma.order.findFirst({
       where: { trackingNumber: resolvedParams.trackingNumber },
       include: {
         trackingUpdates: {
@@ -52,8 +56,10 @@ export async function GET(
       );
     }
 
-    // Convert enum value to provider name
-    const providerName = order.shippingProvider.toLowerCase().replace('_', ' ');
+    // Convert enum value (e.g. FARDA_EXPRESS) to the factory key (farda_express).
+    // The factory registers providers with underscores, so we must NOT replace
+    // underscores with spaces here.
+    const providerName = order.shippingProvider.toLowerCase();
 
     // Get the shipping provider
     const tenantId = session.user.tenantId;
@@ -86,7 +92,7 @@ export async function GET(
 
     // Update order status if needed
     if (status === 'DELIVERED' && order.status !== 'DELIVERED') {
-      await prisma.order.update({
+      await scopedPrisma.order.update({
         where: { id: order.id },
         data: { status: 'DELIVERED' },
       });

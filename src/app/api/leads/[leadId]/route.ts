@@ -136,8 +136,8 @@ export async function PUT(
       return NextResponse.json({ error: 'You do not have permission' }, { status: 403 });
     }
     
-    if (lead.status !== 'PENDING') {
-      return NextResponse.json({ error: 'Only pending leads can be edited' }, { status: 400 });
+    if (lead.status !== 'PENDING' && lead.status !== 'NO_ANSWER') {
+      return NextResponse.json({ error: 'Only pending or no answer leads can be edited' }, { status: 400 });
     }
 
     // **THE FIX**: Securely find the product within the tenant's scope

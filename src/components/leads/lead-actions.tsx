@@ -10,7 +10,14 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { ShippingModal } from '@/components/orders/shipping-modal';
 import { toast } from 'sonner';
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import {
+    ExclamationTriangleIcon,
+    ShoppingCartIcon,
+    ArrowUturnLeftIcon,
+    NoSymbolIcon,
+    PencilIcon,
+    TrashIcon,
+} from '@heroicons/react/24/outline';
 
 // Define the structure for a potential duplicate lead
 interface PotentialDuplicate {
@@ -267,7 +274,7 @@ export function LeadActions({
 
     return (
         <>
-            <div className="flex items-center flex-wrap gap-2">
+            <div className="flex items-center justify-end gap-2">
                 {/* Confirmed lead → jump straight to its order */}
                 {isConfirmedWithOrder && lead.order && (
                     <Link href={`/orders/${lead.order.id}`} className={styles.view}>
@@ -283,49 +290,83 @@ export function LeadActions({
                 )}
 
                 {/* --- Open leads (PENDING / NO_ANSWER) --- */}
-                {isOpen && canCreateOrder && !lead.order && (
-                    <button
-                        onClick={() => handleCreateOrder(false)}
-                        disabled={isCreating}
-                        className={styles.order}
-                    >
-                        {isCreating ? 'Processing...' : 'Add Order'}
-                    </button>
-                )}
+                {isOpen && (
+                    <>
+                        {/* Confirm */}
+                        {canCreateOrder ? (
+                            <Link
+                                href={`/leads/new?leadId=${lead.id}`}
+                                title="Confirm Order"
+                                className="text-slate-500 hover:text-green-600 transition-colors"
+                            >
+                                <ShoppingCartIcon className="h-4 w-4" />
+                            </Link>
+                        ) : (
+                            <span className="text-slate-300 pointer-events-none" title="Confirm Order (Disabled)">
+                                <ShoppingCartIcon className="h-4 w-4" />
+                            </span>
+                        )}
 
-                {/* PENDING → can't reach customer */}
-                {lead.status === 'PENDING' && canEdit && (
-                    <button onClick={() => handleStatusChange('NO_ANSWER')} className={styles.warn}>
-                        No answer
-                    </button>
-                )}
+                        {/* No Answer Toggle */}
+                        {canEdit ? (
+                            <button
+                                onClick={() => handleStatusChange(lead.status === 'PENDING' ? 'NO_ANSWER' : 'PENDING')}
+                                title={lead.status === 'PENDING' ? "Mark as No Answer" : "Mark as Pending"}
+                                className="text-slate-500 hover:text-yellow-600 transition-colors"
+                            >
+                                <ArrowUturnLeftIcon className="h-4 w-4" />
+                            </button>
+                        ) : (
+                            <span className="text-slate-300 pointer-events-none" title="Toggle No Answer (Disabled)">
+                                <ArrowUturnLeftIcon className="h-4 w-4" />
+                            </span>
+                        )}
 
-                {/* NO_ANSWER → put back in the call queue */}
-                {lead.status === 'NO_ANSWER' && canEdit && (
-                    <button onClick={() => handleStatusChange('PENDING')} className={styles.warn}>
-                        Retry
-                    </button>
-                )}
+                        {/* Edit */}
+                        {canEdit ? (
+                            <Link
+                                href={`/leads/${lead.id}?edit=true`}
+                                title="Edit Lead"
+                                className="text-slate-500 hover:text-blue-600 transition-colors"
+                            >
+                                <PencilIcon className="h-4 w-4" />
+                            </Link>
+                        ) : (
+                            <span className="text-slate-300 pointer-events-none" title="Edit Lead (Disabled)">
+                                <PencilIcon className="h-4 w-4" />
+                            </span>
+                        )}
 
-                {isOpen && canEdit && (
-                    <Link href={`/leads/${lead.id}?edit=true`} className={styles.edit}>
-                        Edit
-                    </Link>
-                )}
+                        {/* Reject */}
+                        {canEdit ? (
+                            <button
+                                onClick={() => { if (window.confirm('Reject this lead?')) handleStatusChange('REJECTED'); }}
+                                title="Reject Lead"
+                                className="text-slate-500 hover:text-red-600 transition-colors"
+                            >
+                                <NoSymbolIcon className="h-4 w-4" />
+                            </button>
+                        ) : (
+                            <span className="text-slate-300 pointer-events-none" title="Reject Lead (Disabled)">
+                                <NoSymbolIcon className="h-4 w-4" />
+                            </span>
+                        )}
 
-                {isOpen && canEdit && (
-                    <button
-                        onClick={() => { if (window.confirm('Reject this lead?')) handleStatusChange('REJECTED'); }}
-                        className={styles.danger}
-                    >
-                        Reject
-                    </button>
-                )}
-
-                {isOpen && canDelete && (
-                    <button onClick={() => setIsDeleteModalOpen(true)} className={styles.danger}>
-                        Delete
-                    </button>
+                        {/* Delete */}
+                        {canDelete ? (
+                            <button
+                                onClick={() => setIsDeleteModalOpen(true)}
+                                title="Delete Lead"
+                                className="text-slate-500 hover:text-red-600 transition-colors"
+                            >
+                                <TrashIcon className="h-4 w-4" />
+                            </button>
+                        ) : (
+                            <span className="text-slate-300 pointer-events-none" title="Delete Lead (Disabled)">
+                                <TrashIcon className="h-4 w-4" />
+                            </span>
+                        )}
+                    </>
                 )}
             </div>
 

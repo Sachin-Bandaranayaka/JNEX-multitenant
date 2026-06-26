@@ -57,6 +57,9 @@ export default async function OrdersPage({
 
   const where: Prisma.OrderWhereInput = {
     ...(!canViewAll && user.role === 'TEAM_MEMBER' ? { userId: user.id } : {}),
+    status: {
+      notIn: ['SHIPPED', 'DELIVERED', 'RETURNED', 'CANCELLED'],
+    },
     ...(searchQuery ? {
       OR: [
         { id: { contains: searchQuery, mode: 'insensitive' } },

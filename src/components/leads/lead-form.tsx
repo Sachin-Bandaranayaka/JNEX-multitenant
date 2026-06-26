@@ -10,8 +10,11 @@ import {
   MapPinIcon,
   CubeIcon,
   DocumentTextIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  HashtagIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
+import { toast } from 'sonner';
 
 interface Product {
   id: string;
@@ -22,8 +25,31 @@ interface Product {
   lowStockAlert: number;
 }
 
+interface PrefilledLead {
+  id: string;
+  productCode: string;
+  product: {
+    id: string;
+    name: string;
+    code: string;
+    price: number;
+  };
+  csvData: {
+    name?: string;
+    phone?: string;
+    secondPhone?: string;
+    address?: string;
+    notes?: string;
+    quantity?: number;
+    discount?: number;
+    city?: string;
+    source?: string;
+  };
+}
+
 interface LeadFormProps {
   products: Product[];
+  prefilledLead?: PrefilledLead;
   onSubmit?: () => Promise<void>;
   onCancel?: () => void;
 }
@@ -35,6 +61,8 @@ const leadSchema = z.object({
   address: z.string().min(1, 'Address is required'),
   productCode: z.string().min(1, 'Product is required'),
   notes: z.string().optional(),
+  quantity: z.number().int().positive().default(1),
+  discount: z.number().min(0).default(0),
 });
 
 type LeadFormData = z.infer<typeof leadSchema>;
@@ -115,17 +143,19 @@ const LowStockModal = ({
   );
 };
 
-export function LeadForm({ products, onSubmit, onCancel }: LeadFormProps) {
+export function LeadForm({ products, prefilledLead, onSubmit, onCancel }: LeadFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<LeadFormData>({
-    name: '',
-    phone: '',
-    secondPhone: '',
-    address: '',
-    productCode: '',
-    notes: '',
+    name: prefilledLead?.csvData.name || '',
+    phone: prefilledLead?.csvData.phone || '',
+    secondPhone: prefilledLead?.csvData.secondPhone || '',
+    address: prefilledLead?.csvData.address || '',
+    productCode: prefilledLead?.productCode || '',
+    notes: prefilledLead?.csvData.notes || '',
+    quantity: prefilledLead?.csvData.quantity || 1,
+    discount: prefilledLead?.csvData.discount || 0,
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -144,40 +174,91 @@ export function LeadForm({ products, onSubmit, onCancel }: LeadFormProps) {
         ? normalizePhoneNumber(validatedData.secondPhone)
         : '';
 
-      const response = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          csvData: {
-            name: validatedData.name,
-            phone: normalizedPhone,
-            secondPhone: normalizedSecondPhone,
-            address: validatedData.address,
-            notes: validatedData.notes,
-            city: "",
-            source: "",
-          },
-          productCode: validatedData.productCode,
-          forceCreate: forceCreate,
-        }),
-      });
+      if (prefilledLead) {
+        // 1. Update the lead details via PUT first
+        const responseUpdate = await fetch(`/api/leads/${prefilledLead.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            csvData: {
+              name: validatedData.name,
+              phone: normalizedPhone,
+              secondPhone: normalizedSecondPhone,
+              address: validatedData.address,
+              notes: validatedData.notes,
+              quantity: validatedData.quantity,
+              discount: validatedData.discount,
+              city: prefilledLead.csvData.address || "",
+              source: prefilledLead.csvData.source || "",
+            },
+            productCode: validatedData.productCode,
+          }),
+        });
 
-      const result = await response.json();
+        if (!responseUpdate.ok) {
+          const resultUpdate = await responseUpdate.json();
+          throw new Error(resultUpdate.error || 'Failed to update lead details.');
+        }
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create lead');
+        // 2. Create the order from the updated lead
+        const responseOrder = await fetch('/api/orders/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId: prefilledLead.id,
+            quantity: validatedData.quantity,
+            forceCreate: true, // Proceed directly
+          }),
+        });
+
+        const resultOrder = await responseOrder.json();
+
+        if (!responseOrder.ok) {
+          throw new Error(resultOrder.error || 'Failed to confirm order.');
+        }
+
+        toast.success('Order confirmed successfully!');
+        await onSubmit?.();
+        router.push('/orders');
+        router.refresh();
+      } else {
+        // Standard Lead creation flow
+        const response = await fetch('/api/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            csvData: {
+              name: validatedData.name,
+              phone: normalizedPhone,
+              secondPhone: normalizedSecondPhone,
+              address: validatedData.address,
+              notes: validatedData.notes,
+              city: "",
+              source: "",
+            },
+            productCode: validatedData.productCode,
+            forceCreate: forceCreate,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to create lead');
+        }
+
+        if (result.requiresConfirmation) {
+          setModalMessage(result.message);
+          setIsModalOpen(true);
+          setIsLoading(false);
+          return;
+        }
+
+        toast.success('Lead created successfully.');
+        await onSubmit?.();
+        router.push('/leads');
+        router.refresh();
       }
-
-      if (result.requiresConfirmation) {
-        setModalMessage(result.message);
-        setIsModalOpen(true);
-        setIsLoading(false);
-        return;
-      }
-
-      await onSubmit?.();
-      router.push('/leads');
-      router.refresh();
 
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -287,6 +368,40 @@ export function LeadForm({ products, onSubmit, onCancel }: LeadFormProps) {
             </div>
           </div>
 
+          {/* Quantity Field */}
+          <div>
+            <label htmlFor="quantity" className="block text-sm font-medium text-muted-foreground mb-2">Quantity</label>
+            <div className="relative">
+              <HashtagIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="number"
+                id="quantity"
+                min="1"
+                value={formData.quantity}
+                onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
+                className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Discount Field */}
+          <div>
+            <label htmlFor="discount" className="block text-sm font-medium text-muted-foreground mb-2">Discount (LKR)</label>
+            <div className="relative">
+              <CurrencyDollarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="number"
+                id="discount"
+                min="0"
+                value={formData.discount}
+                onChange={(e) => setFormData({ ...formData, discount: parseFloat(e.target.value) || 0 })}
+                className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5"
+                required
+              />
+            </div>
+          </div>
+
           {/* Notes Field */}
           <div className="sm:col-span-2">
             <label htmlFor="notes" className="block text-sm font-medium text-muted-foreground mb-2">Notes (Optional)</label>
@@ -338,9 +453,9 @@ export function LeadForm({ products, onSubmit, onCancel }: LeadFormProps) {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Creating...
+                {prefilledLead ? 'Confirming...' : 'Creating...'}
               </>
-            ) : ('Create Lead')}
+            ) : (prefilledLead ? 'Confirm Order' : 'Create Lead')}
           </motion.button>
         </div>
       </form>

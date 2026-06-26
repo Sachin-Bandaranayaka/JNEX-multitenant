@@ -107,14 +107,14 @@ function ContactIcons({ phone }: { phone: string | undefined }) {
   const cleaned = phone.replace(/[^0-9+]/g, '');
   const waNumber = cleaned.startsWith('+') ? cleaned.slice(1) : cleaned;
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-sm text-foreground">{phone}</span>
+    <div className="flex items-center gap-1">
+      <span className="text-[11px] text-foreground font-medium">{phone}</span>
       <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener noreferrer" title="WhatsApp"
-        className="text-green-600 hover:text-green-700 transition-colors">
-        <ChatBubbleLeftIcon className="h-4 w-4" />
+        className="text-green-600 hover:text-green-700 transition-colors shrink-0">
+        <ChatBubbleLeftIcon className="h-3.5 w-3.5" />
       </a>
-      <a href={`tel:${cleaned}`} title="Call" className="text-blue-600 hover:text-blue-700 transition-colors">
-        <PhoneIcon className="h-4 w-4" />
+      <a href={`tel:${cleaned}`} title="Call" className="text-blue-600 hover:text-blue-700 transition-colors shrink-0">
+        <PhoneIcon className="h-3.5 w-3.5" />
       </a>
     </div>
   );
@@ -140,6 +140,27 @@ export function LeadsClient({
   const canCreate = user.role === 'ADMIN' || user.permissions?.includes('CREATE_LEADS');
   const canEdit = user.role === 'ADMIN' || user.permissions?.includes('EDIT_LEADS');
   const canDelete = user.role === 'ADMIN' || user.permissions?.includes('DELETE_LEADS');
+  const canCreateOrder = user.role === 'ADMIN' || user.permissions?.includes('CREATE_ORDERS');
+
+  const handleLeadStatusChange = async (leadId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/leads/${leadId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update status');
+      }
+
+      toast.success(`Lead marked as ${newStatus.replace('_', ' ').toLowerCase()}`);
+      refreshLeads();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred.');
+    }
+  };
 
   const [leads, setLeads] = useState<LeadWithDetails[]>(initialLeads);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -642,30 +663,30 @@ export function LeadsClient({
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-md border border-[#e3e6ea] shadow-sm overflow-hidden">
+      <div className="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-xs border-collapse border border-slate-200 no-genzo-override">
             <thead>
-              <tr className="border-b-2 border-[#e6e9ed] bg-white">
-                <th className="px-3 py-2 w-8">
+              <tr className="border-b-2 border-slate-300 bg-white">
+                <th className="px-2 py-2 w-8 border-r border-b border-slate-200">
                   <input type="checkbox" className="h-4 w-4 rounded border-border text-primary" checked={allSelected} onChange={toggleSelectAll} />
                 </th>
-                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">#</th>
-                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Lead No</th>
-                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Lead Date</th>
-                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Status</th>
-                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Customer Name</th>
-                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden lg:table-cell">Address</th>
-                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Contact No</th>
-                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden xl:table-cell">Contact No 2</th>
-                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden md:table-cell">Product Code</th>
-                <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden xl:table-cell">Staff</th>
-                <th className="text-right px-3 py-2 font-bold text-slate-600 text-[13px]">Actions</th>
+                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">#</th>
+                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">Lead No</th>
+                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">Lead Date</th>
+                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">Status</th>
+                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">Customer Name</th>
+                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] hidden lg:table-cell border-r border-b border-slate-200">Address</th>
+                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">Contact No</th>
+                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] hidden xl:table-cell border-r border-b border-slate-200">Contact No 2</th>
+                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] hidden md:table-cell border-r border-b border-slate-200">Product Code</th>
+                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] hidden xl:table-cell border-r border-b border-slate-200">Staff</th>
+                <th className="text-right px-2 py-2 font-bold text-slate-600 text-[13px] border-b border-slate-200">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/30">
+            <tbody>
               {displayedLeads.length === 0 ? (
-                <tr><td colSpan={12} className="px-4 py-12 text-center text-muted-foreground">No leads found</td></tr>
+                <tr><td colSpan={12} className="px-4 py-12 text-center text-muted-foreground border-b border-slate-200">No leads found</td></tr>
               ) : (
                 displayedLeads.map((lead, idx) => {
                   const config = STATUS_CONFIG[lead.status as StatusKey];
@@ -677,21 +698,24 @@ export function LeadsClient({
                   return (
                     <tr key={lead.id}
                       className={`${config?.rowBg ?? ''} border-l-4 ${config?.leftBorder ?? 'border-l-transparent'} ${isSelected ? 'ring-2 ring-inset ring-primary/30' : ''} hover:brightness-[0.98] dark:hover:brightness-110 transition-all`}>
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
                         <input type="checkbox" className="h-4 w-4 rounded border-border text-primary" checked={isSelected} onChange={() => toggleSelect(lead.id)} />
                       </td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">{rowIdx}</td>
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2.5 text-xs text-muted-foreground border-r border-b border-slate-200 align-middle">{rowIdx}</td>
+                      <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
                         <Link href={`/leads/${lead.id}`}>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${config?.numBadge ?? 'bg-gray-500 text-white'}`}>
                             {lead.number}
                           </span>
                         </Link>
                       </td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
-                        {format(new Date(lead.createdAt), 'yyyy-MM-dd HH:mm:ss')}
+                      <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
+                        <div className="flex flex-col text-[11px] text-muted-foreground whitespace-nowrap leading-tight">
+                          <span>{format(new Date(lead.createdAt), 'yyyy-MM-dd')}</span>
+                          <span className="text-[10px] opacity-75">{format(new Date(lead.createdAt), 'HH:mm:ss')}</span>
+                        </div>
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
                         {config ? (
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${config.badge}`}>
                             {StatusIcon && <StatusIcon className="h-3 w-3" />}
@@ -701,11 +725,11 @@ export function LeadsClient({
                           <span className="text-xs text-muted-foreground">{lead.status}</span>
                         )}
                       </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-1.5">
+                      <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
+                        <div className="flex items-center gap-1.5 min-w-0">
                           <span className="font-medium text-foreground">{csvData.name || 'Unnamed'}</span>
                           {csvData.notes && (
-                            <span className="relative group cursor-pointer" title={csvData.notes}>
+                            <span className="relative group cursor-pointer shrink-0" title={csvData.notes}>
                               <span className="relative flex h-5 w-5">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
                                 <span className="relative inline-flex items-center justify-center rounded-full h-5 w-5 bg-orange-500 text-white">
@@ -719,7 +743,7 @@ export function LeadsClient({
                             </span>
                           )}
                           {lead.reminderDate && (lead.status === 'PENDING' || lead.status === 'NO_ANSWER') && (
-                            <span className="relative group" title={`Reminder: ${format(new Date(lead.reminderDate), 'MMM d, yyyy')}${lead.reminderNote ? ' - ' + lead.reminderNote : ''}`}>
+                            <span className="relative group shrink-0" title={`Reminder: ${format(new Date(lead.reminderDate), 'MMM d, yyyy')}${lead.reminderNote ? ' - ' + lead.reminderNote : ''}`}>
                               <BellAlertIcon className={`h-4 w-4 cursor-pointer ${
                                 new Date(lead.reminderDate) < now && new Date(lead.reminderDate).toDateString() !== now.toDateString()
                                   ? 'text-red-500 animate-bounce'
@@ -731,14 +755,18 @@ export function LeadsClient({
                           )}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-muted-foreground hidden lg:table-cell max-w-[200px] truncate">
+                      <td className="px-2 py-2.5 text-muted-foreground hidden lg:table-cell border-r border-b border-slate-200 align-middle">
                         {csvData.address}{csvData.city ? `, ${csvData.city}` : ''}
                       </td>
-                      <td className="px-3 py-2"><ContactIcons phone={csvData.phone} /></td>
-                      <td className="px-3 py-2 hidden xl:table-cell"><ContactIcons phone={csvData.secondPhone} /></td>
-                      <td className="px-3 py-2 text-muted-foreground hidden md:table-cell text-xs">{lead.product.code}</td>
-                      <td className="px-3 py-2 hidden xl:table-cell text-xs text-muted-foreground">{lead.assignedTo?.name || '—'}</td>
-                      <td className="px-3 py-2 text-right">
+                      <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
+                        <ContactIcons phone={csvData.phone} />
+                      </td>
+                      <td className="px-2 py-2.5 hidden xl:table-cell border-r border-b border-slate-200 align-middle">
+                        <ContactIcons phone={csvData.secondPhone} />
+                      </td>
+                      <td className="px-2 py-2.5 text-muted-foreground hidden md:table-cell text-xs border-r border-b border-slate-200 align-middle">{lead.product.code}</td>
+                      <td className="px-2 py-2.5 hidden xl:table-cell text-xs text-muted-foreground border-r border-b border-slate-200 align-middle">{lead.assignedTo?.name || '—'}</td>
+                      <td className="px-2 py-2.5 text-right border-b border-slate-200 align-middle">
                         <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} />
                       </td>
                     </tr>

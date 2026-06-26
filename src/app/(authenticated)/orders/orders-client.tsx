@@ -100,9 +100,9 @@ const STATUS_CONFIG = {
 // Category groups for the filter tabs
 const CATEGORY_CONFIG = {
   ALL: { label: 'All', statuses: null },
-  PENDING: { label: 'Pending', statuses: ['PENDING', 'CONFIRMED'] },
-  SHIPPED: { label: 'Shipped', statuses: ['SHIPPED'] },
-  DELIVERED: { label: 'Delivered', statuses: ['DELIVERED', 'RETURNED', 'CANCELLED'] },
+  PENDING: { label: 'Pending', statuses: ['PENDING'] },
+  CONFIRMED: { label: 'Confirmed', statuses: ['CONFIRMED'] },
+  RESCHEDULED: { label: 'Rescheduled', statuses: ['RESCHEDULED'] },
 };
 
 // --- Bulk Ship Modal ---
@@ -327,9 +327,9 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
 
   const countByCategory = {
     ALL: orders.length,
-    PENDING: orders.filter(o => ['PENDING', 'CONFIRMED'].includes(o.status)).length,
-    SHIPPED: orders.filter(o => o.status === 'SHIPPED').length,
-    DELIVERED: orders.filter(o => ['DELIVERED', 'RETURNED', 'CANCELLED'].includes(o.status)).length,
+    PENDING: orders.filter(o => o.status === 'PENDING').length,
+    CONFIRMED: orders.filter(o => o.status === 'CONFIRMED').length,
+    RESCHEDULED: orders.filter(o => o.status === 'RESCHEDULED').length,
   };
 
   const handleSelectOrder = (orderId: string) => {
@@ -433,12 +433,14 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
 
       {/* Status Legend */}
       <div className="flex flex-wrap items-center gap-4 text-sm">
-        {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-          <div key={key} className="flex items-center gap-1.5">
-            <span className={`h-3 w-3 rounded-full ${cfg.dotColor}`} />
-            <span className="text-muted-foreground">{cfg.label}</span>
-          </div>
-        ))}
+        {Object.entries(STATUS_CONFIG)
+          .filter(([key]) => ['PENDING', 'CONFIRMED', 'RESCHEDULED'].includes(key))
+          .map(([key, cfg]) => (
+            <div key={key} className="flex items-center gap-1.5">
+              <span className={`h-3 w-3 rounded-full ${cfg.dotColor}`} />
+              <span className="text-muted-foreground">{cfg.label}</span>
+            </div>
+          ))}
       </div>
 
       {/* Table */}
@@ -453,10 +455,10 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs border-collapse border border-slate-200 no-genzo-override">
               <thead>
-                <tr className="border-b-2 border-[#e6e9ed] bg-white">
-                  <th className="px-3 py-2 w-8">
+                <tr className="border-b-2 border-slate-300 bg-white">
+                  <th className="px-2 py-2 w-8 border-r border-b border-slate-200">
                     <input
                       type="checkbox"
                       className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
@@ -464,20 +466,20 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
                       onChange={handleSelectAll}
                     />
                   </th>
-                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Order #</th>
-                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Customer</th>
-                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden md:table-cell">Product</th>
-                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden lg:table-cell">Tracking No</th>
-                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px]">Status</th>
-                  <th className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] hidden sm:table-cell">Date</th>
-                  <th className="text-right px-3 py-2 font-bold text-slate-600 text-[13px] hidden sm:table-cell">Total</th>
-                  <th className="text-right px-3 py-2 font-bold text-slate-600 text-[13px]">Actions</th>
+                  <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">Order #</th>
+                  <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">Customer</th>
+                  <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] hidden md:table-cell border-r border-b border-slate-200">Product</th>
+                  <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] hidden lg:table-cell border-r border-b border-slate-200">Tracking No</th>
+                  <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">Status</th>
+                  <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] hidden sm:table-cell border-r border-b border-slate-200">Date</th>
+                  <th className="text-right px-2 py-2 font-bold text-slate-600 text-[13px] hidden sm:table-cell border-r border-b border-slate-200">Total</th>
+                  <th className="text-right px-2 py-2 font-bold text-slate-600 text-[13px] border-b border-slate-200">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/30">
+              <tbody>
                 {displayedOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground text-sm">
+                    <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground text-sm border-b border-slate-200">
                       No orders in this category
                     </td>
                   </tr>
@@ -487,9 +489,9 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
                     return (
                       <tr
                         key={order.id}
-                        className={`${config?.rowColor ?? ''} hover:brightness-95 dark:hover:brightness-110 transition-all`}
+                        className="odd:bg-[#f9fafb] even:bg-white hover:brightness-[0.98] transition-all"
                       >
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
                           <input
                             type="checkbox"
                             className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
@@ -497,27 +499,27 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
                             onChange={() => handleSelectOrder(order.id)}
                           />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
                           <Link href={`/orders/${order.id}`}>
                             <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${config?.badgeColor ?? 'bg-gray-500 text-white'}`}>
                               {order.number || order.id.slice(0, 8)}
                             </span>
                           </Link>
                         </td>
-                        <td className="px-3 py-2 font-medium text-foreground max-w-[140px] truncate">
+                        <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle font-medium text-foreground max-w-[140px] truncate">
                           {order.customerName}
                         </td>
-                        <td className="px-3 py-2 text-muted-foreground hidden md:table-cell max-w-[160px] truncate text-xs">
+                        <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle text-muted-foreground hidden md:table-cell max-w-[160px] truncate text-xs">
                           {order.product.name}
                         </td>
-                        <td className="px-3 py-2 hidden lg:table-cell">
+                        <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle hidden lg:table-cell">
                           {order.trackingNumber ? (
                             <span className="text-xs text-primary font-medium">{order.trackingNumber}</span>
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
                           {config && (
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${config.color}`}>
                               <config.icon className="h-3 w-3" />
@@ -525,17 +527,17 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
                             </span>
                           )}
                         </td>
-                        <td className="px-3 py-2 text-xs text-muted-foreground hidden sm:table-cell whitespace-nowrap">
+                        <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle text-xs text-muted-foreground hidden sm:table-cell whitespace-nowrap">
                           {new Date(order.createdAt).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
                             year: 'numeric'
                           })}
                         </td>
-                        <td className="px-3 py-2 text-right text-xs font-semibold text-foreground hidden sm:table-cell whitespace-nowrap">
+                        <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle text-right text-xs font-semibold text-foreground hidden sm:table-cell whitespace-nowrap">
                           {order.total > 0 ? `LKR ${order.total.toLocaleString()}` : '—'}
                         </td>
-                        <td className="px-3 py-2 text-right">
+                        <td className="px-2 py-2.5 text-right border-b border-slate-200 align-middle">
                           <OrderActions order={order} user={user} />
                         </td>
                       </tr>

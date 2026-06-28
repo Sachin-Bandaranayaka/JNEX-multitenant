@@ -141,6 +141,7 @@ function BulkShipModal({
   const [provinces, setProvinces] = useState<any[]>([]);
   const [allCities, setAllCities] = useState<any[]>([]);
   const [districtsCache, setDistrictsCache] = useState<Record<number, any[]>>({});
+  const [citiesCache, setCitiesCache] = useState<Record<number, any[]>>({});
   const [mappings, setMappings] = useState<Record<string, OrderMapping>>({});
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
 
@@ -224,7 +225,7 @@ function BulkShipModal({
     }
   };
 
-  const handleDistrictChange = (orderId: string, districtId: number) => {
+  const handleDistrictChange = async (orderId: string, districtId: number) => {
     setMappings((prev) => ({
       ...prev,
       [orderId]: {
@@ -233,6 +234,21 @@ function BulkShipModal({
         cityId: undefined,
       },
     }));
+
+    if (!citiesCache[districtId]) {
+      try {
+        const response = await fetch(`/api/shipping/locations/cities?district_id=${districtId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setCitiesCache((prev) => ({
+            ...prev,
+            [districtId]: data.cities || [],
+          }));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
   };
 
   const handleCityChange = (orderId: string, cityId: number) => {
@@ -455,7 +471,7 @@ function BulkShipModal({
                         } else {
                           const mapping = mappings[o.id] || { weight: '1' };
                           const districts = mapping.provinceId ? (districtsCache[mapping.provinceId] || []) : [];
-                          const cities = mapping.districtId ? allCities.filter(c => c.district_id === mapping.districtId) : [];
+                          const cities = mapping.districtId ? (citiesCache[mapping.districtId] || []) : [];
 
                           return (
                             <tr key={o.id} className="bg-card">

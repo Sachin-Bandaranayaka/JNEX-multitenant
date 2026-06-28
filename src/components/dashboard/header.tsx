@@ -2,14 +2,57 @@
 
 import { Bars3Icon, MagnifyingGlassIcon, ArrowRightOnRectangleIcon, TruckIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 import { Notifications } from './notifications';
 import { Tenant } from '@prisma/client';
+import { toast } from 'sonner';
 
 export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; userName?: string | null; onMenuClick?: () => void }) {
     const router = useRouter();
     const [q, setQ] = useState('');
+    const [defaultCourier, setDefaultCourier] = useState<string>(tenant.defaultShippingProvider || 'TRANS_EXPRESS');
+    const [showDropdown, setShowDropdown] = useState(false);
+
+    const couriers = [
+        { id: 'FARDA_EXPRESS', name: 'Farda Express' },
+        { id: 'TRANS_EXPRESS', name: 'Trans Express' },
+        { id: 'ROYAL_EXPRESS', name: 'Royal Express' },
+        { id: 'SL_POST', name: 'SL Post' },
+    ];
+
+    const currentCourierName = couriers.find(c => c.id === defaultCourier)?.name || 'Select Courier';
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest('.courier-dropdown-container')) {
+                setShowDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleSelectCourier = async (courierId: string) => {
+        try {
+            const response = await fetch('/api/settings/default-courier', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ defaultShippingProvider: courierId }),
+            });
+
+            if (!response.ok) throw new Error('Failed to update default courier');
+
+            setDefaultCourier(courierId);
+            toast.success(`Default courier updated to ${couriers.find(c => c.id === courierId)?.name}`);
+            router.refresh();
+        } catch (e) {
+            toast.error('Failed to update default courier');
+        } finally {
+            setShowDropdown(false);
+        }
+    };
 
     const submitSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -39,13 +82,36 @@ export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; user
 
             <div className="flex-1" />
 
-            {/* Trans Express */}
-            <button
-                onClick={() => router.push('/shipping')}
-                className="hidden sm:flex items-center gap-2 bg-[#4aa3a8] hover:bg-[#3d8a8e] text-white font-semibold text-sm px-3.5 py-2 rounded-md transition-colors"
-            >
-                <TruckIcon className="h-4 w-4" /> Trans Express
-            </button>
+            {/* Courier Selector Dropdown */}
+            <div className="relative courier-dropdown-container hidden sm:block">
+                <button
+                    onClick={() => setShowDropdown(!showDropdown)}
+                    className="flex items-center gap-2 bg-[#4aa3a8] hover:bg-[#3d8a8e] text-white font-semibold text-sm px-3.5 py-2 rounded-md transition-colors"
+                >
+                    <TruckIcon className="h-4 w-4" />
+                    <span>{currentCourierName}</span>
+                    <svg className={`h-4 w-4 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                {showDropdown && (
+                    <div className="absolute right-0 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none z-50 py-1">
+                        {couriers.map((c) => (
+                            <button
+                                key={c.id}
+                                onClick={() => handleSelectCourier(c.id)}
+                                className={`flex w-full items-center px-4 py-2 text-sm transition-colors text-left ${
+                                    defaultCourier === c.id
+                                        ? 'bg-[#eceef1] text-slate-800 font-semibold'
+                                        : 'text-slate-600 hover:bg-[#f5f6f8] hover:text-slate-900'
+                                }`}
+                            >
+                                {c.name}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
 
             {/* Profile */}
             <div className="hidden sm:flex items-center gap-2 text-gray-200 font-semibold text-sm cursor-pointer hover:text-white">

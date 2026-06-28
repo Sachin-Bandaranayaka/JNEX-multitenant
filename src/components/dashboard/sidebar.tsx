@@ -289,7 +289,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                 </nav>
 
                 <div className="px-5 py-3 border-t border-[#e3e6ea] text-[11px] text-[#aab2bf]">
-                    Copyright Genzo IT © {new Date().getFullYear()}
+                    Copyright J-nex IT © {new Date().getFullYear()}
                 </div>
             </aside>
         </>

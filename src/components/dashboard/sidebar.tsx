@@ -110,7 +110,6 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
     const getActiveGroup = (path: string) => {
         if (path.startsWith('/leads')) return 'Leads';
         if (path.startsWith('/orders') || path.startsWith('/search')) return 'Orders';
-        if (path.startsWith('/shipping')) return 'Shipping';
         if (path.startsWith('/returns')) return 'Return';
         if (path.startsWith('/inventory') || path.startsWith('/products')) return 'Stock';
         if (path.startsWith('/store')) return 'Products Purchase';
@@ -207,18 +206,14 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
 
                     {/* 3. Shipping */}
                     {has('VIEW_SHIPPING') && (
-                        <NavGroup
+                        <NavLink
+                            href="/shipping"
                             icon={<TruckIcon className="h-[18px] w-[18px]" />}
-                            label="Shipping"
-                            isExpanded={expandedGroup === 'Shipping'}
-                            onToggle={() => handleToggleGroup('Shipping')}
-                            links={[
-                                { href: '/shipping', label: 'Ship' },
-                                { href: '/shipping?tab=shipped', label: 'Shipped List' },
-                                { href: '/shipping?tab=tracking', label: 'Tracking Details' },
-                              ]}
-                            pathname={pathname} onNavigate={closeMobileSidebar}
-                        />
+                            isActive={pathname.startsWith('/shipping')}
+                            onClick={closeMobileSidebar}
+                        >
+                            Shipping
+                        </NavLink>
                     )}
 
                     {/* 4. Return */}

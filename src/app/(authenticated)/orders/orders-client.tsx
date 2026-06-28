@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { OrderActions } from '@/components/orders/order-actions';
 import { SyncOrdersButton } from '@/components/orders/sync-orders-button';
@@ -114,6 +114,13 @@ interface BulkShipResult {
   error?: string;
 }
 
+interface OrderMapping {
+  provinceId?: number;
+  districtId?: number;
+  cityId?: number;
+  weight: string;
+}
+
 function BulkShipModal({
   isOpen,
   onClose,
@@ -125,24 +132,155 @@ function BulkShipModal({
   selectedOrders: OrderWithRelations[];
   onSuccess: () => void;
 }) {
+  const [mode, setMode] = useState<'auto' | 'manual'>('auto');
   const [weight, setWeight] = useState('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [results, setResults] = useState<BulkShipResult[] | null>(null);
 
-  if (!isOpen) return null;
+  // Manual mode states
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [allCities, setAllCities] = useState<any[]>([]);
+  const [districtsCache, setDistrictsCache] = useState<Record<number, any[]>>({});
+  const [mappings, setMappings] = useState<Record<string, OrderMapping>>({});
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
 
   const confirmedOrders = selectedOrders.filter((o) => o.status === 'CONFIRMED');
+
+  // Load locations for manual mode
+  useEffect(() => {
+    if (mode !== 'manual' || provinces.length > 0 || !isOpen) return;
+
+    const loadLocations = async () => {
+      setIsLoadingLocations(true);
+      try {
+        const response = await fetch('/api/shipping/locations');
+        if (!response.ok) throw new Error('Failed to fetch locations');
+        const data = await response.json();
+        setProvinces(data.provinces || []);
+        setAllCities(data.cities || []);
+      } catch (e) {
+        toast.error('Failed to load locations from Trans Express');
+      } finally {
+        setIsLoadingLocations(false);
+      }
+    };
+
+    loadLocations();
+  }, [mode, provinces.length, isOpen]);
+
+  // Guess cities if locations are loaded
+  useEffect(() => {
+    if (allCities.length === 0 || confirmedOrders.length === 0) return;
+
+    const initialMappings: Record<string, OrderMapping> = {};
+    confirmedOrders.forEach((o) => {
+      const cityName = o.customerCity || (o.lead?.csvData as any)?.city || '';
+      const match = allCities.find(
+        (c) => c.text.toLowerCase().trim() === cityName.toLowerCase().trim()
+      );
+
+      if (match) {
+        initialMappings[o.id] = {
+          cityId: match.id,
+          districtId: match.district_id,
+          weight: '1',
+        };
+      } else {
+        initialMappings[o.id] = {
+          weight: '1',
+        };
+      }
+    });
+
+    setMappings((prev) => ({ ...initialMappings, ...prev }));
+  }, [allCities, confirmedOrders]);
+
+  if (!isOpen) return null;
+
+  const handleProvinceChange = async (orderId: string, provinceId: number) => {
+    setMappings((prev) => ({
+      ...prev,
+      [orderId]: {
+        ...prev[orderId],
+        provinceId,
+        districtId: undefined,
+        cityId: undefined,
+      },
+    }));
+
+    if (!districtsCache[provinceId]) {
+      try {
+        const response = await fetch(`/api/shipping/locations/districts?province_id=${provinceId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setDistrictsCache((prev) => ({
+            ...prev,
+            [provinceId]: data.districts || [],
+          }));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
+  const handleDistrictChange = (orderId: string, districtId: number) => {
+    setMappings((prev) => ({
+      ...prev,
+      [orderId]: {
+        ...prev[orderId],
+        districtId,
+        cityId: undefined,
+      },
+    }));
+  };
+
+  const handleCityChange = (orderId: string, cityId: number) => {
+    setMappings((prev) => ({
+      ...prev,
+      [orderId]: {
+        ...prev[orderId],
+        cityId,
+      },
+    }));
+  };
+
+  const handleWeightChange = (orderId: string, weight: string) => {
+    setMappings((prev) => ({
+      ...prev,
+      [orderId]: {
+        ...prev[orderId],
+        weight,
+      },
+    }));
+  };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+      let bodyData;
+
+      if (mode === 'manual') {
+        const payload = confirmedOrders.map((o) => {
+          const m = mappings[o.id];
+          return {
+            orderId: o.id,
+            cityId: m?.cityId || 864, // Fallback to Colombo 1 if missing
+            weight: parseFloat(m?.weight || weight) || 1,
+          };
+        });
+        bodyData = { orders: payload };
+      } else {
+        bodyData = {
+          orderIds: confirmedOrders.map((o) => o.id),
+          weight: parseFloat(weight) || 1,
+        };
+      }
+
       const response = await fetch('/api/shipping/trans-express/bulk-create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderIds: confirmedOrders.map((o) => o.id),
-          weight: parseFloat(weight) || 1,
-        }),
+        body: JSON.stringify(bodyData),
       });
 
       const data = await response.json();
@@ -155,7 +293,12 @@ function BulkShipModal({
       setResults(data.results);
       const succeeded = data.results.filter((r: BulkShipResult) => r.trackingNumber).length;
       const failed = data.results.filter((r: BulkShipResult) => r.error).length;
-      if (succeeded > 0) toast.success(`${succeeded} order${succeeded > 1 ? 's' : ''} shipped${failed > 0 ? `, ${failed} failed` : ''}`);
+      if (succeeded > 0)
+        toast.success(
+          `${succeeded} order${succeeded > 1 ? 's' : ''} shipped${
+            failed > 0 ? `, ${failed} failed` : ''
+          }`
+        );
       if (failed > 0 && succeeded === 0) toast.error(`All ${failed} shipments failed`);
       if (succeeded > 0) onSuccess();
     } catch (err) {
@@ -165,9 +308,11 @@ function BulkShipModal({
     }
   };
 
+  const isManualReady = confirmedOrders.every((o) => mappings[o.id]?.cityId);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-2xl bg-card shadow-xl ring-1 ring-border overflow-hidden">
+      <div className="w-full max-w-4xl rounded-2xl bg-card shadow-xl ring-1 ring-border overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
           <div>
@@ -233,58 +378,178 @@ function BulkShipModal({
             </div>
           ) : (
             <>
-              {/* Order preview */}
-              <div className="rounded-xl border border-border overflow-hidden max-h-60 overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-muted/50 border-b border-border">
-                    <tr>
-                      <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Order</th>
-                      <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Customer</th>
-                      <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">City</th>
-                      <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">COD</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {confirmedOrders.map((o) => (
-                      <tr key={o.id} className="bg-card">
-                        <td className="px-4 py-2.5 font-medium text-foreground">#{o.number || o.id.slice(0, 8)}</td>
-                        <td className="px-4 py-2.5 text-muted-foreground">{o.customerName}</td>
-                        <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                          {(() => {
-                            const city = o.customerCity || (o.lead?.csvData as any)?.city || '';
-                            if (city) return city;
-                            // Extract last part of address as city guess
-                            const parts = o.customerAddress?.split(/[,\s]+/).map(p => p.trim()).filter(Boolean) || [];
-                            return parts.length > 1 ? parts[parts.length - 1] : (parts[0] || '—');
-                          })()}
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-xs font-medium text-foreground">
-                          {o.total > 0 ? `LKR ${o.total.toLocaleString()}` : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              {/* Mode Selector Tabs */}
+              <div className="flex border-b border-border mb-4">
+                <button
+                  type="button"
+                  onClick={() => setMode('auto')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                    mode === 'auto'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Auto (Auto-resolve Cities)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('manual')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                    mode === 'manual'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Manual (Select Locations)
+                </button>
               </div>
 
-              {/* Weight input */}
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-foreground whitespace-nowrap">
-                  Weight per parcel (kg)
-                </label>
-                <input
-                  type="number"
-                  min="0.1"
-                  step="0.1"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  className="w-24 rounded-lg border border-border bg-background text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
+              {mode === 'manual' && isLoadingLocations ? (
+                <div className="flex flex-col items-center justify-center py-10 space-y-2 text-foreground">
+                  <ArrowPathIcon className="h-6 w-6 animate-spin text-primary" />
+                  <p className="text-sm">Loading Trans Express locations...</p>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border overflow-hidden max-h-80 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-muted/50 border-b border-border z-10">
+                      <tr>
+                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Order</th>
+                        <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Customer</th>
+                        {mode === 'auto' ? (
+                          <>
+                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">City</th>
+                            <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">COD</th>
+                          </>
+                        ) : (
+                          <>
+                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Address</th>
+                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Province</th>
+                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">District</th>
+                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">City</th>
+                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Weight</th>
+                          </>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {confirmedOrders.map((o) => {
+                        if (mode === 'auto') {
+                          return (
+                            <tr key={o.id} className="bg-card">
+                              <td className="px-4 py-2.5 font-medium text-foreground">#{o.number || o.id.slice(0, 8)}</td>
+                              <td className="px-4 py-2.5 text-muted-foreground">{o.customerName}</td>
+                              <td className="px-4 py-2.5 text-muted-foreground text-xs">
+                                {(() => {
+                                  const city = o.customerCity || (o.lead?.csvData as any)?.city || '';
+                                  if (city) return city;
+                                  const parts = o.customerAddress?.split(/[,\s]+/).map(p => p.trim()).filter(Boolean) || [];
+                                  return parts.length > 1 ? parts[parts.length - 1] : (parts[0] || '—');
+                                })()}
+                              </td>
+                              <td className="px-4 py-2.5 text-right text-xs font-medium text-foreground">
+                                {o.total > 0 ? `LKR ${o.total.toLocaleString()}` : '—'}
+                              </td>
+                            </tr>
+                          );
+                        } else {
+                          const mapping = mappings[o.id] || { weight: '1' };
+                          const districts = mapping.provinceId ? (districtsCache[mapping.provinceId] || []) : [];
+                          const cities = mapping.districtId ? allCities.filter(c => c.district_id === mapping.districtId) : [];
+
+                          return (
+                            <tr key={o.id} className="bg-card">
+                              <td className="px-4 py-2.5 font-medium text-foreground">#{o.number || o.id.slice(0, 8)}</td>
+                              <td className="px-4 py-2.5 text-muted-foreground text-xs">
+                                <div className="font-medium text-foreground">{o.customerName}</div>
+                                <div>{o.customerPhone}</div>
+                              </td>
+                              <td className="px-4 py-2.5 text-muted-foreground text-xs max-w-[120px] truncate" title={o.customerAddress}>
+                                {o.customerAddress}
+                              </td>
+                              <td className="px-2 py-2.5">
+                                <select
+                                  value={mapping.provinceId || ''}
+                                  onChange={(e) => handleProvinceChange(o.id, Number(e.target.value))}
+                                  className="text-xs p-1 rounded border border-border bg-background text-foreground w-full max-w-[130px]"
+                                >
+                                  <option value="">Select Province</option>
+                                  {provinces.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name || p.text}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-2 py-2.5">
+                                <select
+                                  value={mapping.districtId || ''}
+                                  onChange={(e) => handleDistrictChange(o.id, Number(e.target.value))}
+                                  disabled={!mapping.provinceId}
+                                  className="text-xs p-1 rounded border border-border bg-background text-foreground w-full max-w-[130px] disabled:opacity-50"
+                                >
+                                  <option value="">Select District</option>
+                                  {districts.map(d => (
+                                    <option key={d.id} value={d.id}>{d.text}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-2 py-2.5">
+                                <select
+                                  value={mapping.cityId || ''}
+                                  onChange={(e) => handleCityChange(o.id, Number(e.target.value))}
+                                  disabled={!mapping.districtId}
+                                  className="text-xs p-1 rounded border border-border bg-background text-foreground w-full max-w-[130px] disabled:opacity-50"
+                                >
+                                  <option value="">Select City</option>
+                                  {cities.map(c => (
+                                    <option key={c.id} value={c.id}>{c.text}</option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-2 py-2.5">
+                                <input
+                                  type="number"
+                                  min="0.1"
+                                  step="0.1"
+                                  value={mapping.weight}
+                                  onChange={(e) => handleWeightChange(o.id, e.target.value)}
+                                  className="w-16 rounded border border-border bg-background text-foreground px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                                />
+                              </td>
+                            </tr>
+                          );
+                        }
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Weight input for Auto mode */}
+              {mode === 'auto' && (
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-foreground whitespace-nowrap">
+                    Weight per parcel (kg)
+                  </label>
+                  <input
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    className="w-24 rounded-lg border border-border bg-background text-foreground px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+              )}
 
               {confirmedOrders.length < selectedOrders.length && (
                 <p className="text-xs text-amber-600 dark:text-amber-400">
                   {selectedOrders.length - confirmedOrders.length} selected order{selectedOrders.length - confirmedOrders.length > 1 ? 's are' : ' is'} not CONFIRMED and will be skipped.
+                </p>
+              )}
+
+              {mode === 'manual' && !isManualReady && (
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  Please select Province, District, and City for all orders before shipping.
                 </p>
               )}
 
@@ -298,7 +563,7 @@ function BulkShipModal({
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={isSubmitting || confirmedOrders.length === 0}
+                  disabled={isSubmitting || confirmedOrders.length === 0 || (mode === 'manual' && !isManualReady)}
                   className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
                   {isSubmitting ? 'Shipping...' : `Ship ${confirmedOrders.length} Order${confirmedOrders.length !== 1 ? 's' : ''}`}

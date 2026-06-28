@@ -331,6 +331,89 @@ export class TransExpressProvider implements ShippingProvider {
   }
 
   /**
+   * Create multiple shipments using direct city IDs.
+   * Calls POST /orders/upload/auto with integer city IDs.
+   */
+  async createBulkShipmentsWithCityIds(
+    orders: Array<{
+      orderId: string;
+      orderNo: string;
+      customerName: string;
+      customerAddress: string;
+      cityId: number;
+      customerPhone: string;
+      customerSecondPhone?: string;
+      orderTotal?: number;
+      weight?: number;
+    }>
+  ): Promise<Array<{ orderId: string; orderNo: string; trackingNumber?: string; labelUrl?: string; error?: string }>> {
+    const payload = orders.map((o) => ({
+      order_id: o.orderNo,
+      customer_name: o.customerName,
+      address: o.customerAddress,
+      city: o.cityId,
+      order_description: `${o.weight ?? 1}kg package`,
+      customer_phone: o.customerPhone,
+      customer_phone2: o.customerSecondPhone || '',
+      cod_amount: o.orderTotal || 0,
+      remarks: 'Shipped via JNEX',
+    }));
+
+    let response: any;
+    try {
+      response = await this.makeRequest(this.CREATE_BULK_SHIPMENT_ENDPOINT, 'POST', payload);
+    } catch (err: any) {
+      const errMsg = err?.message || '';
+      const bodyMatch = errMsg.match(/body: ([\s\S]+)$/);
+      if (bodyMatch) {
+        try {
+          const errorBody = JSON.parse(bodyMatch[1]);
+          if (errorBody.errors && typeof errorBody.errors === 'object') {
+            const perOrderErrors: Record<number, string[]> = {};
+            for (const [key, messages] of Object.entries(errorBody.errors)) {
+              const idx = parseInt(key.split('.')[0], 10);
+              const field = key.split('.').slice(1).join('.');
+              if (!isNaN(idx)) {
+                if (!perOrderErrors[idx]) perOrderErrors[idx] = [];
+                const msgs = Array.isArray(messages) ? messages : [messages];
+                perOrderErrors[idx].push(`${field}: ${msgs.join(', ')}`);
+              }
+            }
+            return orders.map((o, i) => ({
+              orderId: o.orderId,
+              orderNo: o.orderNo,
+              error: perOrderErrors[i] ? perOrderErrors[i].join('; ') : 'Batch rejected due to validation errors in other orders',
+            }));
+          }
+        } catch { /* fall through */ }
+      }
+      const genericMsg = err instanceof Error ? err.message : 'Failed to create bulk shipments';
+      return orders.map((o) => ({ orderId: o.orderId, orderNo: o.orderNo, error: genericMsg }));
+    }
+
+    const orderResults: any[] = Array.isArray(response) ? response : (response.orders ?? []);
+    const resultsByOrderNo: Record<string, any> = {};
+    for (const r of orderResults) {
+      const key = String(r.order_no || r.order_id);
+      if (key) resultsByOrderNo[key] = r;
+    }
+
+    return orders.map((o) => {
+      const r = resultsByOrderNo[o.orderNo];
+      if (!r) return { orderId: o.orderId, orderNo: o.orderNo, error: 'No response for this order' };
+      if (r.waybill_id) {
+        return {
+          orderId: o.orderId,
+          orderNo: o.orderNo,
+          trackingNumber: r.waybill_id,
+          labelUrl: `https://transexpress.lk/print-label/${r.waybill_id}`,
+        };
+      }
+      return { orderId: o.orderId, orderNo: o.orderNo, error: r.error || r.message || 'Unknown error' };
+    });
+  }
+
+  /**
    * Create multiple shipments using city IDs (precise matching).
    * Fetches the full city list from Trans Express, resolves each order's city name to an ID,
    * then calls POST /orders/upload/auto with integer city IDs.

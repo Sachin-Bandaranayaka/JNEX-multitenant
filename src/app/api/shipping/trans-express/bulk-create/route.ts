@@ -21,10 +21,16 @@ export async function POST(request: Request) {
 
     const tenantId = session.user.tenantId;
     const body = await request.json();
-    const { orderIds, weight }: { orderIds: string[]; weight?: number } = body;
+    const { orderIds, orders, weight }: { 
+      orderIds?: string[]; 
+      orders?: Array<{ orderId: string; cityId: number; weight?: number }>; 
+      weight?: number 
+    } = body;
 
-    if (!Array.isArray(orderIds) || orderIds.length === 0) {
-      return NextResponse.json({ error: 'orderIds must be a non-empty array' }, { status: 400 });
+    const idsToFetch = orders ? orders.map(o => o.orderId) : orderIds;
+
+    if (!Array.isArray(idsToFetch) || idsToFetch.length === 0) {
+      return NextResponse.json({ error: 'orderIds or orders array must be provided' }, { status: 400 });
     }
 
     // Get tenant API key
@@ -42,8 +48,8 @@ export async function POST(request: Request) {
 
     // Fetch all requested orders (scoped to tenant)
     const scopedPrisma = getScopedPrismaClient(tenantId);
-    const orders = await scopedPrisma.order.findMany({
-      where: { id: { in: orderIds }, status: 'CONFIRMED' },
+    const ordersFromDb = await scopedPrisma.order.findMany({
+      where: { id: { in: idsToFetch }, status: 'CONFIRMED' },
       select: {
         id: true,
         number: true,
@@ -57,7 +63,7 @@ export async function POST(request: Request) {
       },
     });
 
-    if (orders.length === 0) {
+    if (ordersFromDb.length === 0) {
       return NextResponse.json({ error: 'No eligible CONFIRMED orders found' }, { status: 400 });
     }
 
@@ -70,40 +76,67 @@ export async function POST(request: Request) {
     const yy = String(now.getFullYear()).slice(-2);
     const datePart = `${dd}${mm}${yy}`;
 
-    const shipmentInputs = orders.map((o) => {
-      // Use customerCity if available, otherwise fall back to the lead's CSV city data
-      const leadCsvData = o.lead?.csvData as any;
-      let city = o.customerCity || leadCsvData?.city || leadCsvData?.customerCity || '';
+    let results;
 
-      // If city is still empty, try to extract it from the address (last comma-separated part)
-      if (!city && o.customerAddress) {
-        const parts = o.customerAddress.split(/[,\s]+/).map((p: string) => p.trim()).filter(Boolean);
-        if (parts.length > 1) {
-          city = parts[parts.length - 1]; // Use the last part as a city guess
-        } else if (parts.length === 1) {
-          city = parts[0];
+    if (orders) {
+      // Manual City ID flow
+      const shipmentInputs = ordersFromDb.map((o) => {
+        const manualOrder = orders.find(mo => mo.orderId === o.id);
+        const cityId = manualOrder?.cityId || 864; // Default to Colombo 1 if missing
+        const orderNo = `${prefix || 'ORD'}-${o.number}-${datePart}`;
+        const w = manualOrder?.weight ?? weight ?? 1;
+
+        return {
+          orderId: o.id,
+          orderNo,
+          customerName: o.customerName,
+          customerAddress: o.customerAddress,
+          cityId,
+          customerPhone: o.customerPhone,
+          customerSecondPhone: o.customerSecondPhone || undefined,
+          orderTotal: o.total,
+          weight: w,
+        };
+      });
+
+      results = await provider.createBulkShipmentsWithCityIds(shipmentInputs);
+    } else {
+      // Auto City Name flow
+      const shipmentInputs = ordersFromDb.map((o) => {
+        // Use customerCity if available, otherwise fall back to the lead's CSV city data
+        const leadCsvData = o.lead?.csvData as any;
+        let city = o.customerCity || leadCsvData?.city || leadCsvData?.customerCity || '';
+
+        // If city is still empty, try to extract it from the address (last comma-separated part)
+        if (!city && o.customerAddress) {
+          const parts = o.customerAddress.split(/[,\s]+/).map((p: string) => p.trim()).filter(Boolean);
+          if (parts.length > 1) {
+            city = parts[parts.length - 1]; // Use the last part as a city guess
+          } else if (parts.length === 1) {
+            city = parts[0];
+          }
         }
-      }
 
-      // Generate order_no: PREFIX-NUMBER-DDMMYY
-      const orderNo = `${prefix || 'ORD'}-${o.number}-${datePart}`;
+        // Generate order_no: PREFIX-NUMBER-DDMMYY
+        const orderNo = `${prefix || 'ORD'}-${o.number}-${datePart}`;
 
-      return {
-        orderId: o.id,
-        orderNo,
-        customerName: o.customerName,
-        customerAddress: o.customerAddress,
-        customerCity: city,
-        customerPhone: o.customerPhone,
-        customerSecondPhone: o.customerSecondPhone || undefined,
-        orderTotal: o.total,
-        weight: weight ?? 1,
-      };
-    });
+        return {
+          orderId: o.id,
+          orderNo,
+          customerName: o.customerName,
+          customerAddress: o.customerAddress,
+          customerCity: city,
+          customerPhone: o.customerPhone,
+          customerSecondPhone: o.customerSecondPhone || undefined,
+          orderTotal: o.total,
+          weight: weight ?? 1,
+        };
+      });
 
-    // Use the "without-city" endpoint which accepts city as a string name
-    // and lets Trans Express auto-resolve it (more forgiving than exact city ID matching)
-    const results = await provider.createBulkShipmentsByCityName(shipmentInputs);
+      // Use the "without-city" endpoint which accepts city as a string name
+      // and lets Trans Express auto-resolve it (more forgiving than exact city ID matching)
+      results = await provider.createBulkShipmentsByCityName(shipmentInputs);
+    }
 
     // Persist successful shipments to the DB
     const updatePromises = results

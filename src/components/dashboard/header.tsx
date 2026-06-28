@@ -13,6 +13,11 @@ export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; user
     const [q, setQ] = useState('');
     const [defaultCourier, setDefaultCourier] = useState<string>(tenant.defaultShippingProvider || 'TRANS_EXPRESS');
     const [showDropdown, setShowDropdown] = useState(false);
+    
+    // Auto-suggestions search states
+    const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+    const [showSuggestions, setShowSuggestions] = useState(false);
 
     const couriers = [
         { id: 'FARDA_EXPRESS', name: 'Farda Express' },
@@ -23,16 +28,47 @@ export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; user
 
     const currentCourierName = couriers.find(c => c.id === defaultCourier)?.name || 'Select Courier';
 
+    // Click outside handler for dropdowns
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
             if (!target.closest('.courier-dropdown-container')) {
                 setShowDropdown(false);
             }
+            if (!target.closest('.header-search-container')) {
+                setShowSuggestions(false);
+            }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Debounced search auto-suggestions
+    useEffect(() => {
+        if (q.trim().length < 2) {
+            setSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        const delayDebounce = setTimeout(async () => {
+            setLoadingSuggestions(true);
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setSuggestions(data);
+                    setShowSuggestions(true);
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoadingSuggestions(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounce);
+    }, [q]);
 
     const handleSelectCourier = async (courierId: string) => {
         try {
@@ -54,11 +90,6 @@ export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; user
         }
     };
 
-    const submitSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (q.trim()) router.push(`/search?q=${encodeURIComponent(q.trim())}`);
-    };
-
     return (
         <header className="sticky top-0 z-30 flex h-[62px] items-center gap-4 bg-[#3c4452] px-4 sm:px-6 print:hidden">
             <button
@@ -69,16 +100,75 @@ export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; user
                 <Bars3Icon className="h-6 w-6" />
             </button>
 
-            {/* Search */}
-            <form onSubmit={submitSearch} className="flex items-center flex-1 max-w-[420px] gap-2">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 hidden sm:block" />
-                <input
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder="Search Phone No / Name"
-                    className="w-full bg-transparent border-none text-gray-200 placeholder:text-gray-400 focus:outline-none text-sm py-2"
-                />
-            </form>
+            {/* Search Bar with Auto Suggestions Overlay */}
+            <div className="relative flex-1 max-w-[420px] header-search-container z-50">
+                <form onSubmit={(e) => e.preventDefault()} className="flex items-center gap-2">
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 hidden sm:block" />
+                    <input
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        onFocus={() => { if (q.trim().length >= 2) setShowSuggestions(true); }}
+                        placeholder="Search Phone No / Name"
+                        className="w-full bg-transparent border-none text-gray-200 placeholder:text-gray-400 focus:outline-none text-sm py-2"
+                    />
+                </form>
+
+                {showSuggestions && (
+                    <div className="absolute left-0 mt-2 w-full max-h-96 overflow-y-auto rounded-xl bg-white shadow-2xl ring-1 ring-black/5 focus:outline-none z-50 p-2 divide-y divide-slate-100 border border-slate-100">
+                        {loadingSuggestions ? (
+                            <div className="flex items-center justify-center py-6 text-xs text-slate-500 gap-2">
+                                <svg className="animate-spin h-4 w-4 text-[#4aa3a8]" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
+                                <span>Searching...</span>
+                            </div>
+                        ) : suggestions.length === 0 ? (
+                            <div className="text-center py-6 text-xs text-slate-500">
+                                No matching orders found
+                            </div>
+                        ) : (
+                            suggestions.map((customer, idx) => (
+                                <div key={idx} className="p-2 space-y-1 text-slate-800">
+                                    <div className="font-semibold text-xs text-[#4aa3a8] flex justify-between">
+                                        <span>{customer.customerName}</span>
+                                        <span className="text-slate-400 font-normal">{customer.customerPhone}</span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 truncate" title={customer.customerAddress}>
+                                        {customer.customerAddress}
+                                    </div>
+                                    <div className="space-y-1 mt-1 pl-2 border-l-2 border-slate-100">
+                                        {customer.orders.map((order: any) => (
+                                            <button
+                                                key={order.id}
+                                                onClick={() => {
+                                                    setShowSuggestions(false);
+                                                    setQ('');
+                                                    router.push(`/orders/${order.id}`);
+                                                }}
+                                                className="flex items-center justify-between w-full text-left text-xs p-1.5 rounded hover:bg-slate-50 transition-colors"
+                                            >
+                                                <span className="font-medium text-slate-700">
+                                                    #{order.id.slice(0, 8)} - {order.product?.name || 'Product'}
+                                                </span>
+                                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                                                    order.status === 'CONFIRMED'
+                                                        ? 'bg-emerald-50 text-emerald-700'
+                                                        : order.status === 'PENDING'
+                                                        ? 'bg-amber-50 text-amber-700'
+                                                        : 'bg-slate-100 text-slate-700'
+                                                }`}>
+                                                    {order.status}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
+            </div>
 
             <div className="flex-1" />
 

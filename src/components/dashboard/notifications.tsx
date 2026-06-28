@@ -75,7 +75,7 @@ export function Notifications() {
             await markAsRead(notification.id);
         }
         if (notification.orderId) {
-            router.push(`/dashboard/orders/${notification.orderId}`);
+            router.push(`/orders/${notification.orderId}`);
         }
     };
 

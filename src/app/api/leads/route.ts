@@ -61,7 +61,14 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json(leads);
+    // Sort: PENDING status first, then others, keeping createdAt order within status groups
+    const sortedLeads = [...leads].sort((a, b) => {
+      if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
+      if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    return NextResponse.json(sortedLeads);
   } catch (error) {
     console.error('Error fetching leads:', error);
     return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });

@@ -180,10 +180,17 @@ export default async function LeadsPage({
     }),
   ]);
 
+  // Sort leads: PENDING status first, then others, keeping createdAt order within status groups
+  const sortedLeads = [...leads].sort((a, b) => {
+    if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
+    if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
   // 6. PASS DATA TO CLIENT COMPONENT
   return (
     <LeadsClient
-      initialLeads={leads as LeadWithDetails[]}
+      initialLeads={sortedLeads as LeadWithDetails[]}
       user={session.user as User}
       searchParams={resolvedSearchParams}
       totalCount={totalCount}

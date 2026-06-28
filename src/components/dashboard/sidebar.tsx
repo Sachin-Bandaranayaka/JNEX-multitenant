@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -56,30 +56,29 @@ function NavLink({ href, icon, children, isActive, onClick }: {
 }
 
 /* ---- Collapsible nav group ---- */
-function NavGroup({ icon, label, isActive, links, pathname, onNavigate }: {
+function NavGroup({ icon, label, isExpanded, onToggle, links, pathname, onNavigate }: {
     icon: React.ReactNode;
     label: string;
-    isActive: boolean;
+    isExpanded: boolean;
+    onToggle: () => void;
     links: { href: string; label: string }[];
     pathname: string;
     onNavigate?: () => void;
 }) {
-    const [expanded, setExpanded] = useState(isActive);
-
     return (
         <div>
             <button
-                onClick={() => setExpanded(!expanded)}
-                className={`flex items-center gap-3 w-full px-5 py-3 border-l-[3px] font-semibold text-[14px] transition-colors ${isActive
+                onClick={onToggle}
+                className={`flex items-center gap-3 w-full px-5 py-3 border-l-[3px] font-semibold text-[14px] transition-colors ${isExpanded
                     ? 'bg-[#eceef1] text-slate-700 border-[#e89c31]'
                     : 'text-slate-500 border-transparent hover:bg-[#f5f6f8] hover:text-slate-700'
                     }`}
             >
                 <span className="flex-shrink-0 opacity-85">{icon}</span>
                 <span className="flex-1 text-left whitespace-nowrap">{label}</span>
-                <ChevronLeftIcon className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${expanded ? '-rotate-90' : ''}`} />
+                <ChevronLeftIcon className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${isExpanded ? '-rotate-90' : ''}`} />
             </button>
-            {expanded && (
+            {isExpanded && (
                 <div className="bg-[#fafbfc]">
                     {links.map((link) => {
                         const linkActive = pathname === link.href;
@@ -107,6 +106,26 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
     const pathname = usePathname();
     const closeMobileSidebar = () => { if (isMobile) setIsOpen(false); };
     const has = (perm: string) => userRole === 'ADMIN' || userPermissions.includes(perm);
+
+    const getActiveGroup = (path: string) => {
+        if (path.startsWith('/leads')) return 'Leads';
+        if (path.startsWith('/orders') || path.startsWith('/search')) return 'Orders';
+        if (path.startsWith('/shipping')) return 'Shipping';
+        if (path.startsWith('/returns')) return 'Return';
+        if (path.startsWith('/inventory') || path.startsWith('/products')) return 'Stock';
+        if (path.startsWith('/store')) return 'Products Purchase';
+        return null;
+    };
+
+    const [expandedGroup, setExpandedGroup] = useState<string | null>(() => getActiveGroup(pathname));
+
+    useEffect(() => {
+        setExpandedGroup(getActiveGroup(pathname));
+    }, [pathname]);
+
+    const handleToggleGroup = (label: string) => {
+        setExpandedGroup(prev => prev === label ? null : label);
+    };
 
     return (
         <>
@@ -158,7 +177,8 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                         <NavGroup
                             icon={<UserGroupIcon className="h-[18px] w-[18px]" />}
                             label="Leads"
-                            isActive={pathname.startsWith('/leads')}
+                            isExpanded={expandedGroup === 'Leads'}
+                            onToggle={() => handleToggleGroup('Leads')}
                             links={[
                                 { href: '/leads/import', label: 'Import Lead' },
                                 { href: '/leads', label: 'Lead List' },
@@ -173,7 +193,8 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                         <NavGroup
                             icon={<ClipboardDocumentListIcon className="h-[18px] w-[18px]" />}
                             label="Orders"
-                            isActive={pathname.startsWith('/orders') || pathname.startsWith('/search')}
+                            isExpanded={expandedGroup === 'Orders'}
+                            onToggle={() => handleToggleGroup('Orders')}
                             links={[
                                 { href: '/orders', label: 'Pending Orders' },
                                 ...(userRole === 'ADMIN' ? [{ href: '/orders/bulk-update', label: 'Update from Courier' }] : []),
@@ -189,12 +210,13 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                         <NavGroup
                             icon={<TruckIcon className="h-[18px] w-[18px]" />}
                             label="Shipping"
-                            isActive={pathname.startsWith('/shipping')}
+                            isExpanded={expandedGroup === 'Shipping'}
+                            onToggle={() => handleToggleGroup('Shipping')}
                             links={[
                                 { href: '/shipping', label: 'Ship' },
                                 { href: '/shipping?tab=shipped', label: 'Shipped List' },
                                 { href: '/shipping?tab=tracking', label: 'Tracking Details' },
-                            ]}
+                              ]}
                             pathname={pathname} onNavigate={closeMobileSidebar}
                         />
                     )}
@@ -203,7 +225,8 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                     <NavGroup
                         icon={<ArrowUturnLeftIcon className="h-[18px] w-[18px]" />}
                         label="Return"
-                        isActive={pathname.startsWith('/returns')}
+                        isExpanded={expandedGroup === 'Return'}
+                        onToggle={() => handleToggleGroup('Return')}
                         links={[
                             { href: '/returns/add-return', label: 'Add Return' },
                             { href: '/returns/returned-list', label: 'Returned List' },
@@ -216,7 +239,8 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                         <NavGroup
                             icon={<ArchiveBoxIcon className="h-[18px] w-[18px]" />}
                             label="Stock"
-                            isActive={pathname.startsWith('/inventory') || pathname.startsWith('/products')}
+                            isExpanded={expandedGroup === 'Stock'}
+                            onToggle={() => handleToggleGroup('Stock')}
                             links={[
                                 { href: '/inventory', label: 'Stock List' },
                                 { href: '/products', label: 'Products' },
@@ -229,7 +253,8 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                     <NavGroup
                         icon={<ShoppingCartIcon className="h-[18px] w-[18px]" />}
                         label="Products Purchase"
-                        isActive={pathname.startsWith('/store')}
+                        isExpanded={expandedGroup === 'Products Purchase'}
+                        onToggle={() => handleToggleGroup('Products Purchase')}
                         links={[
                             { href: '/store', label: 'Buy Products' },
                             { href: '/store/purchases', label: 'My Invoices' },

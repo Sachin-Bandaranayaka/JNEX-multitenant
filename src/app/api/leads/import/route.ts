@@ -108,7 +108,12 @@ export async function POST(request: Request) {
 
       const createdLeads = await prisma.$transaction(
         leads.map(lead => {
-          const csvData = { ...lead, name: lead.customer_name };
+          const csvData = { 
+            ...lead, 
+            name: lead.customer_name,
+            secondPhone: lead.second_phone || '',
+            second_phone: lead.second_phone || '',
+          };
           return prisma.lead.create({
             data: {
               csvData: csvData as unknown as Prisma.JsonObject,

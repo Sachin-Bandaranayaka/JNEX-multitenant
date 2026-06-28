@@ -1,2 +1,2 @@
-customer_name,address,phone,product_code
-John Doe,123 Main Street Colombo,94771234567,PROD001
+customer_name,address,phone,second_phone,product_code,email,notes
+John Doe,123 Main Street Colombo,94771234567,94777654321,PROD001,john@example.com,Please call after 5 PM

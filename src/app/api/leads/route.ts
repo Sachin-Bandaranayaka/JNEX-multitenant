@@ -43,7 +43,7 @@ export async function GET(request: Request) {
 
     const where: Prisma.LeadWhereInput = {
       ...(session.user.role !== 'ADMIN' && { userId: session.user.id }),
-      ...(status && { status: status as LeadStatus }),
+      ...(status ? { status: status as LeadStatus } : { status: { not: 'DELETED' } }),
       ...(startDate && endDate && {
         createdAt: {
           gte: new Date(startDate),

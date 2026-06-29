@@ -110,6 +110,8 @@ export default async function LeadsPage({
   // Status filter
   if (statusFilter && statusFilter !== 'ANY') {
     where.status = statusFilter as any;
+  } else {
+    where.status = { not: 'DELETED' };
   }
 
   // User/staff filter

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { format } from 'date-fns';
+import { format, isToday, isYesterday, isThisWeek, isThisMonth, startOfDay, subDays, isAfter } from 'date-fns';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { TruckIcon, MapPinIcon, CalendarIcon, CubeIcon } from '@heroicons/react/24/outline';
+import { useRouter } from 'next/navigation';
+import { TruckIcon, MapPinIcon, CalendarIcon, CubeIcon, PrinterIcon } from '@heroicons/react/24/outline';
 import { ShippingProvider } from '@prisma/client';
 import { toast } from 'sonner';
 
@@ -37,13 +38,27 @@ const SHIPPING_PROVIDERS: { key: ShippingProvider | 'ALL'; label: string }[] = [
     { key: 'ROYAL_EXPRESS', label: 'Royal Express' },
 ];
 
+type DateFilterKey = 'ALL' | 'TODAY' | 'YESTERDAY' | 'LAST_7' | 'THIS_WEEK' | 'THIS_MONTH';
+
+const DATE_FILTERS: { key: DateFilterKey; label: string }[] = [
+    { key: 'ALL', label: 'All Dates' },
+    { key: 'TODAY', label: 'Today' },
+    { key: 'YESTERDAY', label: 'Yesterday' },
+    { key: 'LAST_7', label: 'Last 7 Days' },
+    { key: 'THIS_WEEK', label: 'This Week' },
+    { key: 'THIS_MONTH', label: 'This Month' },
+];
+
 export function ShippingList({ orders }: ShippingListProps) {
+    const router = useRouter();
     const [selectedProvider, setSelectedProvider] = useState<ShippingProvider | 'ALL'>('ALL');
+    const [dateFilter, setDateFilter] = useState<DateFilterKey>('ALL');
     const [searchTerm, setSearchTerm] = useState('');
     const [entriesPerPage, setEntriesPerPage] = useState(100);
     const [currentPage, setCurrentPage] = useState(1);
     const [sortField, setSortField] = useState<string>('shippedAt');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     const getTrackingUrl = (provider: string, trackingNumber: string) => {
         switch (provider) {
@@ -81,11 +96,34 @@ export function ShippingList({ orders }: ShippingListProps) {
         return orders.filter((order) => order.shippingProvider === selectedProvider);
     }, [orders, selectedProvider]);
 
+    // 1b. Filter orders based on shipped date
+    const dateFilteredOrders = useMemo(() => {
+        if (dateFilter === 'ALL') return providerFilteredOrders;
+        return providerFilteredOrders.filter((order) => {
+            if (!order.shippedAt) return false;
+            const d = new Date(order.shippedAt);
+            switch (dateFilter) {
+                case 'TODAY':
+                    return isToday(d);
+                case 'YESTERDAY':
+                    return isYesterday(d);
+                case 'LAST_7':
+                    return isAfter(d, startOfDay(subDays(new Date(), 6)));
+                case 'THIS_WEEK':
+                    return isThisWeek(d, { weekStartsOn: 1 });
+                case 'THIS_MONTH':
+                    return isThisMonth(d);
+                default:
+                    return true;
+            }
+        });
+    }, [providerFilteredOrders, dateFilter]);
+
     // 2. Filter orders based on search term
     const searchedOrders = useMemo(() => {
-        if (!searchTerm.trim()) return providerFilteredOrders;
+        if (!searchTerm.trim()) return dateFilteredOrders;
         const term = searchTerm.toLowerCase().trim();
-        return providerFilteredOrders.filter(order => {
+        return dateFilteredOrders.filter(order => {
             const orderNum = String(order.number || '').toLowerCase();
             const orderId = order.id.toLowerCase();
             const customer = order.customerName.toLowerCase();
@@ -106,7 +144,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                 agent.includes(term)
             );
         });
-    }, [providerFilteredOrders, searchTerm]);
+    }, [dateFilteredOrders, searchTerm]);
 
     // 3. Sort the searched orders
     const sortedOrders = useMemo(() => {
@@ -170,6 +208,30 @@ export function ShippingList({ orders }: ShippingListProps) {
             setSortField(field);
             setSortDirection('asc');
         }
+    };
+
+    // Selection helpers (operate across the full filtered set, not just the current page)
+    const allFilteredSelected = sortedOrders.length > 0 && sortedOrders.every((o) => selectedIds.includes(o.id));
+
+    const toggleSelectOne = (id: string) => {
+        setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    };
+
+    const toggleSelectAllFiltered = () => {
+        if (allFilteredSelected) {
+            const filteredSet = new Set(sortedOrders.map((o) => o.id));
+            setSelectedIds((prev) => prev.filter((id) => !filteredSet.has(id)));
+        } else {
+            setSelectedIds((prev) => Array.from(new Set([...prev, ...sortedOrders.map((o) => o.id)])));
+        }
+    };
+
+    const printSelectedInvoices = () => {
+        if (selectedIds.length === 0) {
+            toast.warning('Please select at least one order to print.');
+            return;
+        }
+        router.push(`/orders/print?ids=${selectedIds.join(',')}`);
     };
 
     const SortIcon = ({ field }: { field: string }) => {
@@ -247,6 +309,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                             onClick={() => {
                                 setSelectedProvider(provider.key);
                                 setCurrentPage(1);
+                                setSelectedIds([]);
                             }}
                             className={`
                                 inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
@@ -275,23 +338,43 @@ export function ShippingList({ orders }: ShippingListProps) {
             <div className="bg-white dark:bg-card border border-border/50 shadow-sm rounded-lg p-6 space-y-4">
                 {/* Search & Export Toolbar */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    {/* Page Size Selector */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>Show</span>
-                        <select
-                            value={entriesPerPage}
-                            onChange={(e) => {
-                                setEntriesPerPage(Number(e.target.value));
-                                setCurrentPage(1);
-                            }}
-                            className="border border-[#ccd2da] bg-white text-slate-600 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-primary cursor-pointer"
-                        >
-                            <option value={10}>10</option>
-                            <option value={25}>25</option>
-                            <option value={50}>50</option>
-                            <option value={100}>100</option>
-                        </select>
-                        <span>entries</span>
+                    {/* Page Size + Date Filter */}
+                    <div className="flex flex-wrap items-center gap-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span>Show</span>
+                            <select
+                                value={entriesPerPage}
+                                onChange={(e) => {
+                                    setEntriesPerPage(Number(e.target.value));
+                                    setCurrentPage(1);
+                                }}
+                                className="border border-[#ccd2da] bg-white text-slate-600 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-primary cursor-pointer"
+                            >
+                                <option value={10}>10</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                            </select>
+                            <span>entries</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <CalendarIcon className="h-4 w-4 text-slate-400" />
+                            <span>Shipped</span>
+                            <select
+                                value={dateFilter}
+                                onChange={(e) => {
+                                    setDateFilter(e.target.value as DateFilterKey);
+                                    setCurrentPage(1);
+                                    setSelectedIds([]);
+                                }}
+                                className="border border-[#ccd2da] bg-white text-slate-600 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-primary cursor-pointer"
+                            >
+                                {DATE_FILTERS.map((f) => (
+                                    <option key={f.key} value={f.key}>{f.label}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     {/* Search and Action Buttons */}
@@ -309,6 +392,21 @@ export function ShippingList({ orders }: ShippingListProps) {
                                 placeholder="Search Shipped List..."
                             />
                         </div>
+
+                        {/* Print Selected Invoices */}
+                        <button
+                            onClick={printSelectedInvoices}
+                            disabled={selectedIds.length === 0}
+                            title="Print invoices for selected orders"
+                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all shadow-sm ${
+                                selectedIds.length === 0
+                                    ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                                    : 'bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-md'
+                            }`}
+                        >
+                            <PrinterIcon className="h-4 w-4" />
+                            Print Invoices ({selectedIds.length})
+                        </button>
 
                         {/* Export Toolbar */}
                         <div className="flex items-center gap-1 genzo-export">
@@ -335,7 +433,16 @@ export function ShippingList({ orders }: ShippingListProps) {
                         <table className="w-full text-sm border-collapse border border-slate-200 no-genzo-override">
                             <thead>
                                 <tr className="border-b-2 border-slate-300 bg-white">
-                                    <th 
+                                    <th className="px-3 py-2 border-r border-b border-slate-200 w-10 text-center">
+                                        <input
+                                            type="checkbox"
+                                            className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer align-middle"
+                                            checked={allFilteredSelected}
+                                            onChange={toggleSelectAllFiltered}
+                                            title="Select all filtered orders"
+                                        />
+                                    </th>
+                                    <th
                                         onClick={() => handleSort('number')}
                                         className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200 cursor-pointer select-none hover:bg-slate-50"
                                     >
@@ -375,10 +482,18 @@ export function ShippingList({ orders }: ShippingListProps) {
                             </thead>
                             <tbody>
                                 {paginatedOrders.map((order) => (
-                                    <tr 
+                                    <tr
                                         key={order.id}
-                                        className="odd:bg-[#f9fafb] even:bg-white hover:bg-slate-100/50 transition-colors"
+                                        className={`hover:bg-slate-100/50 transition-colors ${selectedIds.includes(order.id) ? 'bg-primary/5' : 'odd:bg-[#f9fafb] even:bg-white'}`}
                                     >
+                                        <td className="px-3 py-2.5 border-r border-b border-slate-200 text-center align-middle">
+                                            <input
+                                                type="checkbox"
+                                                className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer align-middle"
+                                                checked={selectedIds.includes(order.id)}
+                                                onChange={() => toggleSelectOne(order.id)}
+                                            />
+                                        </td>
                                         <td className="px-3 py-2.5 text-[13px] font-semibold text-slate-700 whitespace-nowrap border-r border-b border-slate-200 align-middle">
                                             <Link href={`/orders/${order.id}`}>
                                                 <span className="hover:text-primary transition-colors cursor-pointer text-[#e89c31] hover:underline">

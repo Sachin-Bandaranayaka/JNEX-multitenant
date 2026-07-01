@@ -1,10 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { Invoice } from './invoice';
-import { InvoiceFormat, InvoiceData, BatchInvoiceRequest } from '@/types/invoice';
 import { Button } from '@/components/ui/button';
-import { Download, Printer, FileText } from 'lucide-react';
+import { Printer, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { InvoicePrintButton } from './invoice-print-button';
 
@@ -47,68 +45,7 @@ export function OrderDetailInvoiceSection({
   tenant,
   invoiceNumber,
 }: OrderDetailInvoiceSectionProps) {
-  const [selectedFormat] = useState<InvoiceFormat>(InvoiceFormat.FULL_PAGE);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
-  const handleGeneratePDF = async () => {
-    setIsGeneratingPDF(true);
-
-    try {
-      const invoiceData: InvoiceData = {
-        invoiceNumber,
-        businessName: tenant.businessName,
-        businessAddress: tenant.businessAddress,
-        businessPhone: tenant.businessPhone,
-        customerName: order.customerName,
-        customerAddress: order.customerAddress,
-        customerPhone: order.customerPhone,
-        customerSecondPhone: order.customerSecondPhone,
-        amount: order.product.price * order.quantity,
-        productName: order.product.name,
-        quantity: order.quantity,
-        discount: order.discount || 0,
-        trackingNumber: order.trackingNumber,
-        shippingProvider: order.shippingProvider,
-        notes: order.notes,
-        createdAt: new Date(order.createdAt),
-      };
-
-      const batchRequest: BatchInvoiceRequest = {
-        invoices: [invoiceData],
-        format: selectedFormat,
-      };
-
-      const response = await fetch('/api/invoices/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(batchRequest),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate PDF');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `invoice-${invoiceNumber}-${selectedFormat.toLowerCase()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast.success('PDF generated successfully');
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to generate PDF');
-    } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
 
   const handlePrint = () => {
     window.print();
@@ -129,18 +66,7 @@ export function OrderDetailInvoiceSection({
             isPrinted={order.invoicePrinted || false}
           />
 
-          <div className="h-6 w-px bg-border mx-2 hidden sm:block" />
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGeneratePDF}
-            disabled={isGeneratingPDF}
-            className="h-9"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            {isGeneratingPDF ? 'Generating...' : 'PDF'}
-          </Button>
 
           <Button
             size="sm"

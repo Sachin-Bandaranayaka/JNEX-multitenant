@@ -56,18 +56,18 @@ export function Invoice({
         <div className="w-full px-2 bg-white text-black p-4 rounded rounded-2 relative">
             <div className="flex justify-between mb-2">
                 <div className="text-left">
-                    <h1 className={`${isMultiPrint ? 'text-[9pt]' : 'text-[12pt]'} font-bold leading-tight`}>{businessName || 'Your Company Name'}</h1>
-                    <div className={`${isMultiPrint ? 'text-[6.5pt]' : 'text-[8pt]'} text-gray-600 leading-tight`}>
+                    <h1 className={`${isMultiPrint ? 'text-[7pt]' : 'text-[9pt]'} font-bold leading-tight`}>{businessName || 'Your Company Name'}</h1>
+                    <div className={`${isMultiPrint ? 'text-[5.5pt]' : 'text-[7pt]'} text-gray-600 leading-tight`}>
                         <p>{businessAddress || 'Your Company Address'}</p>
                         <p>Tel: {businessPhone || 'Your Phone'}</p>
                     </div>
-                    <div className={`${isMultiPrint ? 'text-[6.5pt]' : 'text-[8pt]'} leading-tight mt-1`}>
+                    <div className={`${isMultiPrint ? 'text-[5.5pt]' : 'text-[7pt]'} leading-tight mt-1`}>
                         <p>Invoice #: {invoiceNumber}</p>
                     </div>
                 </div>
 
                 <div className="text-right">
-                    <div className={`${isMultiPrint ? 'text-[7.5pt]' : 'text-[10pt]'} leading-tight`}>
+                    <div className={`${isMultiPrint ? 'text-[9pt]' : 'text-[13pt]'} font-semibold leading-snug`}>
                         <p>To: <span className="font-bold">{order.customerName}</span></p>
                         <p className="font-bold">{order.customerAddress}</p>
                         <p>Tel: <span className="font-bold">{order.customerPhone}</span></p>
@@ -78,7 +78,7 @@ export function Invoice({
                 </div>
             </div>
 
-            <table className={`w-full ${isMultiPrint ? 'text-[6.5pt]' : 'text-[8pt]'} mb-0.5 leading-tight`}>
+            <table className={`w-full ${isMultiPrint ? 'text-[6pt]' : 'text-[7.5pt]'} mb-0.5 leading-tight`}>
                 <thead>
                     <tr className="border-t border-b border-gray-400">
                         <th className="py-0.5 text-left">Item</th>
@@ -105,8 +105,8 @@ export function Invoice({
                         </tr>
                     )}
                     <tr className="border-t border-gray-400">
-                        <td colSpan={2} className="py-0.5 text-right font-bold">Total:</td>
-                        <td className="py-0.5 text-right font-bold">
+                        <td colSpan={2} className={`py-1 text-right font-bold ${isMultiPrint ? 'text-[9pt]' : 'text-[12pt]'}`}>Total:</td>
+                        <td className={`py-1 text-right font-bold ${isMultiPrint ? 'text-[9pt]' : 'text-[12pt]'}`}>
                             {new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' }).format(total)}
                         </td>
                     </tr>

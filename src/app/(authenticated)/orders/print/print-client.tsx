@@ -270,24 +270,34 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             background: #fff !important;
             color: #000 !important;
           }
-          /* Each row of 2 invoices — browser decides how many rows fit per page */
-          .print-row {
-            display: flex;
-            width: 100%;
-            break-inside: avoid;
-            page-break-inside: avoid;
+          /* Fixed 2x4 grid — exactly 8 invoices per A4 sheet */
+          .a4-page {
+            width: 210mm;
+            height: 297mm;
+            page-break-after: always;
+            break-after: page;
+            overflow: hidden;
+            position: relative;
           }
-          .invoice-item {
+          .a4-page:last-child {
+            page-break-after: auto;
+            break-after: auto;
+          }
+          .invoice-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: repeat(4, 1fr);
+            width: 100%;
+            height: 100%;
             border: 1px solid #000;
-            padding: 0;
-            margin: 0;
+            box-sizing: border-box;
+          }
+          .invoice-cell {
             box-sizing: border-box;
             overflow: hidden;
             color: #000 !important;
             background-color: #fff !important;
             background: #fff !important;
-            width: 50%;
-            flex: 0 0 50%;
           }
           /* Ensure text is visible */
           p, h1, h2, h3, span, div, td, th, tr, table {
@@ -400,32 +410,41 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
         </Tabs>
       </div>
 
-      {/* --- SMART: Browser-native flow pagination — no manual chunking --- */}
+      {/* --- Fixed 2x4 grid: exactly 8 invoices per A4 sheet --- */}
       <div className="print-only bg-white text-black">
-        {(() => {
-          const rows: OrderWithProduct[][] = [];
-          for (let i = 0; i < ordersToPrint.length; i += 2) {
-            rows.push(ordersToPrint.slice(i, i + 2));
-          }
-          return rows.map((row, rowIndex) => (
-            <div key={rowIndex} className="print-row">
-              {row.map((order, colIndex) => (
-                <div key={order.id} className="invoice-item">
-                  <Invoice
-                    order={order}
-                    businessName={tenant.businessName}
-                    businessAddress={tenant.businessAddress}
-                    businessPhone={tenant.businessPhone}
-                    invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`}
-                    isMultiPrint={true}
-                    showPrintControls={false}
-                    printIndex={rowIndex * 2 + colIndex + 1}
-                  />
-                </div>
-              ))}
+        {chunk(ordersToPrint, 8).map((pageOrders, pageIndex) => {
+          const totalRows = Math.ceil(pageOrders.length / 2);
+          return (
+            <div key={pageIndex} className="a4-page">
+              <div className="invoice-grid">
+                {pageOrders.map((order, idx) => {
+                  const col = idx % 2;
+                  const row = Math.floor(idx / 2);
+                  const borderRight = col === 0 ? '1px solid #000' : 'none';
+                  const borderBottom = row === totalRows - 1 ? 'none' : '1px solid #000';
+                  return (
+                    <div
+                      key={order.id}
+                      className="invoice-cell"
+                      style={{ borderRight, borderBottom }}
+                    >
+                      <Invoice
+                        order={order}
+                        businessName={tenant.businessName}
+                        businessAddress={tenant.businessAddress}
+                        businessPhone={tenant.businessPhone}
+                        invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`}
+                        isMultiPrint={true}
+                        showPrintControls={false}
+                        printIndex={pageIndex * 8 + idx + 1}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          ));
-        })()}
+          );
+        })}
       </div>
     </>
   );

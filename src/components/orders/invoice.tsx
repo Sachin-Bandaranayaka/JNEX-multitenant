@@ -72,7 +72,7 @@ export function Invoice({
                         <p className="font-bold">{order.customerAddress}</p>
                         <p>Tel: <span className="font-bold">{order.customerPhone}</span></p>
                         {order.customerSecondPhone && (
-                            <p>Secondary Tel: <span className="font-bold text-blue-600">{order.customerSecondPhone}</span></p>
+                            <p>Secondary Tel: <span className="font-bold">{order.customerSecondPhone}</span></p>
                         )}
                     </div>
                 </div>

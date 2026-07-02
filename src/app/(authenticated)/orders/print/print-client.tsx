@@ -145,9 +145,11 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
           .print-only {
             display: block !important;
           }
+          /* Must match the @page rule in globals.css — the sheet below is sized
+             to the resulting 200mm x 287mm printable area */
           @page {
             size: A4 portrait;
-            margin: 0 !important;
+            margin: 5mm;
           }
           * {
             -webkit-print-color-adjust: exact !important;
@@ -194,10 +196,12 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             background: #fff !important;
             color: #000 !important;
           }
-          /* Fixed 2x4 grid — exactly 8 invoices per A4 sheet */
+          /* Fixed 2x4 grid — exactly 8 invoices per A4 sheet.
+             Sized 1mm under the printable area so sub-pixel rounding can
+             never spill a sheet onto an extra page. */
           .a4-page {
-            width: 210mm;
-            height: 297mm;
+            width: 200mm;
+            height: 286mm;
             page-break-after: always;
             break-after: page;
             overflow: hidden;
@@ -209,8 +213,10 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
           }
           .invoice-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: repeat(4, 1fr);
+            /* minmax(0, 1fr) — a plain 1fr row grows with tall content and
+               pushes the bottom row onto the next page */
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(4, minmax(0, 1fr));
             width: 100%;
             height: 100%;
             border: 1px solid #000;

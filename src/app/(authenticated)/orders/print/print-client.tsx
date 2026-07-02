@@ -302,7 +302,8 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
                 </Button>
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-4 max-h-[70vh] overflow-y-auto">
+            {/* Cards sized to fit the true-size (100mm wide) print preview below */}
+            <div className="grid [grid-template-columns:repeat(auto-fill,minmax(420px,1fr))] gap-4 p-4 max-h-[70vh] overflow-y-auto">
               {currentList.map((order, index) => (
                 <div key={order.id} className={`rounded-lg bg-card p-1 shadow-md relative cursor-pointer transition-all ${selectedOrderIds.includes(order.id) ? 'ring-2 ring-indigo-500' : 'ring-1 ring-border'}`} onClick={() => handleSelectOrder(order.id)}>
                   <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
@@ -318,7 +319,11 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
                       <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${order.status === OrderStatus.SHIPPED ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' : 'bg-muted text-muted-foreground'}`}>{order.status}</span>
                     </div>
                   </div>
-                  <Invoice order={order} businessName={tenant.businessName} businessAddress={tenant.businessAddress} businessPhone={tenant.businessPhone} invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`} isMultiPrint={true} showPrintControls={false} printIndex={index + 1} />
+                  {/* Exact print-cell size (page 200mm / 2 cols x 286mm / 4 rows) with the same
+                      overflow clipping, so the preview shows precisely what will print */}
+                  <div className="mx-auto w-[100mm] h-[71mm] overflow-hidden bg-white outline-dashed outline-1 outline-gray-300">
+                    <Invoice order={order} businessName={tenant.businessName} businessAddress={tenant.businessAddress} businessPhone={tenant.businessPhone} invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`} isMultiPrint={true} showPrintControls={false} printIndex={index + 1} />
+                  </div>
                 </div>
               ))}
               {currentList.length === 0 && (<div className="col-span-full p-8 text-center text-muted-foreground">No orders in this tab.</div>)}

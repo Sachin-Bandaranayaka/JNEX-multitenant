@@ -78,7 +78,7 @@ export function Invoice({
                 </div>
             </div>
 
-            <table className={`w-full ${isMultiPrint ? 'text-[6pt]' : 'text-[7.5pt]'} mb-0.5 leading-tight`}>
+            <table className={`w-full ${isMultiPrint ? 'text-[5.5pt]' : 'text-[7pt]'} mb-0.5 leading-tight`}>
                 <thead>
                     <tr>
                         <th className="py-0.5 text-left">Item</th>
@@ -91,7 +91,7 @@ export function Invoice({
                         <td className="py-0.5">{order.product.name}</td>
                         <td className="py-0.5 text-right">{order.quantity}</td>
                         {/* No discount: the line amount IS the total, so show it once, in bold */}
-                        <td className={`py-0.5 text-right ${discount > 0 ? '' : `font-bold ${isMultiPrint ? 'text-[7.5pt]' : 'text-[10pt]'}`}`}>
+                        <td className={`py-0.5 text-right ${discount > 0 ? '' : `font-bold ${isMultiPrint ? 'text-[6pt]' : 'text-[8pt]'}`}`}>
                             {new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' }).format(discount > 0 ? subtotal : total)}
                         </td>
                     </tr>
@@ -105,8 +105,8 @@ export function Invoice({
                             </td>
                         </tr>
                         <tr>
-                            <td colSpan={2} className={`py-0.5 text-right font-bold ${isMultiPrint ? 'text-[7.5pt]' : 'text-[10pt]'}`}>Total:</td>
-                            <td className={`py-0.5 text-right font-bold ${isMultiPrint ? 'text-[7.5pt]' : 'text-[10pt]'}`}>
+                            <td colSpan={2} className={`py-0.5 text-right font-bold ${isMultiPrint ? 'text-[6pt]' : 'text-[8pt]'}`}>Total:</td>
+                            <td className={`py-0.5 text-right font-bold ${isMultiPrint ? 'text-[6pt]' : 'text-[8pt]'}`}>
                                 {new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' }).format(total)}
                             </td>
                         </tr>

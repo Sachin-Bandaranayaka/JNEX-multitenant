@@ -69,6 +69,7 @@ export async function POST(request: Request) {
             in: productCodes,
             mode: 'insensitive', // Case-insensitive check
           },
+          isActive: true, // Ignore soft-deleted / retired products
         },
         select: { code: true, stock: true, lowStockAlert: true },
       });
@@ -105,6 +106,29 @@ export async function POST(request: Request) {
     // --- ACTION 2: IMPORT THE CONFIRMED LEADS ---
     if (payload.action === 'import') {
       const { leads } = payload; // These leads are pre-filtered by the frontend.
+
+      // Re-validate on the server: never trust the frontend-supplied list.
+      // Only allow connecting to products that exist for THIS tenant and are active.
+      const requestedCodes = [...new Set(leads.map(lead => lead.product_code?.toUpperCase()).filter(Boolean))];
+      const activeProducts = await prisma.product.findMany({
+        where: {
+          code: { in: requestedCodes, mode: 'insensitive' },
+          isActive: true,
+        },
+        select: { code: true },
+      });
+      const activeCodeSet = new Set(activeProducts.map(p => p.code.toUpperCase()));
+
+      const invalidCodes = requestedCodes.filter(code => !activeCodeSet.has(code));
+      if (invalidCodes.length > 0) {
+        return NextResponse.json(
+          {
+            error: 'One or more leads reference a product that does not exist or is inactive for your account.',
+            invalidCodes,
+          },
+          { status: 400 }
+        );
+      }
 
       const createdLeads = await prisma.$transaction(
         leads.map(lead => {

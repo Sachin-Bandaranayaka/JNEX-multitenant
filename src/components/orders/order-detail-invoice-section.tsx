@@ -21,6 +21,7 @@ interface Order {
   product: Product;
   quantity: number;
   discount: number;
+  total: number;
   notes?: string | null;
   shippingProvider?: string | null;
   trackingNumber?: string | null;

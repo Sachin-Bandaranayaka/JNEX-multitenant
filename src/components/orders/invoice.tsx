@@ -20,6 +20,10 @@ interface Order {
     product: Product;
     quantity: number;
     discount: number;
+    // The final amount charged at the time of sale (unit price × qty − discount),
+    // frozen when the order was created. Invoices must use this, NOT the live
+    // product price, so a later catalog price change never alters past invoices.
+    total: number;
     notes?: string | null;
     shippingProvider?: string | null;
     trackingNumber?: string | null;
@@ -48,9 +52,12 @@ export function Invoice({
     printIndex,
 }: InvoiceProps) {
 
-    const subtotal = order.product.price * order.quantity;
+    // Use the sale-time total frozen on the order, not the live product price.
+    // order.total already has the discount subtracted, so reconstruct the
+    // pre-discount line amount from it for display.
     const discount = order.discount || 0;
-    const total = Math.max(0, subtotal - discount);
+    const total = Math.max(0, order.total);
+    const subtotal = total + discount;
 
     const commonInvoice = (
         <div className={`w-full bg-white text-black ${isMultiPrint ? 'p-1.5' : 'px-2 p-4'} rounded relative`}>

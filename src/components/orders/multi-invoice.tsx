@@ -20,6 +20,7 @@ interface Order {
     product: Product;
     quantity: number;
     discount: number;
+    total: number;
     shippingProvider?: string | null;
     trackingNumber?: string | null;
 }

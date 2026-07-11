@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { OrderStatus } from '@prisma/client';
+import { transitionOrder } from '@/lib/order-workflow';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -66,53 +67,13 @@ export async function POST(
       );
     }
 
-    // Update order status and adjust product stock in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Update order status to RETURNED
-      const updatedOrder = await tx.order.update({
-        where: { id: resolvedParams.orderId },
-        data: { status: OrderStatus.RETURNED },
-        include: {
-          product: true
-        }
-      });
-
-      // Add the returned quantity back to product stock
-      await tx.product.update({
-        where: { id: order.product.id },
-        data: {
-          stock: {
-            increment: order.quantity
-          }
-        }
-      });
-
-      // Create a stock adjustment record
-      await tx.stockAdjustment.create({
-        data: {
-          quantity: order.quantity,
-          reason: `Return from order ${order.id}`,
-          previousStock: order.product.stock,
-          newStock: order.product.stock + order.quantity,
-          tenant: {
-            connect: {
-              id: session.user.tenantId,
-            },
-          },
-          product: {
-            connect: {
-              id: order.product.id,
-            },
-          },
-          adjustedBy: {
-            connect: {
-              id: session.user.id,
-            },
-          },
-        }
-      });
-
-      return updatedOrder;
+    const result = await transitionOrder({
+      orderId: order.id,
+      tenantId: session.user.tenantId,
+      userId: session.user.id,
+      to: OrderStatus.RETURNED,
+      source: 'return form',
+      description: `Return: ${reason} — ${description} (${refundMethod}, ${returnShipping})`,
     });
 
     return NextResponse.json(result);

@@ -92,6 +92,7 @@ model Tenant {
   
   // Store relations
   storePurchases      StorePurchase[]
+  printBatches        InvoicePrintBatch[]
 }
 
 model User {
@@ -107,6 +108,7 @@ model User {
   orders          Order[]
   leads           Lead[]
   stockAdjustments StockAdjustment[]
+  printBatches     InvoicePrintBatch[]
 
   // Store relations
   cart            Cart?
@@ -202,6 +204,10 @@ model Order {
   assignedTo          User        @relation(fields: [userId], references: [id])
   userId              String
   invoicePrinted      Boolean     @default(false)
+  lastTrackingCheckedAt DateTime?
+  trackingFailureCount  Int       @default(0)
+  trackingLastError     String?
+  printBatchItems     InvoicePrintBatchItem[]
 
   tenantId            String
   tenant              Tenant      @relation(fields: [tenantId], references: [id])
@@ -211,6 +217,7 @@ model Order {
   @@index([userId])
   @@index([status])
   @@index([tenantId])
+  @@index([status, lastTrackingCheckedAt])
 }
 
 model StockAdjustment {
@@ -361,6 +368,33 @@ model Notification {
   @@index([tenantId])
   @@index([read])
   @@index([createdAt])
+}
+
+model InvoicePrintBatch {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  confirmedAt DateTime?
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  items       InvoicePrintBatchItem[]
+
+  @@index([tenantId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model InvoicePrintBatchItem {
+  id        String            @id @default(cuid())
+  position  Int
+  batchId   String
+  batch     InvoicePrintBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  orderId   String
+  order     Order             @relation(fields: [orderId], references: [id])
+
+  @@unique([batchId, orderId])
+  @@unique([batchId, position])
+  @@index([orderId])
 }
 
 // ============================================

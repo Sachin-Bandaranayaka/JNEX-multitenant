@@ -36,6 +36,7 @@ interface PeriodStats {
 }
 
 interface DashboardData {
+    operations: { openLeads: number; awaitingShipment: number; awaitingPrint: number; inTransit: number; deliveryExceptions: number };
     daily: PeriodStats;
     weekly: PeriodStats;
     monthly: PeriodStats;
@@ -115,6 +116,24 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
                 <div className="hidden md:flex items-center gap-2 text-[#f5b94d]">
                     <CalendarIcon className="h-5 w-5" />
                     <span className="font-semibold">{format(new Date(), 'EEEE, MMM d')}</span>
+                </div>
+            </div>
+
+            <div className="genzo-card">
+                <h2 className="mb-3 font-bold text-slate-700">Today&apos;s Work Queue</h2>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    {[
+                        ['Open leads', initialData.operations.openLeads, '/leads'],
+                        ['Awaiting shipment', initialData.operations.awaitingShipment, '/orders'],
+                        ['Awaiting invoices', initialData.operations.awaitingPrint, '/orders/print'],
+                        ['In transit', initialData.operations.inTransit, '/shipping'],
+                        ['Delivery exceptions', initialData.operations.deliveryExceptions, '/shipping'],
+                    ].map(([label, count, href]) => (
+                        <Link key={label} href={href as string} className="rounded-lg border border-slate-200 bg-white p-4 hover:border-[#e89c31]">
+                            <div className="text-xs font-semibold text-slate-500">{label}</div>
+                            <div className="mt-1 text-2xl font-bold text-slate-700">{count}</div>
+                        </Link>
+                    ))}
                 </div>
             </div>
 

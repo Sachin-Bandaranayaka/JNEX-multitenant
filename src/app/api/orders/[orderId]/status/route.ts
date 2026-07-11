@@ -42,7 +42,7 @@ export async function PATCH(
       }, { status: 400 });
     }
     return NextResponse.json({
-      error: 'Failed to update order status'
-    }, { status: 500 });
+      error: error instanceof Error ? error.message : 'Failed to update order status'
+    }, { status: 400 });
   }
 }

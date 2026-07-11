@@ -37,6 +37,8 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'pending' | 'printed'>('pending');
   const [ordersToPrint, setOrdersToPrint] = useState<OrderWithProduct[]>([]);
+  const [printBatchId, setPrintBatchId] = useState<string | null>(null);
+  const [awaitingPrintConfirmation, setAwaitingPrintConfirmation] = useState(false);
 
   const { pendingOrders, printedOrders } = useMemo(() => {
     const sorted = [...orders].sort((a, b) => {
@@ -98,16 +100,13 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
 
   useEffect(() => {
     const handleAfterPrint = () => {
-      if (activeTab === 'pending' && selectedOrderIds.length > 0) {
-        updatePrintStatus(selectedOrderIds, true);
-      }
-      setOrdersToPrint([]);
+      if (printBatchId) setAwaitingPrintConfirmation(true);
     };
     window.addEventListener('afterprint', handleAfterPrint);
     return () => {
       window.removeEventListener('afterprint', handleAfterPrint);
     };
-  }, [activeTab, selectedOrderIds]);
+  }, [printBatchId]);
 
   // --- FIX: Use useEffect to trigger print when ordersToPrint changes ---
   useEffect(() => {
@@ -122,13 +121,48 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
     }
   }, [ordersToPrint]);
 
-  const handlePrint = () => {
+  const startPrintBatch = async (orderedIds: string[]) => {
+    const response = await fetch('/api/orders/print-batches', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderIds: orderedIds }),
+    });
+    if (!response.ok) throw new Error('Could not create print batch');
+    const batch = await response.json();
+    setPrintBatchId(batch.id);
+    setOrdersToPrint(orderedIds.map(id => orders.find(o => o.id === id)).filter(Boolean) as OrderWithProduct[]);
+  };
+
+  const handlePrint = async () => {
     if (selectedOrderIds.length === 0) {
       toast.warning('Please select at least one invoice to print.');
       return;
     }
-    setOrdersToPrint(orders.filter(o => selectedOrderIds.includes(o.id)));
-    // The useEffect above will trigger window.print() once state updates
+    try {
+      // Preserve exactly the order currently visible to the operator.
+      await startPrintBatch(currentList.filter(o => selectedOrderIds.includes(o.id)).map(o => o.id));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not start printing');
+    }
+  };
+
+  const confirmPrinted = async () => {
+    if (!printBatchId) return;
+    const response = await fetch(`/api/orders/print-batches/${printBatchId}/confirm`, { method: 'POST' });
+    if (!response.ok) return toast.error('Could not confirm the print batch');
+    const ids = ordersToPrint.map(o => o.id);
+    setOrders(prev => prev.map(o => ids.includes(o.id) ? { ...o, invoicePrinted: true } : o));
+    setSelectedOrderIds([]);
+    setOrdersToPrint([]);
+    setPrintBatchId(null);
+    setAwaitingPrintConfirmation(false);
+    toast.success(`${ids.length} invoice(s) marked as printed.`);
+  };
+
+  const reprintLastBatch = async () => {
+    const response = await fetch('/api/orders/print-batches');
+    const batch = response.ok ? await response.json() : null;
+    if (!batch?.orderIds?.length) return toast.info('No previous print batch found.');
+    setPrintBatchId(batch.id);
+    setOrdersToPrint(batch.orderIds.map((id: string) => orders.find(o => o.id === id)).filter(Boolean));
   };
 
 
@@ -155,6 +189,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
+            forced-color-adjust: none !important;
           }
           /* Force light mode CSS variables for print */
           :root, html, body, .dark {
@@ -219,7 +254,10 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             grid-template-rows: repeat(4, minmax(0, 1fr));
             width: 100%;
             height: 100%;
-            border: 1px solid #000;
+            /* Use a physical stroke instead of a CSS-pixel hairline. Some
+               Windows/Linux print pipelines round 1px borders away while
+               scaling the page to printer DPI. */
+            border: 0.25mm solid #000 !important;
             box-sizing: border-box;
           }
           .invoice-cell {
@@ -228,6 +266,8 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             color: #000 !important;
             background-color: #fff !important;
             background: #fff !important;
+            border-color: #000 !important;
+            border-style: solid !important;
           }
           /* Ensure text is visible */
           p, h1, h2, h3, span, div, td, th, tr, table {
@@ -273,6 +313,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Print Invoices</h1>
           <div className="flex items-center space-x-4">
+            <Button onClick={reprintLastBatch} variant="outline">Reprint Last Batch</Button>
             <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
               <SelectTrigger className="w-[180px] bg-card border-border"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="newest">Newest First</SelectItem><SelectItem value="oldest">Oldest First</SelectItem></SelectContent>
@@ -332,6 +373,19 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
         </Tabs>
       </div>
 
+      {awaitingPrintConfirmation && (
+        <div className="print:hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl">
+            <h2 className="text-lg font-bold">Did the invoices print successfully?</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Only confirm after checking the printer. Cancelling keeps these invoices pending.</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button variant="outline" onClick={() => { setAwaitingPrintConfirmation(false); setOrdersToPrint([]); setPrintBatchId(null); }}>No, keep pending</Button>
+              <Button onClick={confirmPrinted}>Yes, mark printed</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- Fixed 2x4 grid: exactly 8 invoices per A4 sheet --- */}
       <div className="print-only bg-white text-black">
         {chunk(ordersToPrint, 8).map((pageOrders, pageIndex) => {
@@ -342,8 +396,10 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
                 {pageOrders.map((order, idx) => {
                   const col = idx % 2;
                   const row = Math.floor(idx / 2);
-                  const borderRight = col === 0 ? '1px solid #000' : 'none';
-                  const borderBottom = row === totalRows - 1 ? 'none' : '1px solid #000';
+                  // A physical-width stroke survives browser/OS/printer DPI
+                  // conversion more reliably than a 1px CSS hairline.
+                  const borderRight = col === 0 ? '0.25mm solid #000' : 'none';
+                  const borderBottom = row === totalRows - 1 ? 'none' : '0.25mm solid #000';
                   return (
                     <div
                       key={order.id}

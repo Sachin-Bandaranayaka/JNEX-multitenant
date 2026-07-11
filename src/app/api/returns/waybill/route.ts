@@ -2,6 +2,8 @@ import { getScopedPrismaClient } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { OrderStatus } from '@prisma/client';
+import { transitionOrder } from '@/lib/order-workflow';
 
 export const dynamic = 'force-dynamic';
 
@@ -69,32 +71,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Only shipped or delivered orders can be returned' }, { status: 400 });
         }
 
-        // Transaction: update order + restore stock
-        const result = await prisma.$transaction(async (tx: any) => {
-            const updatedOrder = await tx.order.update({
-                where: { id: order.id },
-                data: { status: 'RETURNED' },
-                include: { product: true, assignedTo: true },
-            });
-
-            await tx.product.update({
-                where: { id: order.product.id },
-                data: { stock: { increment: order.quantity } },
-            });
-
-            await tx.stockAdjustment.create({
-                data: {
-                    quantity: order.quantity,
-                    reason: `Return via waybill ${waybill}`,
-                    previousStock: order.product.stock,
-                    newStock: order.product.stock + order.quantity,
-                    productId: order.product.id,
-                    userId: session.user.id,
-                    tenantId: session.user.tenantId,
-                },
-            });
-
-            return updatedOrder;
+        const result = await transitionOrder({
+            orderId: order.id,
+            tenantId: session.user.tenantId,
+            userId: session.user.id,
+            to: OrderStatus.RETURNED,
+            source: 'waybill return',
+            description: `Return via waybill ${waybill}`,
         });
 
         return NextResponse.json(result);

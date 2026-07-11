@@ -169,6 +169,14 @@ async function getDashboardData(tenantId: string) {
         }),
     ]);
 
+    const [openLeads, awaitingShipment, awaitingPrint, inTransit, deliveryExceptions] = await Promise.all([
+        prisma.lead.count({ where: { status: { in: ['PENDING', 'NO_ANSWER'] } } }),
+        prisma.order.count({ where: { status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] } } }),
+        prisma.order.count({ where: { status: { in: ['CONFIRMED', 'SHIPPED'] }, invoicePrinted: false } }),
+        prisma.order.count({ where: { status: 'SHIPPED' } }),
+        prisma.trackingUpdate.count({ where: { isException: true } }),
+    ]);
+
     return {
         daily: buildPeriodData(todayStart, yesterdayStart, todayStart),
         weekly: buildPeriodData(weekStart, prevWeekStart, weekStart),
@@ -186,6 +194,7 @@ async function getDashboardData(tenantId: string) {
             today: todayReminders as any[],
             upcoming: upcomingReminders as any[],
         },
+        operations: { openLeads, awaitingShipment, awaitingPrint, inTransit, deliveryExceptions },
     };
 }
 

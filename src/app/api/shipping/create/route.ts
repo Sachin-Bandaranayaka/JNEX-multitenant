@@ -4,8 +4,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { ShippingProvider } from '@prisma/client';
+import { OrderStatus, ShippingProvider } from '@prisma/client';
 import type { ShippingAddress, PackageDetails } from '@/lib/shipping/types';
+import { transitionOrder } from '@/lib/order-workflow';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -56,6 +57,12 @@ export async function POST(request: Request) {
     // tenant-scoped client to avoid cross-tenant shipment creation.
     const scopedPrisma = getScopedPrismaClient(tenantId);
 
+    const order = await scopedPrisma.order.findFirst({ where: { id: data.orderId } });
+    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    if (!['PENDING', 'CONFIRMED', 'RESCHEDULED'].includes(order.status)) {
+      return NextResponse.json({ error: `Order cannot be shipped from ${order.status}` }, { status: 409 });
+    }
+
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       select: {
@@ -89,14 +96,13 @@ export async function POST(request: Request) {
 
     // Update the order with shipping information (scoped: cross-tenant order
     // ids will not match and the update affects no rows).
-    const updatedOrder = await scopedPrisma.order.update({
-      where: { id: data.orderId },
-      data: {
-        status: 'SHIPPED',
-        shippingProvider: data.provider,
-        trackingNumber: label.trackingNumber,
-        shippedAt: new Date(),
-      },
+    const updatedOrder = await transitionOrder({
+      orderId: data.orderId,
+      tenantId,
+      userId: session.user.id,
+      to: OrderStatus.SHIPPED,
+      source: 'courier shipment creation',
+      shipping: { provider: data.provider, trackingNumber: label.trackingNumber },
     });
 
     return NextResponse.json({

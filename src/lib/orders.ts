@@ -4,6 +4,7 @@ import { getScopedPrismaClient, prisma as unscopedPrisma } from './prisma';
 import { LeadStatus, OrderStatus, Prisma, ShippingProvider } from '@prisma/client';
 import { createNotification } from '@/lib/notifications';
 import { CreateOrderData } from '@/types/orders';
+import { transitionOrder } from '@/lib/order-workflow';
 
 const sendOrderConfirmationEmail = typeof window === 'undefined' ? require('./email').sendOrderConfirmationEmail : null;
 
@@ -85,8 +86,14 @@ export async function createOrderFromLead(data: CreateOrderData) {
       const currentProduct = await tx.product.findUnique({ where: { id: lead.product.id } });
       if (!currentProduct) throw new Error('Product not found when adjusting stock');
 
-      const newStock = Math.max(0, currentProduct.stock - data.quantity);
-      await tx.product.update({ where: { id: lead.product.id }, data: { stock: newStock } });
+      const stockUpdate = await tx.product.updateMany({
+        where: { id: lead.product.id, tenantId: data.tenantId, stock: { gte: data.quantity } },
+        data: { stock: { decrement: data.quantity } },
+      });
+      if (stockUpdate.count !== 1) {
+        throw new Error(`Insufficient stock. Only ${currentProduct.stock} unit(s) available.`);
+      }
+      const newStock = currentProduct.stock - data.quantity;
 
       await tx.stockAdjustment.create({
         data: {
@@ -120,104 +127,8 @@ export async function createOrderFromLead(data: CreateOrderData) {
 
 // Enhanced order status update with business logic
 export async function updateOrderStatus(orderId: string, status: OrderStatus, tenantId: string, userId?: string) {
-  const prisma = getScopedPrismaClient(tenantId);
-
-  return await prisma.$transaction(async (tx) => {
-    // Get current order with product details
-    const currentOrder = await tx.order.findUnique({
-      where: { id: orderId },
-      include: { product: true }
-    });
-
-    if (!currentOrder) {
-      throw new Error('Order not found');
-    }
-
-    // Validate status transitions with comprehensive business rules
-    const validTransitions = {
-      'PENDING': ['CONFIRMED', 'SHIPPED', 'CANCELLED'],
-      'CONFIRMED': ['SHIPPED', 'CANCELLED'],
-      'SHIPPED': ['DELIVERED'], // Cannot cancel shipped orders
-      'DELIVERED': ['RETURNED'],
-      'CANCELLED': [], // Cannot transition from cancelled
-      'RETURNED': []   // Cannot transition from returned
-    };
-
-    const allowedStatuses = validTransitions[currentOrder.status as keyof typeof validTransitions] as OrderStatus[];
-    if (!allowedStatuses.includes(status)) {
-      throw new Error(`Invalid status transition from ${currentOrder.status} to ${status}`);
-    }
-
-    // Business rule: Prevent cancellation of shipped, delivered, or returned orders
-    if (status === OrderStatus.CANCELLED &&
-      ['SHIPPED', 'DELIVERED', 'RETURNED'].includes(currentOrder.status)) {
-      throw new Error(`Cannot cancel order that has been ${currentOrder.status.toLowerCase()}. Please process a return instead.`);
-    }
-
-    // Business rule: Only allow returns for delivered orders
-    if (status === OrderStatus.RETURNED && currentOrder.status !== 'DELIVERED') {
-      throw new Error(`Can only return orders that have been delivered. Current status: ${currentOrder.status}`);
-    }
-
-    // Handle inventory restoration for cancellations
-    if (status === OrderStatus.CANCELLED && currentOrder.status !== OrderStatus.CANCELLED) {
-      // Restore inventory for cancelled orders
-      await tx.product.update({
-        where: { id: currentOrder.product.id },
-        data: {
-          stock: {
-            increment: currentOrder.quantity
-          }
-        }
-      });
-
-      // Create stock adjustment record
-      if (userId) {
-        await tx.stockAdjustment.create({
-          data: {
-            tenant: { connect: { id: tenantId } },
-            product: { connect: { id: currentOrder.product.id } },
-            adjustedBy: { connect: { id: userId } },
-            quantity: currentOrder.quantity,
-            reason: `Order cancellation: ${orderId}`,
-            previousStock: currentOrder.product.stock,
-            newStock: currentOrder.product.stock + currentOrder.quantity,
-          }
-        });
-      }
-    }
-
-    // Update order status
-    const updatedOrder = await tx.order.update({
-      where: { id: orderId },
-      data: {
-        status,
-        updatedAt: new Date()
-      },
-      include: { product: true }
-    });
-
-    // Create notification for delivery or return
-    if (status === OrderStatus.DELIVERED) {
-      await createNotification(
-        tenantId,
-        'Order Delivered',
-        `Order #${orderId} has been marked as delivered.`,
-        'DELIVERY',
-        orderId
-      );
-    } else if (status === OrderStatus.RETURNED) {
-      await createNotification(
-        tenantId,
-        'Order Returned',
-        `Order #${orderId} has been marked as returned.`,
-        'RETURN',
-        orderId
-      );
-    }
-
-    return updatedOrder;
-  });
+  if (!userId) throw new Error('A user is required to update an order');
+  return transitionOrder({ orderId, tenantId, userId, to: status, source: 'manual update' });
 }
 
 export async function getConfirmedOrders(tenantId: string) {

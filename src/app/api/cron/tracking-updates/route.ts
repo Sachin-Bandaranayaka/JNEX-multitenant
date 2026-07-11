@@ -45,12 +45,14 @@ export async function GET(request: Request) {
         }
 
         // Get all orders that are shipped but not delivered
+        const staleBefore = new Date(Date.now() - 10 * 60 * 1000);
         const orders = await prisma.order.findMany({
             where: {
                 status: OrderStatus.SHIPPED,
                 shippingProvider: { not: null },
                 trackingNumber: { not: null },
                 deliveredAt: null,
+                OR: [{ lastTrackingCheckedAt: null }, { lastTrackingCheckedAt: { lt: staleBefore } }],
             },
             select: {
                 id: true,
@@ -76,21 +78,14 @@ export async function GET(request: Request) {
 
         console.log(`Found ${orders.length} orders to check for updates`);
 
-        // Helper function to add delay between API calls (rate limiting protection)
-        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-        
-        // Process orders sequentially with delay to avoid rate limiting
-        // Royal Express has rate limits, so we add 2 second delay between each order
-        const updates = [];
-        for (let i = 0; i < orders.length; i++) {
-            const order = orders[i];
-            
-            // Add delay between orders (skip first one)
-            if (i > 0) {
-                await delay(2000); // 2 second delay between API calls
-            }
-            
-            console.log(`Processing order ${i + 1}/${orders.length}: ${order.id}`);
+        // Work in small concurrent batches: materially faster than a global
+        // two-second delay while still protecting courier rate limits.
+        const updates: any[] = [];
+        const concurrency = 4;
+        for (let start = 0; start < orders.length; start += concurrency) {
+          const batch = orders.slice(start, start + concurrency);
+          const batchResults = await Promise.all(batch.map(async (order, offset) => {
+            console.log(`Processing order ${start + offset + 1}/${orders.length}: ${order.id}`);
             
             const result = await (async () => {
                 try {
@@ -478,7 +473,15 @@ export async function GET(request: Request) {
                 }
             })();
             
-            updates.push(result);
+            await prisma.order.update({
+              where: { id: order.id },
+              data: result.success
+                ? { lastTrackingCheckedAt: new Date(), trackingFailureCount: 0, trackingLastError: null }
+                : { lastTrackingCheckedAt: new Date(), trackingFailureCount: { increment: 1 }, trackingLastError: result.error ?? 'Tracking failed' },
+            });
+            return result;
+          }));
+          updates.push(...batchResults);
         }
 
         return createResponse({

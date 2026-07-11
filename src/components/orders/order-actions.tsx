@@ -16,8 +16,16 @@ const STATUS_OPTIONS = [
   { value: 'SHIPPED', label: 'Shipped' },
   { value: 'DELIVERED', label: 'Delivered' },
   { value: 'RETURNED', label: 'Returned' },
+  { value: 'RESCHEDULED', label: 'Rescheduled' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
+const NEXT_STATUSES: Record<string, string[]> = {
+  PENDING: ['CONFIRMED', 'SHIPPED', 'CANCELLED'],
+  CONFIRMED: ['SHIPPED', 'CANCELLED'],
+  SHIPPED: ['DELIVERED', 'RETURNED', 'RESCHEDULED'],
+  RESCHEDULED: ['SHIPPED', 'DELIVERED', 'RETURNED', 'CANCELLED'],
+  DELIVERED: ['RETURNED'], RETURNED: [], CANCELLED: [],
+};
 
 export function OrderActions({ order, user }: OrderActionsProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +62,7 @@ export function OrderActions({ order, user }: OrderActionsProps) {
           disabled={isLoading}
           className="rounded-lg border border-border bg-background text-foreground py-1.5 pl-3 pr-8 text-xs font-medium focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {STATUS_OPTIONS.map(opt => (
+          {STATUS_OPTIONS.filter(opt => opt.value === order.status || (NEXT_STATUSES[order.status] ?? []).includes(opt.value)).map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>

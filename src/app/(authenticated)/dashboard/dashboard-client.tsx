@@ -1,86 +1,77 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon, FunnelIcon } from '@heroicons/react/24/outline';
-import { DeliveredOrders } from '@/components/dashboard/delivered-orders';
+import { CalendarIcon } from '@heroicons/react/24/outline';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { LeadsChart } from '@/components/dashboard/leads-chart';
 
-interface Bucket { count: number; total: number }
-interface PeriodStats {
-  statusCounts: { total: Bucket; pending: Bucket; shipped: Bucket; returned: Bucket; delivered: Bucket };
-  orders: number; revenue: number; leads: number; conversionRate: number; avgOrderValue: number;
-}
-interface Reminder { id: string; csvData: any; reminderDate: string; reminderNote: string | null; product: { name: string }; assignedTo: { name: string | null } | null }
 interface DashboardData {
-  operations: { openLeads: number; awaitingShipment: number; awaitingPrint: number; inTransit: number; deliveryExceptions: number; deliveredToday: number; returnedToday: number };
-  priorityWork: Array<{ id: string; title: string; detail: string; href: string; action: string; date: string | Date }>;
-  daily: PeriodStats; weekly: PeriodStats; monthly: PeriodStats;
+  sales: Array<{ date: string; revenue: number; orders: number }>;
   allTime: { totalLeads: number; convertedLeads: number; conversionRate: number };
   leadsByStatus: Array<{ status: string; count: number }>;
-  noStockCount: number; lowStockCount: number;
-  reminders: { overdue: Reminder[]; today: Reminder[]; upcoming: Reminder[] };
 }
-type TimeFilter = 'daily' | 'weekly' | 'monthly';
+
+type Range = 7 | 30 | 90;
+const money = (value: number) => `Rs. ${value.toLocaleString('en-LK', { maximumFractionDigits: 0 })}`;
+
+function greetingForHour(hour: number) {
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
 export function DashboardClient({ initialData, userName }: { initialData: DashboardData; userName?: string | null }) {
-  const [period, setPeriod] = useState<TimeFilter>('daily');
-  const data = initialData[period];
-  const finalized = data.statusCounts.delivered.count + data.statusCounts.returned.count;
-  const deliveryRate = finalized ? data.statusCounts.delivered.count / finalized * 100 : 0;
-  const returnRate = finalized ? data.statusCounts.returned.count / finalized * 100 : 0;
-  const money = (value: number) => `Rs. ${value.toLocaleString('en-LK', { maximumFractionDigits: 0 })}`;
-  const periodLabel = { daily: 'Today', weekly: 'This week', monthly: 'This month' }[period];
-  const reminders = [
-    ...initialData.reminders.overdue.map(r => ({ ...r, group: 'Overdue', tone: 'bg-red-500' })),
-    ...initialData.reminders.today.map(r => ({ ...r, group: 'Today', tone: 'bg-amber-500' })),
-    ...initialData.reminders.upcoming.map(r => ({ ...r, group: 'Upcoming', tone: 'bg-teal-500' })),
-  ].slice(0, 8);
+  const [range, setRange] = useState<Range>(30);
+  const [now] = useState(() => new Date());
+  const sales = useMemo(() => initialData.sales.slice(-range), [initialData.sales, range]);
+  const summary = useMemo(() => {
+    const revenue = sales.reduce((sum, item) => sum + item.revenue, 0);
+    const orders = sales.reduce((sum, item) => sum + item.orders, 0);
+    return { revenue, orders, average: orders ? revenue / orders : 0 };
+  }, [sales]);
+  const firstName = userName?.trim().split(/\s+/)[0];
 
-  return <main className="space-y-5">
-    <header className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
-      <div><h1 className="text-2xl font-extrabold text-slate-800">Good day{userName ? `, ${userName.split(' ')[0]}` : ''}</h1><p className="mt-1 text-sm text-slate-500">Your operations desk for today.</p></div>
-      <div className="flex items-center gap-2 text-sm font-semibold text-slate-600"><CalendarIcon className="h-4 w-4 text-amber-600" />{format(new Date(), 'EEEE, MMMM d')}</div>
+  return <main className="space-y-6 pb-8">
+    <header className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-5">
+      <div>
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 sm:text-[28px]">{greetingForHour(now.getHours())}{firstName ? `, ${firstName}` : ''}</h1>
+        <p className="mt-1.5 text-sm text-slate-500">A clear view of sales and lead conversion.</p>
+      </div>
+      <div className="flex items-center gap-2 text-sm font-semibold text-slate-600"><CalendarIcon className="h-4 w-4 text-amber-600" />{format(now, 'EEEE, MMMM d')}</div>
     </header>
 
-    <section className="overflow-hidden border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 px-4 py-3"><h2 className="text-sm font-bold text-slate-800">Today&apos;s control strip</h2><p className="text-xs text-slate-500">Open a queue directly from any number.</p></div>
-      <div className="grid grid-cols-2 gap-px bg-slate-200 sm:grid-cols-5">
-        {[
-          ['Needs shipping', initialData.operations.awaitingShipment, '/orders?status=CONFIRMED', 'text-amber-700'],
-          ['In transit', initialData.operations.inTransit, '/shipping?view=transit', 'text-teal-700'],
-          ['Delivered today', initialData.operations.deliveredToday, '/orders?status=DELIVERED', 'text-emerald-700'],
-          ['Returned today', initialData.operations.returnedToday, '/returns', 'text-red-700'],
-          ['Realized today', money(initialData.daily.statusCounts.delivered.total), '/orders?status=DELIVERED', 'text-emerald-700'],
-        ].map(([label,value,href,tone]) => <Link key={label} href={href as string} className="bg-white px-4 py-3 hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500"><div className="text-[11px] font-semibold text-slate-500">{label}</div><div className={`mt-1 text-xl font-extrabold tabular-nums ${tone}`}>{value}</div></Link>)}
+    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div><h2 className="text-base font-bold text-slate-800">Sales performance</h2><p className="mt-0.5 text-xs text-slate-500">Delivered revenue and orders for the selected period.</p></div>
+        <div className="flex w-fit rounded-md border border-slate-300 p-0.5" aria-label="Sales date range">
+          {([7, 30, 90] as Range[]).map(value => <button key={value} type="button" onClick={() => setRange(value)} aria-pressed={range === value} className={`rounded px-3 py-1.5 text-xs font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 ${range === value ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-50'}`}>{value} days</button>)}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-px bg-slate-200 sm:grid-cols-4">
+        {[['Delivered sales', money(summary.revenue)], ['Delivered orders', summary.orders.toLocaleString()], ['Average order', money(summary.average)], ['Lead conversion', `${initialData.allTime.conversionRate.toFixed(1)}%`]].map(([label, value]) => <div key={label} className="bg-slate-50 px-4 py-3 sm:px-6"><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</div><div className="mt-1 text-lg font-extrabold tabular-nums text-slate-800">{value}</div></div>)}
+      </div>
+      <div className="h-[310px] px-1 pb-4 pt-6 sm:h-[360px] sm:px-4">
+        {summary.orders === 0 ? <div className="flex h-full items-center justify-center px-6 text-center"><div><p className="text-sm font-bold text-slate-700">No delivered sales in this period</p><p className="mt-1 text-xs text-slate-500">Choose a longer range or check back after an order is delivered.</p></div></div> : <ResponsiveContainer width="100%" height="100%"><AreaChart data={sales} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+          <defs><linearGradient id="salesRevenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#d97706" stopOpacity={0.4}/><stop offset="95%" stopColor="#d97706" stopOpacity={0.03}/></linearGradient><linearGradient id="salesOrders" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0f766e" stopOpacity={0.3}/><stop offset="95%" stopColor="#0f766e" stopOpacity={0.02}/></linearGradient></defs>
+          <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+          <XAxis dataKey="date" axisLine={false} tickLine={false} minTickGap={28} tickMargin={10} fontSize={11} tick={{ fill: '#64748b' }} tickFormatter={(value) => format(new Date(`${value}T00:00:00`), 'MMM d')} />
+          <YAxis yAxisId="revenue" axisLine={false} tickLine={false} width={56} fontSize={11} tick={{ fill: '#64748b' }} tickFormatter={(value) => value >= 1000 ? `${Math.round(value / 1000)}k` : String(value)} />
+          <YAxis yAxisId="orders" orientation="right" axisLine={false} tickLine={false} width={28} allowDecimals={false} fontSize={11} tick={{ fill: '#64748b' }} />
+          <Tooltip cursor={{ stroke: '#94a3b8', strokeDasharray: '3 3' }} content={({ active, payload, label }) => active && payload?.length ? <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs shadow-lg"><div className="mb-1.5 font-bold text-slate-700">{format(new Date(`${label}T00:00:00`), 'EEEE, MMM d')}</div><div className="flex min-w-40 justify-between gap-5 text-amber-700"><span>Revenue</span><strong>{money(Number(payload.find(p => p.dataKey === 'revenue')?.value ?? 0))}</strong></div><div className="mt-1 flex justify-between gap-5 text-teal-700"><span>Orders</span><strong>{Number(payload.find(p => p.dataKey === 'orders')?.value ?? 0)}</strong></div></div> : null} />
+          <Area yAxisId="revenue" dataKey="revenue" name="Revenue" type="monotone" fill="url(#salesRevenue)" stroke="#d97706" strokeWidth={2} />
+          <Area yAxisId="orders" dataKey="orders" name="Orders" type="monotone" fill="url(#salesOrders)" stroke="#0f766e" strokeWidth={2} />
+        </AreaChart></ResponsiveContainer>}
+      </div>
+      <div className="flex items-center justify-center gap-5 border-t border-slate-100 py-3 text-xs font-semibold text-slate-600"><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-amber-600" />Revenue</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-teal-700" />Orders</span></div>
+    </section>
+
+    <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 px-4 py-4 sm:px-6"><h2 className="text-base font-bold text-slate-800">Lead conversion</h2><p className="mt-0.5 text-xs text-slate-500">All-time lead outcomes at a glance.</p></div>
+      <div className="grid items-center gap-3 p-4 sm:p-6 md:grid-cols-[minmax(280px,0.9fr)_minmax(300px,1.1fr)]">
+        <LeadsChart data={initialData.leadsByStatus} />
+        <div className="border-t border-slate-200 pt-5 md:border-l md:border-t-0 md:pl-8 md:pt-0"><div className="text-3xl font-extrabold tabular-nums text-slate-800">{initialData.allTime.conversionRate.toFixed(1)}%</div><div className="mt-1 text-sm font-bold text-slate-700">Lead conversion rate</div><p className="mt-2 max-w-md text-sm leading-6 text-slate-500">{initialData.allTime.convertedLeads.toLocaleString()} of {initialData.allTime.totalLeads.toLocaleString()} leads are confirmed. Select a segment to inspect its total.</p></div>
       </div>
     </section>
-
-    <section className="border border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-bold text-slate-800">Today&apos;s work queue</h2><span className="text-xs text-slate-500">Oldest priority first</span></div>
-      {initialData.priorityWork.length ? <div className="divide-y divide-slate-200 border-y border-slate-200">{initialData.priorityWork.map((item,index) => <Link key={item.id} href={item.href} className="group flex items-center gap-3 px-1 py-3 hover:bg-slate-50"><span className="flex h-7 w-7 items-center justify-center rounded bg-slate-800 text-xs font-bold text-white">{index+1}</span><div className="min-w-0 flex-1"><div className="truncate text-sm font-bold text-slate-800">{item.title}</div><div className="truncate text-xs text-slate-500">{item.detail} · waiting since {format(new Date(item.date), 'MMM d, h:mm a')}</div></div><span className="rounded border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-800">{item.action}</span></Link>)}</div> : <div className="border-y border-emerald-200 bg-emerald-50 px-3 py-4 text-sm font-semibold text-emerald-800">You&apos;re caught up. No urgent work is waiting.</div>}
-    </section>
-
-    <section className="border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3"><div><h2 className="text-sm font-bold text-slate-800">Performance</h2><p className="text-xs text-slate-500">Revenue counts delivered orders only.</p></div><div className="flex rounded border border-slate-300 p-0.5">{(['daily','weekly','monthly'] as TimeFilter[]).map(value => <button key={value} onClick={() => setPeriod(value)} className={`rounded px-3 py-1.5 text-xs font-bold ${period === value ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-50'}`}>{value === 'daily' ? 'Today' : value === 'weekly' ? 'Week' : 'Month'}</button>)}</div></div>
-      <div className="grid grid-cols-2 gap-px bg-slate-200 md:grid-cols-4">{[
-        ['Orders created', data.orders, 'text-slate-800'], ['Delivered revenue', money(data.revenue), 'text-emerald-700'], ['Delivery rate', `${deliveryRate.toFixed(1)}%`, 'text-emerald-700'], ['Return rate', `${returnRate.toFixed(1)}%`, returnRate > 15 ? 'text-red-700' : 'text-slate-800'],
-      ].map(([label,value,tone]) => <div key={label} className="bg-white px-4 py-3"><div className="text-[11px] font-semibold text-slate-500">{label} · {periodLabel}</div><div className={`mt-1 text-lg font-extrabold tabular-nums ${tone}`}>{value}</div></div>)}</div>
-    </section>
-
-    <section className="border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 px-4 py-3"><h2 className="text-sm font-bold text-slate-800">Operational health</h2><p className="text-xs text-slate-500">Rates use finalized deliveries: delivered + returned.</p></div>
-      <div className="grid grid-cols-2 gap-px bg-slate-200 sm:grid-cols-3 lg:grid-cols-6">{[
-        ['Delivery rate', `${deliveryRate.toFixed(1)}%`, '/orders?status=DELIVERED', 'text-emerald-700'], ['Return rate', `${returnRate.toFixed(1)}%`, '/returns', 'text-red-700'], ['Pending shipment', initialData.operations.awaitingShipment, '/orders?status=CONFIRMED', 'text-amber-700'], ['Invoice queue', initialData.operations.awaitingPrint, '/orders/print', 'text-amber-700'], ['Low stock', initialData.lowStockCount, '/inventory', 'text-amber-700'], ['Out of stock', initialData.noStockCount, '/inventory', 'text-red-700'],
-      ].map(([label,value,href,tone]) => <Link key={label} href={href as string} className="bg-white px-4 py-3 hover:bg-slate-50"><div className="text-[11px] font-semibold text-slate-500">{label}</div><div className={`mt-1 text-lg font-extrabold tabular-nums ${tone}`}>{value}</div></Link>)}</div>
-    </section>
-
-    {reminders.length > 0 && <section className="border border-slate-200 bg-white shadow-sm"><div className="flex items-center justify-between border-b border-slate-200 px-4 py-3"><div><h2 className="text-sm font-bold text-slate-800">Lead reminders</h2><p className="text-xs text-slate-500">Follow-ups ordered by urgency.</p></div><Link href="/leads/remind-leads" className="text-xs font-bold text-amber-700 hover:underline">View reminders →</Link></div><div className="divide-y divide-slate-200">{reminders.map(r => <Link key={`${r.group}-${r.id}`} href={`/leads/${r.id}?edit=true`} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 hover:bg-slate-50"><span className={`h-2 w-2 rounded-full ${r.tone}`} /><div className="min-w-0"><div className="truncate text-sm font-bold text-slate-800">{r.csvData?.name || 'Unknown customer'} <span className="font-normal text-slate-400">· {r.product.name}</span></div><div className="truncate text-xs text-slate-500">{r.reminderNote || r.csvData?.phone || 'Follow up with this lead'}</div></div><div className="text-right"><div className="text-xs font-bold text-slate-700">{r.group}</div><div className="text-[11px] text-slate-500">{format(new Date(r.reminderDate), 'MMM d')}</div></div></Link>)}</div></section>}
-
-    <div className="grid gap-5 lg:grid-cols-2">
-      <section className="border border-slate-200 bg-white p-4 shadow-sm"><div className="mb-4 flex items-center gap-2"><FunnelIcon className="h-4 w-4 text-amber-600" /><h2 className="text-sm font-bold text-slate-800">Lead conversion</h2></div><div className="mb-3 grid grid-cols-3 gap-px bg-slate-200">{[['Total',initialData.allTime.totalLeads],['Converted',initialData.allTime.convertedLeads],['Rate',`${initialData.allTime.conversionRate.toFixed(1)}%`]].map(([label,value]) => <div key={label} className="bg-slate-50 px-3 py-2"><div className="text-[11px] text-slate-500">{label}</div><div className="font-bold text-slate-800">{value}</div></div>)}</div><div className="h-[260px]"><LeadsChart data={initialData.leadsByStatus} /></div></section>
-      <section className="border border-slate-200 bg-white p-4 shadow-sm"><div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-bold text-slate-800">Recent deliveries</h2><Link href="/orders?status=DELIVERED" className="text-xs font-bold text-amber-700 hover:underline">View all →</Link></div><DeliveredOrders /></section>
-    </div>
   </main>;
 }

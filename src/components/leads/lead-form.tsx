@@ -219,7 +219,7 @@ export function LeadForm({ products, prefilledLead, onSubmit, onCancel }: LeadFo
 
         toast.success('Order confirmed successfully!');
         await onSubmit?.();
-        router.push('/orders');
+        router.push(`/orders/${resultOrder.id}?flow=fulfillment&stage=ship`);
         router.refresh();
       } else {
         // Standard Lead creation flow

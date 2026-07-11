@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { LeadEditModal } from './lead-edit-modal';
@@ -164,6 +164,7 @@ function ConfirmationModal({
 
 export function LeadDetails({ lead }: LeadDetailsProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -215,7 +216,8 @@ export function LeadDetails({ lead }: LeadDetailsProps) {
                 setIsConfirmationModalOpen(true);
             } else {
                 setIsConfirmationModalOpen(false);
-                router.push(`/orders/${result.id}`);
+                const nextLeadId = searchParams.get('nextLeadId');
+                router.push(`/orders/${result.id}?flow=fulfillment&stage=ship${nextLeadId ? `&nextLeadId=${encodeURIComponent(nextLeadId)}` : ''}`);
                 router.refresh();
             }
         } catch (err) {
@@ -259,6 +261,18 @@ export function LeadDetails({ lead }: LeadDetailsProps) {
 
     return (
         <>
+            {lead.status === 'PENDING' && <section className="mb-4 border border-amber-200 bg-amber-50 p-3 shadow-sm" aria-label="Call outcome actions">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <div className="min-w-0 flex-1"><p className="text-xs font-bold uppercase tracking-wider text-amber-700">Call desk</p><p className="truncate text-sm font-semibold text-slate-800">{(lead.csvData as any).name || 'Customer'} · {lead.csvData.phone}</p></div>
+                    <div className="grid grid-cols-2 gap-2 sm:flex">
+                        <a href={`tel:${lead.csvData.phone}`} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">Call customer</a>
+                        <button onClick={() => handleStatusChange('NO_ANSWER')} disabled={isLoading} className="rounded-md border border-orange-300 bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-800 disabled:opacity-50">No answer</button>
+                        <button onClick={() => handleStatusChange('REJECTED')} disabled={isLoading} className="rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-50">Reject</button>
+                        <button onClick={() => handleCreateOrder(false)} disabled={isLoading} className="rounded-md bg-amber-500 px-3 py-2 text-sm font-bold text-white hover:bg-amber-600 disabled:opacity-50">{isLoading ? 'Processing…' : 'Confirm order'}</button>
+                    </div>
+                </div>
+                {error && <p className="mt-2 text-sm font-medium text-red-700" role="alert">{error} — check the details and try again.</p>}
+            </section>}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Column: Customer & Product Info */}
                 <div className="lg:col-span-2 space-y-6">
@@ -408,7 +422,7 @@ export function LeadDetails({ lead }: LeadDetailsProps) {
                     </div>
 
                     {/* Actions Card */}
-                    {lead.status === 'PENDING' && (
+                    {false && lead.status === 'PENDING' && (
                         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                             <div className="px-6 py-4 border-b border-border">
                                 <h3 className="font-semibold text-foreground">Actions</h3>

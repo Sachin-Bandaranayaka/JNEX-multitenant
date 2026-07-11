@@ -195,7 +195,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                             isExpanded={expandedGroup === 'Orders'}
                             onToggle={() => handleToggleGroup('Orders')}
                             links={[
-                                { href: '/orders', label: 'Pending Orders' },
+                                { href: '/orders', label: 'Order Queue' },
                                 ...(userRole === 'ADMIN' ? [{ href: '/orders/bulk-update', label: 'Update from Courier' }] : []),
                                 { href: '/leads/new', label: 'New Order' },
                                 { href: '/search', label: 'Search Orders' },
@@ -224,7 +224,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                         onToggle={() => handleToggleGroup('Return')}
                         links={[
                             { href: '/returns/add-return', label: 'Add Return' },
-                            { href: '/returns/returned-list', label: 'Returned List' },
+                            { href: '/returns/returned-list', label: 'Return History' },
                         ]}
                         pathname={pathname} onNavigate={closeMobileSidebar}
                     />

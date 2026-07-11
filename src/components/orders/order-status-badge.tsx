@@ -1,0 +1,4 @@
+const STATUS = {
+  PENDING: ['Pending', 'bg-amber-50 text-amber-800 ring-amber-200'], CONFIRMED: ['Confirmed', 'bg-blue-50 text-blue-800 ring-blue-200'], SHIPPED: ['Shipped', 'bg-cyan-50 text-cyan-800 ring-cyan-200'], DELIVERED: ['Delivered', 'bg-emerald-50 text-emerald-800 ring-emerald-200'], RETURNED: ['Returned', 'bg-red-50 text-red-800 ring-red-200'], CANCELLED: ['Cancelled', 'bg-slate-100 text-slate-700 ring-slate-200'], RESCHEDULED: ['Rescheduled', 'bg-orange-50 text-orange-800 ring-orange-200'],
+} as const;
+export function OrderStatusBadge({ status }: { status: string }) { const value = STATUS[status as keyof typeof STATUS] ?? [status, 'bg-slate-100 text-slate-700 ring-slate-200']; return <span className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold ring-1 ring-inset ${value[1]}`}>{value[0]}</span>; }

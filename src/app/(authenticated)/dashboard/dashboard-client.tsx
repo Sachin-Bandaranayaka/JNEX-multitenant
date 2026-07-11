@@ -37,6 +37,7 @@ interface PeriodStats {
 
 interface DashboardData {
     operations: { openLeads: number; awaitingShipment: number; awaitingPrint: number; inTransit: number; deliveryExceptions: number };
+    priorityWork: Array<{ id: string; title: string; detail: string; href: string; action: string; date: string | Date }>;
     daily: PeriodStats;
     weekly: PeriodStats;
     monthly: PeriodStats;
@@ -121,17 +122,28 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
 
             <div className="genzo-card">
                 <h2 className="mb-3 font-bold text-slate-700">Today&apos;s Work Queue</h2>
+                {initialData.priorityWork.length > 0 ? <div className="mb-4 divide-y divide-slate-200 border-y border-slate-200">
+                    {initialData.priorityWork.map((item, index) => <Link key={item.id} href={item.href} className="group flex items-center gap-3 px-2 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-800 text-xs font-bold text-white">{index + 1}</span>
+                        <div className="min-w-0 flex-1"><div className="truncate text-sm font-bold text-slate-800">{item.title}</div><div className="truncate text-xs text-slate-500">{item.detail} · waiting since {format(new Date(item.date), 'MMM d, h:mm a')}</div></div>
+                        <span className="rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-800 group-hover:bg-amber-100">{item.action}</span>
+                    </Link>)}
+                </div> : <div className="mb-4 border-y border-emerald-200 bg-emerald-50 px-3 py-4 text-sm font-semibold text-emerald-800">You&apos;re caught up — there are no urgent leads, shipments, invoices, or delivery exceptions.</div>}
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                     {[
                         ['Open leads', initialData.operations.openLeads, '/leads'],
-                        ['Awaiting shipment', initialData.operations.awaitingShipment, '/orders'],
+                        ['Awaiting shipment', initialData.operations.awaitingShipment, '/orders?status=CONFIRMED'],
                         ['Awaiting invoices', initialData.operations.awaitingPrint, '/orders/print'],
-                        ['In transit', initialData.operations.inTransit, '/shipping'],
-                        ['Delivery exceptions', initialData.operations.deliveryExceptions, '/shipping'],
-                    ].map(([label, count, href]) => (
-                        <Link key={label} href={href as string} className="rounded-lg border border-slate-200 bg-white p-4 hover:border-[#e89c31]">
+                        ['In transit', initialData.operations.inTransit, '/shipping?view=transit'],
+                        ['Delivery exceptions', initialData.operations.deliveryExceptions, '/shipping?view=exceptions'],
+                    ].map(([label, count, href], index) => (
+                        <Link key={label} href={href as string} className="group flex items-center gap-3 border-b border-slate-200 bg-white px-3 py-3 last:border-b-0 hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 sm:border sm:last:border-b sm:rounded-lg">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-xs font-bold text-slate-500 group-hover:bg-amber-100 group-hover:text-amber-700">{index + 1}</span>
+                            <div className="min-w-0 flex-1">
                             <div className="text-xs font-semibold text-slate-500">{label}</div>
-                            <div className="mt-1 text-2xl font-bold text-slate-700">{count}</div>
+                            <div className="text-xl font-bold text-slate-700">{count}</div>
+                            </div>
+                            <span className="text-xs font-semibold text-amber-700 opacity-0 transition-opacity group-hover:opacity-100">Open →</span>
                         </Link>
                     ))}
                 </div>

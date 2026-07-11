@@ -176,6 +176,12 @@ async function getDashboardData(tenantId: string) {
         prisma.order.count({ where: { status: 'SHIPPED' } }),
         prisma.trackingUpdate.count({ where: { isException: true } }),
     ]);
+    const [nextLead, nextShipment, nextPrint, nextException] = await Promise.all([
+        prisma.lead.findFirst({ where: { status: { in: ['PENDING', 'NO_ANSWER'] } }, orderBy: { createdAt: 'asc' }, select: { id: true, number: true, createdAt: true, csvData: true } }),
+        prisma.order.findFirst({ where: { status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] } }, orderBy: { createdAt: 'asc' }, select: { id: true, number: true, customerName: true, createdAt: true } }),
+        prisma.order.findFirst({ where: { status: { in: ['CONFIRMED', 'SHIPPED'] }, invoicePrinted: false }, orderBy: { createdAt: 'asc' }, select: { id: true, number: true, customerName: true, createdAt: true } }),
+        prisma.order.findFirst({ where: { status: 'SHIPPED', trackingUpdates: { some: { isException: true } } }, orderBy: { shippedAt: 'asc' }, select: { id: true, number: true, customerName: true, shippedAt: true } }),
+    ]);
 
     return {
         daily: buildPeriodData(todayStart, yesterdayStart, todayStart),
@@ -195,6 +201,12 @@ async function getDashboardData(tenantId: string) {
             upcoming: upcomingReminders as any[],
         },
         operations: { openLeads, awaitingShipment, awaitingPrint, inTransit, deliveryExceptions },
+        priorityWork: [
+            nextException && { id: `exception-${nextException.id}`, title: `Delivery exception · Order #${nextException.number}`, detail: nextException.customerName, href: `/orders/${nextException.id}`, action: 'Review exception', date: nextException.shippedAt || new Date() },
+            nextShipment && { id: `ship-${nextShipment.id}`, title: `Ship order #${nextShipment.number}`, detail: nextShipment.customerName, href: `/orders/${nextShipment.id}?flow=fulfillment&stage=ship`, action: 'Arrange shipping', date: nextShipment.createdAt },
+            nextPrint && { id: `print-${nextPrint.id}`, title: `Print order #${nextPrint.number}`, detail: nextPrint.customerName, href: `/orders/${nextPrint.id}?flow=fulfillment&stage=print`, action: 'Print invoice', date: nextPrint.createdAt },
+            nextLead && { id: `lead-${nextLead.id}`, title: `Call lead #${nextLead.number}`, detail: String((nextLead.csvData as any)?.name || 'Customer'), href: `/leads/${nextLead.id}`, action: 'Open lead', date: nextLead.createdAt },
+        ].filter((item): item is NonNullable<typeof item> => Boolean(item)),
     };
 }
 

@@ -3,8 +3,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { OrderActions } from '@/components/orders/order-actions';
+import { OrderStatusBadge } from '@/components/orders/order-status-badge';
 import { SyncOrdersButton } from '@/components/orders/sync-orders-button';
 import { Prisma } from '@prisma/client';
 import { User } from 'next-auth';
@@ -595,9 +597,11 @@ function BulkShipModal({
 
 // --- Main Component ---
 export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClientProps) {
+  const searchParams = useSearchParams();
   const [orders, setOrders] = useState(initialOrders);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>('ALL');
+  const requestedStatus = searchParams.get('status')?.toUpperCase();
+  const [activeCategory, setActiveCategory] = useState<string>(requestedStatus && requestedStatus in CATEGORY_CONFIG ? requestedStatus : 'ALL');
   const [isBulkShipModalOpen, setIsBulkShipModalOpen] = useState(false);
 
   const displayedOrders = activeCategory === 'ALL'
@@ -801,12 +805,7 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
                           )}
                         </td>
                         <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
-                          {config && (
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${config.color}`}>
-                              <config.icon className="h-3 w-3" />
-                              {config.label}
-                            </span>
-                          )}
+                          <OrderStatusBadge status={order.status} />
                         </td>
                         <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle text-xs text-muted-foreground hidden sm:table-cell whitespace-nowrap">
                           {new Date(order.createdAt).toLocaleDateString('en-US', {

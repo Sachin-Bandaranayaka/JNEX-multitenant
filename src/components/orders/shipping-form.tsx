@@ -45,6 +45,7 @@ interface ShippingFormProps {
     tenantId?: string;
     orderNumber?: number;
     onSuccess?: () => void;
+    guided?: boolean;
 }
 
 export function ShippingForm({
@@ -61,6 +62,7 @@ export function ShippingForm({
     tenantId,
     orderNumber,
     onSuccess,
+    guided = false,
 }: ShippingFormProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -402,7 +404,11 @@ export function ShippingForm({
                 onSuccess();
             } else {
                 const returnTo = searchParams.get('returnTo');
-                if (returnTo === 'leads') {
+                if (searchParams.get('flow') === 'fulfillment') {
+                    const nextLeadId = searchParams.get('nextLeadId');
+                    router.replace(`/orders/${orderId}?flow=fulfillment&stage=print${nextLeadId ? `&nextLeadId=${encodeURIComponent(nextLeadId)}` : ''}#invoice`);
+                    router.refresh();
+                } else if (returnTo === 'leads') {
                     router.push('/leads');
                 } else {
                     router.refresh();
@@ -458,7 +464,7 @@ export function ShippingForm({
     ];
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form id="guided-shipping-form" onSubmit={handleSubmit} className="space-y-6">
             {/* Provider Selection */}
             <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-3">
@@ -706,7 +712,7 @@ export function ShippingForm({
                 </motion.div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <div className={`flex flex-col sm:flex-row gap-3 pt-2 ${guided ? 'hidden' : ''}`}>
                 <motion.button
                     type="submit"
                     disabled={isLoading || !provider}

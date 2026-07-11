@@ -703,7 +703,7 @@ export function LeadsClient({
                       </td>
                       <td className="px-2 py-2.5 text-xs text-muted-foreground border-r border-b border-slate-200 align-middle">{rowIdx}</td>
                       <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
-                        <Link href={`/leads/${lead.id}`}>
+                        <Link href={`/leads/${lead.id}${displayedLeads[idx + 1] ? `?nextLeadId=${displayedLeads[idx + 1].id}` : ''}`}>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${config?.numBadge ?? 'bg-gray-500 text-white'}`}>
                             {lead.number}
                           </span>

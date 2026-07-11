@@ -6,7 +6,7 @@ import { Prisma } from '@prisma/client';
 import { User } from 'next-auth';
 import { ShippingList } from '@/components/shipping/shipping-list';
 
-export default async function ShippingTrackingPage() {
+export default async function ShippingTrackingPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.tenantId) {
@@ -24,12 +24,14 @@ export default async function ShippingTrackingPage() {
     }
 
     const prisma = getScopedPrismaClient(user.tenantId);
+    const query = await searchParams;
 
     // --- FIX: Update the query to respect the VIEW_SHIPPING permission ---
     const where: Prisma.OrderWhereInput = {
         status: 'SHIPPED',
         shippingProvider: { not: null },
         trackingNumber: { not: null },
+        ...(query.view === 'exceptions' ? { trackingUpdates: { some: { isException: true } } } : {}),
         // Only filter by user ID if the user is a TEAM_MEMBER AND they DON'T have permission to view all.
         ...(!canViewAll && user.role === 'TEAM_MEMBER' ? { userId: user.id } : {}),
     };
@@ -50,7 +52,7 @@ export default async function ShippingTrackingPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-foreground tracking-tight">Shipping Tracking</h1>
-                    <p className="mt-1 text-sm text-muted-foreground">Track all your shipped orders in one place</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{query.view === 'exceptions' ? 'Orders needing attention because the courier reported an exception' : 'Track all orders currently in transit'}</p>
                 </div>
             </div>
 

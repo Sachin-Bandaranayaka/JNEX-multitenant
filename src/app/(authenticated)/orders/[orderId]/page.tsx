@@ -11,14 +11,17 @@ import { CancelOrderButton } from '@/components/orders/cancel-order-button';
 import { OrderDetailInvoiceSection } from '@/components/orders/order-detail-invoice-section';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import { FulfillmentProgress } from '@/components/orders/fulfillment-progress';
+import { OrderStatusBadge } from '@/components/orders/order-status-badge';
 
 interface OrderDetailsPageProps {
     params: Promise<{
         orderId: string;
     }>;
+    searchParams: Promise<{ flow?: string; stage?: string; nextLeadId?: string }>;
 }
 
-export default async function OrderDetailsPage({ params }: OrderDetailsPageProps) {
+export default async function OrderDetailsPage({ params, searchParams }: OrderDetailsPageProps) {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.tenantId) {
@@ -26,6 +29,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
     }
 
     const resolvedParams = await params;
+    const query = await searchParams;
     const scopedPrisma = getScopedPrismaClient(session.user.tenantId);
 
     const [order, tenant] = await Promise.all([
@@ -67,19 +71,28 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
     const canUpdateShipping = session.user.role === 'ADMIN' || session.user.permissions?.includes('UPDATE_SHIPPING_STATUS');
     const canDeleteOrders = session.user.role === 'ADMIN' || session.user.permissions?.includes('DELETE_ORDERS');
     const invoiceNumber = `${tenant.invoicePrefix || 'INV'}-${order.number}`;
+    const isFulfillmentFlow = query.flow === 'fulfillment';
+    const fulfillmentStage = order.invoicePrinted || query.stage === 'complete' ? 'complete' : order.trackingNumber || query.stage === 'print' ? 'print' : 'ship';
+    const hasCourierConfiguration = Boolean(tenant.fardaExpressApiKey || tenant.transExpressApiKey || tenant.royalExpressApiKey);
+    const prerequisites = [
+        { label: 'Customer phone', ready: Boolean(order.customerPhone?.trim()) },
+        { label: 'Delivery address', ready: Boolean(order.customerAddress?.trim()) },
+        { label: hasCourierConfiguration ? 'Courier ready' : 'Manual shipping available', ready: true },
+    ];
 
     return (
         <>
             {/* --- FIX: Section 1 - For Screen View Only --- */}
             {/* This entire div will be hidden when printing */}
-            <div className="print:hidden p-4 sm:p-6 lg:p-8 space-y-8">
+            <div className={`print:hidden p-4 sm:p-6 lg:p-8 ${isFulfillmentFlow ? 'space-y-4' : 'space-y-8'}`}>
+                {isFulfillmentFlow && <FulfillmentProgress stage={fulfillmentStage} orderId={order.id} prerequisites={prerequisites} nextLeadId={query.nextLeadId} />}
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                            <Link href="/orders" className="hover:text-primary transition-colors flex items-center gap-1">
+                            <Link href={isFulfillmentFlow ? '/dashboard' : '/orders'} className="hover:text-primary transition-colors flex items-center gap-1">
                                 <ArrowLeftIcon className="h-3 w-3" />
-                                Back to Orders
+                                {isFulfillmentFlow ? 'Work queue' : 'Back to Orders'}
                             </Link>
                             <span>/</span>
                             <span>Order #{order.number}</span>
@@ -95,25 +108,18 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                         <h1 className="text-3xl font-bold text-foreground tracking-tight">Order Details</h1>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold shadow-sm ${order.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 ring-1 ring-yellow-500/20' :
-                            order.status === 'SHIPPED' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/20' :
-                                order.status === 'DELIVERED' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20' :
-                                    order.status === 'RETURNED' ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/20' :
-                                        'bg-gray-500/10 text-gray-600 dark:text-gray-400 ring-1 ring-gray-500/20'
-                            }`}>
-                            {order.status}
-                        </span>
-                        <PrintButton />
+                        <OrderStatusBadge status={order.status} />
+                        {!isFulfillmentFlow && <PrintButton />}
                     </div>
                 </div>
 
                 {/* Order Journey Header (New Horizontal Layout) */}
-                <OrderJourneyHeader order={order} />
+                {!isFulfillmentFlow && <OrderJourneyHeader order={order} />}
 
-                <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+                <div className={`grid grid-cols-1 lg:grid-cols-12 ${isFulfillmentFlow ? 'gap-4' : 'gap-8'}`}>
                     {/* Left Column: Invoice/Order Details */}
                     <div className="lg:col-span-7 xl:col-span-8 space-y-6">
-                        <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
+                        <div id="invoice" className={`bg-card border shadow-sm overflow-hidden scroll-mt-6 ${isFulfillmentFlow ? 'rounded-lg' : 'rounded-3xl'} ${isFulfillmentFlow && fulfillmentStage === 'print' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-border'}`}>
                             <OrderDetailInvoiceSection
                                 order={order}
                                 tenant={tenant}
@@ -127,9 +133,9 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
 
                         {/* Shipping Information Card */}
                         {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && canUpdateShipping && (
-                            <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
+                            <div id="shipping" className={`bg-card border shadow-sm overflow-hidden scroll-mt-6 ${isFulfillmentFlow ? 'rounded-lg' : 'rounded-3xl'} ${isFulfillmentFlow && fulfillmentStage === 'ship' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-border'}`}>
                                 <div className="px-6 py-4 border-b border-border bg-muted/30">
-                                    <h3 className="text-lg font-bold text-foreground">Shipping Information</h3>
+                                    <h3 className="text-lg font-bold text-foreground">{isFulfillmentFlow ? 'Next: arrange shipping' : 'Shipping Information'}</h3>
                                 </div>
                                 <div className="p-6">
                                     <ShippingForm
@@ -153,6 +159,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                                         royalExpressOrderPrefix={tenant.royalExpressOrderPrefix || undefined}
                                         tenantId={tenant.id}
                                         orderNumber={order.number}
+                                        guided={isFulfillmentFlow}
                                     />
                                 </div>
                             </div>

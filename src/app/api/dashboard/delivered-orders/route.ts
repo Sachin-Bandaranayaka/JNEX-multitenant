@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getScopedPrismaClient } from '@/lib/prisma';
+import { sortByEffectiveDeliveryDate } from '@/lib/effective-delivery-date';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,18 +20,17 @@ export async function GET() {
 
         const prisma = getScopedPrismaClient(session.user.tenantId);
 
-        // Fetch delivered orders from the last 30 days
+        // Include legacy delivered rows whose deliveredAt was never populated.
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        const deliveredOrders = await prisma.order.findMany({
+        const eligibleDeliveredOrders = await prisma.order.findMany({
             where: {
-                status: {
-                    in: ['DELIVERED', 'RESCHEDULED']
-                },
-                deliveredAt: {
-                    gte: thirtyDaysAgo,
-                },
+                status: 'DELIVERED',
+                OR: [
+                    { deliveredAt: { gte: thirtyDaysAgo } },
+                    { deliveredAt: null, updatedAt: { gte: thirtyDaysAgo } },
+                ],
             },
             include: {
                 product: {
@@ -45,11 +45,9 @@ export async function GET() {
                     },
                 },
             },
-            orderBy: {
-                deliveredAt: 'desc',
-            },
-            take: 10, // Limit to 10 most recent delivered orders
         });
+
+        const deliveredOrders = sortByEffectiveDeliveryDate(eligibleDeliveredOrders).slice(0, 10);
 
         // Transform the data for the frontend
         const transformedOrders = deliveredOrders.map(order => {
@@ -63,7 +61,7 @@ export async function GET() {
                 customerPhone: order.customerPhone || leadData?.phone || leadData?.customerPhone || '',
                 customerCity: order.customerCity || leadData?.city || leadData?.customerCity || '',
                 total: order.total,
-                deliveredAt: order.deliveredAt,
+                deliveredAt: order.deliveredAt ?? order.updatedAt,
                 trackingNumber: order.trackingNumber,
                 shippingProvider: order.shippingProvider,
                 productName: order.product?.name || 'Unknown Product',

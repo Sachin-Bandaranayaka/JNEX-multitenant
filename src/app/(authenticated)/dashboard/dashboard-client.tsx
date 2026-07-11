@@ -1,457 +1,86 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { LeadsChart } from '@/components/dashboard/leads-chart';
-import { DeliveredOrders } from '@/components/dashboard/delivered-orders';
+import { useState } from 'react';
 import Link from 'next/link';
-import { StatsOverview } from '@/components/dashboard/stats-overview';
-import { CalendarIcon, FunnelIcon, BellAlertIcon, UserIcon, PhoneIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
+import { CalendarIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { DeliveredOrders } from '@/components/dashboard/delivered-orders';
+import { LeadsChart } from '@/components/dashboard/leads-chart';
 
-interface PeriodChanges {
-    orders: number | null;
-    revenue: number | null;
-    leads: number | null;
-    conversionRate: number | null;
-    avgOrderValue: number | null;
-}
-
-interface StatusBucket { count: number; total: number; }
+interface Bucket { count: number; total: number }
 interface PeriodStats {
-    statusCounts: {
-        total: StatusBucket;
-        pending: StatusBucket;
-        shipped: StatusBucket;
-        returned: StatusBucket;
-        delivered: StatusBucket;
-    };
-    orders: number;
-    revenue: number;
-    leads: number;
-    conversionRate: number;
-    avgOrderValue: number;
-    changes: PeriodChanges;
+  statusCounts: { total: Bucket; pending: Bucket; shipped: Bucket; returned: Bucket; delivered: Bucket };
+  orders: number; revenue: number; leads: number; conversionRate: number; avgOrderValue: number;
 }
-
+interface Reminder { id: string; csvData: any; reminderDate: string; reminderNote: string | null; product: { name: string }; assignedTo: { name: string | null } | null }
 interface DashboardData {
-    operations: { openLeads: number; awaitingShipment: number; awaitingPrint: number; inTransit: number; deliveryExceptions: number };
-    priorityWork: Array<{ id: string; title: string; detail: string; href: string; action: string; date: string | Date }>;
-    daily: PeriodStats;
-    weekly: PeriodStats;
-    monthly: PeriodStats;
-    allTime: {
-        totalLeads: number;
-        convertedLeads: number;
-        conversionRate: number;
-    };
-    leadsByStatus: Array<{ status: string; count: number; }>;
-    noStockCount: number;
-    lowStockCount: number;
-    reminders: {
-        overdue: Array<{
-            id: string;
-            csvData: any;
-            reminderDate: string;
-            reminderNote: string | null;
-            product: { name: string };
-            assignedTo: { name: string | null } | null;
-        }>;
-        today: Array<{
-            id: string;
-            csvData: any;
-            reminderDate: string;
-            reminderNote: string | null;
-            product: { name: string };
-            assignedTo: { name: string | null } | null;
-        }>;
-        upcoming: Array<{
-            id: string;
-            csvData: any;
-            reminderDate: string;
-            reminderNote: string | null;
-            product: { name: string };
-            assignedTo: { name: string | null } | null;
-        }>;
-    };
+  operations: { openLeads: number; awaitingShipment: number; awaitingPrint: number; inTransit: number; deliveryExceptions: number; deliveredToday: number; returnedToday: number };
+  priorityWork: Array<{ id: string; title: string; detail: string; href: string; action: string; date: string | Date }>;
+  daily: PeriodStats; weekly: PeriodStats; monthly: PeriodStats;
+  allTime: { totalLeads: number; convertedLeads: number; conversionRate: number };
+  leadsByStatus: Array<{ status: string; count: number }>;
+  noStockCount: number; lowStockCount: number;
+  reminders: { overdue: Reminder[]; today: Reminder[]; upcoming: Reminder[] };
 }
-
 type TimeFilter = 'daily' | 'weekly' | 'monthly';
 
 export function DashboardClient({ initialData, userName }: { initialData: DashboardData; userName?: string | null }) {
-    const router = useRouter();
-    const [isLoading, setIsLoading] = useState(false);
-    const [lastRefresh, setLastRefresh] = useState(new Date());
-    const [activeFilter, setActiveFilter] = useState<TimeFilter>('daily');
-    const [greeting, setGreeting] = useState('');
+  const [period, setPeriod] = useState<TimeFilter>('daily');
+  const data = initialData[period];
+  const finalized = data.statusCounts.delivered.count + data.statusCounts.returned.count;
+  const deliveryRate = finalized ? data.statusCounts.delivered.count / finalized * 100 : 0;
+  const returnRate = finalized ? data.statusCounts.returned.count / finalized * 100 : 0;
+  const money = (value: number) => `Rs. ${value.toLocaleString('en-LK', { maximumFractionDigits: 0 })}`;
+  const periodLabel = { daily: 'Today', weekly: 'This week', monthly: 'This month' }[period];
+  const reminders = [
+    ...initialData.reminders.overdue.map(r => ({ ...r, group: 'Overdue', tone: 'bg-red-500' })),
+    ...initialData.reminders.today.map(r => ({ ...r, group: 'Today', tone: 'bg-amber-500' })),
+    ...initialData.reminders.upcoming.map(r => ({ ...r, group: 'Upcoming', tone: 'bg-teal-500' })),
+  ].slice(0, 8);
 
-    useEffect(() => {
-        const hour = new Date().getHours();
-        if (hour < 12) setGreeting('Good Morning');
-        else if (hour < 17) setGreeting('Good Afternoon');
-        else setGreeting('Good Evening');
-    }, []);
+  return <main className="space-y-5">
+    <header className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
+      <div><h1 className="text-2xl font-extrabold text-slate-800">Good day{userName ? `, ${userName.split(' ')[0]}` : ''}</h1><p className="mt-1 text-sm text-slate-500">Your operations desk for today.</p></div>
+      <div className="flex items-center gap-2 text-sm font-semibold text-slate-600"><CalendarIcon className="h-4 w-4 text-amber-600" />{format(new Date(), 'EEEE, MMMM d')}</div>
+    </header>
 
-    const handleRefresh = () => {
-        setIsLoading(true);
-        router.refresh();
-        setLastRefresh(new Date());
-        setTimeout(() => setIsLoading(false), 500);
-    };
+    <section className="overflow-hidden border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 px-4 py-3"><h2 className="text-sm font-bold text-slate-800">Today&apos;s control strip</h2><p className="text-xs text-slate-500">Open a queue directly from any number.</p></div>
+      <div className="grid grid-cols-2 gap-px bg-slate-200 sm:grid-cols-5">
+        {[
+          ['Needs shipping', initialData.operations.awaitingShipment, '/orders?status=CONFIRMED', 'text-amber-700'],
+          ['In transit', initialData.operations.inTransit, '/shipping?view=transit', 'text-teal-700'],
+          ['Delivered today', initialData.operations.deliveredToday, '/orders?status=DELIVERED', 'text-emerald-700'],
+          ['Returned today', initialData.operations.returnedToday, '/returns', 'text-red-700'],
+          ['Realized today', money(initialData.daily.statusCounts.delivered.total), '/orders?status=DELIVERED', 'text-emerald-700'],
+        ].map(([label,value,href,tone]) => <Link key={label} href={href as string} className="bg-white px-4 py-3 hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500"><div className="text-[11px] font-semibold text-slate-500">{label}</div><div className={`mt-1 text-xl font-extrabold tabular-nums ${tone}`}>{value}</div></Link>)}
+      </div>
+    </section>
 
-    const currentData = initialData[activeFilter];
-    const sc = currentData.statusCounts;
-    const money = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 0 });
-    const filterLabels: Record<TimeFilter, string> = { daily: 'Today', weekly: 'This Week', monthly: 'This Month' };
+    <section className="border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-bold text-slate-800">Today&apos;s work queue</h2><span className="text-xs text-slate-500">Oldest priority first</span></div>
+      {initialData.priorityWork.length ? <div className="divide-y divide-slate-200 border-y border-slate-200">{initialData.priorityWork.map((item,index) => <Link key={item.id} href={item.href} className="group flex items-center gap-3 px-1 py-3 hover:bg-slate-50"><span className="flex h-7 w-7 items-center justify-center rounded bg-slate-800 text-xs font-bold text-white">{index+1}</span><div className="min-w-0 flex-1"><div className="truncate text-sm font-bold text-slate-800">{item.title}</div><div className="truncate text-xs text-slate-500">{item.detail} · waiting since {format(new Date(item.date), 'MMM d, h:mm a')}</div></div><span className="rounded border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-800">{item.action}</span></Link>)}</div> : <div className="border-y border-emerald-200 bg-emerald-50 px-3 py-4 text-sm font-semibold text-emerald-800">You&apos;re caught up. No urgent work is waiting.</div>}
+    </section>
 
-    return (
-        <div className="space-y-5">
-            {/* ===== Genzo announcement banner ===== */}
-            <div className="rounded-lg px-8 py-6 text-white flex items-center justify-between overflow-hidden"
-                style={{ background: 'linear-gradient(100deg,#3a2d1a,#5e4427 55%,#7a5a2f)' }}>
-                <div>
-                    <h1 className="text-3xl font-extrabold text-[#f5b94d] leading-tight drop-shadow">Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}!</h1>
-                    <p className="mt-1.5 text-sm opacity-90 max-w-md">{greeting} — here&apos;s how your business is performing today.</p>
-                </div>
-                <div className="hidden md:flex items-center gap-2 text-[#f5b94d]">
-                    <CalendarIcon className="h-5 w-5" />
-                    <span className="font-semibold">{format(new Date(), 'EEEE, MMM d')}</span>
-                </div>
-            </div>
+    <section className="border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3"><div><h2 className="text-sm font-bold text-slate-800">Performance</h2><p className="text-xs text-slate-500">Revenue counts delivered orders only.</p></div><div className="flex rounded border border-slate-300 p-0.5">{(['daily','weekly','monthly'] as TimeFilter[]).map(value => <button key={value} onClick={() => setPeriod(value)} className={`rounded px-3 py-1.5 text-xs font-bold ${period === value ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-50'}`}>{value === 'daily' ? 'Today' : value === 'weekly' ? 'Week' : 'Month'}</button>)}</div></div>
+      <div className="grid grid-cols-2 gap-px bg-slate-200 md:grid-cols-4">{[
+        ['Orders created', data.orders, 'text-slate-800'], ['Delivered revenue', money(data.revenue), 'text-emerald-700'], ['Delivery rate', `${deliveryRate.toFixed(1)}%`, 'text-emerald-700'], ['Return rate', `${returnRate.toFixed(1)}%`, returnRate > 15 ? 'text-red-700' : 'text-slate-800'],
+      ].map(([label,value,tone]) => <div key={label} className="bg-white px-4 py-3"><div className="text-[11px] font-semibold text-slate-500">{label} · {periodLabel}</div><div className={`mt-1 text-lg font-extrabold tabular-nums ${tone}`}>{value}</div></div>)}</div>
+    </section>
 
-            <div className="genzo-card">
-                <h2 className="mb-3 font-bold text-slate-700">Today&apos;s Work Queue</h2>
-                {initialData.priorityWork.length > 0 ? <div className="mb-4 divide-y divide-slate-200 border-y border-slate-200">
-                    {initialData.priorityWork.map((item, index) => <Link key={item.id} href={item.href} className="group flex items-center gap-3 px-2 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-800 text-xs font-bold text-white">{index + 1}</span>
-                        <div className="min-w-0 flex-1"><div className="truncate text-sm font-bold text-slate-800">{item.title}</div><div className="truncate text-xs text-slate-500">{item.detail} · waiting since {format(new Date(item.date), 'MMM d, h:mm a')}</div></div>
-                        <span className="rounded-md border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-800 group-hover:bg-amber-100">{item.action}</span>
-                    </Link>)}
-                </div> : <div className="mb-4 border-y border-emerald-200 bg-emerald-50 px-3 py-4 text-sm font-semibold text-emerald-800">You&apos;re caught up — there are no urgent leads, shipments, invoices, or delivery exceptions.</div>}
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                    {[
-                        ['Open leads', initialData.operations.openLeads, '/leads'],
-                        ['Awaiting shipment', initialData.operations.awaitingShipment, '/orders?status=CONFIRMED'],
-                        ['Awaiting invoices', initialData.operations.awaitingPrint, '/orders/print'],
-                        ['In transit', initialData.operations.inTransit, '/shipping?view=transit'],
-                        ['Delivery exceptions', initialData.operations.deliveryExceptions, '/shipping?view=exceptions'],
-                    ].map(([label, count, href], index) => (
-                        <Link key={label} href={href as string} className="group flex items-center gap-3 border-b border-slate-200 bg-white px-3 py-3 last:border-b-0 hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 sm:border sm:last:border-b sm:rounded-lg">
-                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-xs font-bold text-slate-500 group-hover:bg-amber-100 group-hover:text-amber-700">{index + 1}</span>
-                            <div className="min-w-0 flex-1">
-                            <div className="text-xs font-semibold text-slate-500">{label}</div>
-                            <div className="text-xl font-bold text-slate-700">{count}</div>
-                            </div>
-                            <span className="text-xs font-semibold text-amber-700 opacity-0 transition-opacity group-hover:opacity-100">Open →</span>
-                        </Link>
-                    ))}
-                </div>
-            </div>
+    <section className="border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-200 px-4 py-3"><h2 className="text-sm font-bold text-slate-800">Operational health</h2><p className="text-xs text-slate-500">Rates use finalized deliveries: delivered + returned.</p></div>
+      <div className="grid grid-cols-2 gap-px bg-slate-200 sm:grid-cols-3 lg:grid-cols-6">{[
+        ['Delivery rate', `${deliveryRate.toFixed(1)}%`, '/orders?status=DELIVERED', 'text-emerald-700'], ['Return rate', `${returnRate.toFixed(1)}%`, '/returns', 'text-red-700'], ['Pending shipment', initialData.operations.awaitingShipment, '/orders?status=CONFIRMED', 'text-amber-700'], ['Invoice queue', initialData.operations.awaitingPrint, '/orders/print', 'text-amber-700'], ['Low stock', initialData.lowStockCount, '/inventory', 'text-amber-700'], ['Out of stock', initialData.noStockCount, '/inventory', 'text-red-700'],
+      ].map(([label,value,href,tone]) => <Link key={label} href={href as string} className="bg-white px-4 py-3 hover:bg-slate-50"><div className="text-[11px] font-semibold text-slate-500">{label}</div><div className={`mt-1 text-lg font-extrabold tabular-nums ${tone}`}>{value}</div></Link>)}</div>
+    </section>
 
+    {reminders.length > 0 && <section className="border border-slate-200 bg-white shadow-sm"><div className="flex items-center justify-between border-b border-slate-200 px-4 py-3"><div><h2 className="text-sm font-bold text-slate-800">Lead reminders</h2><p className="text-xs text-slate-500">Follow-ups ordered by urgency.</p></div><Link href="/leads/remind-leads" className="text-xs font-bold text-amber-700 hover:underline">View reminders →</Link></div><div className="divide-y divide-slate-200">{reminders.map(r => <Link key={`${r.group}-${r.id}`} href={`/leads/${r.id}?edit=true`} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 hover:bg-slate-50"><span className={`h-2 w-2 rounded-full ${r.tone}`} /><div className="min-w-0"><div className="truncate text-sm font-bold text-slate-800">{r.csvData?.name || 'Unknown customer'} <span className="font-normal text-slate-400">· {r.product.name}</span></div><div className="truncate text-xs text-slate-500">{r.reminderNote || r.csvData?.phone || 'Follow up with this lead'}</div></div><div className="text-right"><div className="text-xs font-bold text-slate-700">{r.group}</div><div className="text-[11px] text-slate-500">{format(new Date(r.reminderDate), 'MMM d')}</div></div></Link>)}</div></section>}
 
-            {/* ===== Stat cards with period filter ===== */}
-            <div className="genzo-card">
-                <div className="flex flex-wrap gap-3.5">
-                    <div className="min-w-[120px] flex flex-col gap-1.5 pt-1">
-                        {(['daily', 'weekly', 'monthly'] as TimeFilter[]).map((filter) => (
-                            <button key={filter} onClick={() => setActiveFilter(filter)}
-                                className={`text-left text-[15px] ${activeFilter === filter ? 'font-bold text-slate-700' : 'text-[#aab2bf] hover:text-[#d4860f]'}`}>
-                                {filterLabels[filter]}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="genzo-stat genzo-stat-blue">
-                        <div className="lbl">Total Orders</div>
-                        <div className="big">{sc.total.count} | Rs. {money(sc.total.total)}</div>
-                        <div className="com"><span>Orders</span><span>{filterLabels[activeFilter]}</span></div>
-                    </div>
-                    <div className="genzo-stat genzo-stat-gray">
-                        <div className="lbl">Pending Orders</div>
-                        <div className="big">{sc.pending.count} | Rs.{money(sc.pending.total)}</div>
-                        <div className="com"><span>Awaiting</span><span>—</span></div>
-                    </div>
-                    <div className="genzo-stat genzo-stat-orange">
-                        <div className="lbl">Shipped Orders</div>
-                        <div className="big">{sc.shipped.count} | Rs.{money(sc.shipped.total)}</div>
-                        <div className="com"><span>In transit</span><span>—</span></div>
-                    </div>
-                    <div className="genzo-stat genzo-stat-red">
-                        <div className="lbl">Returned</div>
-                        <div className="big">{sc.returned.count} | Rs.{money(sc.returned.total)}</div>
-                        <div className="com"><span>Returned</span><span>—</span></div>
-                    </div>
-                    <div className="genzo-stat genzo-stat-green">
-                        <div className="lbl">Delivered</div>
-                        <div className="big">{sc.delivered.count} | Rs.{money(sc.delivered.total)}</div>
-                        <div className="com"><span>Completed</span><span>—</span></div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Stock Alerts */}
-            {(initialData.lowStockCount > 0 || initialData.noStockCount > 0) && (
-                <div className="flex flex-wrap gap-4">
-                    {initialData.lowStockCount > 0 && (
-                        <Link href="/products" className="flex items-center gap-2 rounded-full bg-orange-500/10 px-4 py-2 text-sm font-medium text-orange-600 ring-1 ring-inset ring-orange-500/20 hover:bg-orange-500/20 transition-colors">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-                            </span>
-                            <span>Low Stock ({initialData.lowStockCount})</span>
-                        </Link>
-                    )}
-                    {initialData.noStockCount > 0 && (
-                        <Link href="/inventory" className="flex items-center gap-2 rounded-full bg-red-500/10 px-4 py-2 text-sm font-medium text-red-600 ring-1 ring-inset ring-red-500/20 hover:bg-red-500/20 transition-colors">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                            </span>
-                            <span>Out of Stock ({initialData.noStockCount})</span>
-                        </Link>
-                    )}
-                </div>
-            )}
-
-            {/* 🚨 REMINDER ALERTS — Big, Bold, Impossible to Miss */}
-            {(initialData.reminders.overdue.length > 0 || initialData.reminders.today.length > 0 || initialData.reminders.upcoming.length > 0) && (
-                <div className="space-y-4">
-                    {/* OVERDUE — Flashing Red Alert */}
-                    {initialData.reminders.overdue.length > 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="rounded-2xl overflow-hidden shadow-2xl ring-2 ring-red-400 animate-pulse"
-                            style={{ animationDuration: '2s' }}
-                        >
-                            <div className="bg-gradient-to-r from-red-600 via-red-500 to-rose-500 p-5">
-                                <div className="flex items-center gap-4">
-                                    <div className="relative">
-                                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
-                                            <BellAlertIcon className="h-8 w-8 text-white animate-bounce" />
-                                        </div>
-                                        <span className="absolute -top-1 -right-1 flex h-5 w-5">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-300 opacity-75"></span>
-                                            <span className="relative inline-flex items-center justify-center rounded-full h-5 w-5 bg-yellow-400 text-red-800 text-[10px] font-black">{initialData.reminders.overdue.length}</span>
-                                        </span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <h2 className="text-white font-black text-xl tracking-tight">⚠️ OVERDUE REMINDERS</h2>
-                                        <p className="text-red-100 text-sm mt-0.5">These leads are past their follow-up date — take action now!</p>
-                                    </div>
-                                    <Link href="/leads/remind-leads" className="px-5 py-2.5 bg-white text-red-600 rounded-xl text-sm font-black hover:bg-red-50 transition-all shadow-lg hover:shadow-xl hover:scale-105 whitespace-nowrap">
-                                        View All →
-                                    </Link>
-                                </div>
-                            </div>
-                            <div className="bg-red-50 dark:bg-red-950/50 divide-y divide-red-200 dark:divide-red-800">
-                                {initialData.reminders.overdue.slice(0, 5).map((r, i) => (
-                                    <Link key={r.id} href={`/leads/${r.id}?edit=true`}
-                                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors group">
-                                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">{i + 1}</span>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold text-red-900 dark:text-red-200 text-sm">{(r.csvData as any)?.name || 'Unknown'}</span>
-                                                {(r.csvData as any)?.phone && (
-                                                    <span className="text-xs text-red-500 dark:text-red-400 flex items-center gap-0.5">
-                                                        <PhoneIcon className="h-3 w-3" />{(r.csvData as any).phone}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {r.reminderNote && (
-                                                <p className="text-xs text-red-600 dark:text-red-300 mt-0.5 italic">💬 &quot;{r.reminderNote}&quot;</p>
-                                            )}
-                                        </div>
-                                        <span className="hidden sm:inline-flex px-2.5 py-1 bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 rounded-lg text-xs font-semibold">{r.product.name}</span>
-                                        {r.assignedTo?.name && (
-                                            <span className="hidden md:inline-flex px-2 py-0.5 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded text-xs">{r.assignedTo.name}</span>
-                                        )}
-                                        <div className="flex-shrink-0 text-right">
-                                            <span className="px-2.5 py-1 bg-red-600 text-white rounded-lg text-xs font-bold">{format(new Date(r.reminderDate), 'MMM d')}</span>
-                                        </div>
-                                        <span className="text-red-400 group-hover:text-red-600 group-hover:translate-x-1 transition-all">→</span>
-                                    </Link>
-                                ))}
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* TODAY — Pulsing Orange Alert */}
-                    {initialData.reminders.today.length > 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.1 }}
-                            className="rounded-2xl overflow-hidden shadow-xl ring-2 ring-orange-300"
-                        >
-                            <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 p-5">
-                                <div className="flex items-center gap-4">
-                                    <div className="relative">
-                                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm animate-pulse">
-                                            <BellAlertIcon className="h-8 w-8 text-white" />
-                                        </div>
-                                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-orange-600 text-[10px] font-black shadow">{initialData.reminders.today.length}</span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <h2 className="text-white font-black text-xl tracking-tight">🔔 TODAY&apos;S REMINDERS</h2>
-                                        <p className="text-orange-100 text-sm mt-0.5">Follow up on these leads before end of day.</p>
-                                    </div>
-                                    <Link href="/leads/remind-leads" className="px-5 py-2.5 bg-white text-orange-600 rounded-xl text-sm font-black hover:bg-orange-50 transition-all shadow-lg hover:shadow-xl hover:scale-105 whitespace-nowrap">
-                                        View All →
-                                    </Link>
-                                </div>
-                            </div>
-                            <div className="bg-orange-50 dark:bg-orange-950/50 divide-y divide-orange-200 dark:divide-orange-800">
-                                {initialData.reminders.today.map((r, i) => (
-                                    <Link key={r.id} href={`/leads/${r.id}?edit=true`}
-                                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors group">
-                                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center">{i + 1}</span>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold text-orange-900 dark:text-orange-200 text-sm">{(r.csvData as any)?.name || 'Unknown'}</span>
-                                                {(r.csvData as any)?.phone && (
-                                                    <span className="text-xs text-orange-500 dark:text-orange-400 flex items-center gap-0.5">
-                                                        <PhoneIcon className="h-3 w-3" />{(r.csvData as any).phone}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {r.reminderNote && (
-                                                <p className="text-xs text-orange-600 dark:text-orange-300 mt-0.5 italic">💬 &quot;{r.reminderNote}&quot;</p>
-                                            )}
-                                        </div>
-                                        <span className="hidden sm:inline-flex px-2.5 py-1 bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200 rounded-lg text-xs font-semibold">{r.product.name}</span>
-                                        {r.assignedTo?.name && (
-                                            <span className="hidden md:inline-flex px-2 py-0.5 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded text-xs">{r.assignedTo.name}</span>
-                                        )}
-                                        <span className="px-2.5 py-1 bg-orange-500 text-white rounded-lg text-xs font-bold flex-shrink-0">Today</span>
-                                        <span className="text-orange-400 group-hover:text-orange-600 group-hover:translate-x-1 transition-all">→</span>
-                                    </Link>
-                                ))}
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* UPCOMING — Bold Blue Alert with Full Details */}
-                    {initialData.reminders.upcoming.length > 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.2 }}
-                            className="rounded-2xl overflow-hidden shadow-xl ring-2 ring-blue-300"
-                        >
-                            <div className="bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-500 p-5">
-                                <div className="flex items-center gap-4">
-                                    <div className="relative">
-                                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
-                                            <CalendarIcon className="h-8 w-8 text-white" />
-                                        </div>
-                                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-blue-600 text-[10px] font-black shadow">{initialData.reminders.upcoming.length}</span>
-                                    </div>
-                                    <div className="flex-1">
-                                        <h2 className="text-white font-black text-xl tracking-tight">📅 UPCOMING REMINDERS</h2>
-                                        <p className="text-blue-100 text-sm mt-0.5">Scheduled follow-ups coming soon — stay ahead of your pipeline.</p>
-                                    </div>
-                                    <Link href="/leads/remind-leads" className="px-5 py-2.5 bg-white text-blue-600 rounded-xl text-sm font-black hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl hover:scale-105 whitespace-nowrap">
-                                        View All →
-                                    </Link>
-                                </div>
-                            </div>
-                            <div className="bg-blue-50 dark:bg-blue-950/50 divide-y divide-blue-200 dark:divide-blue-800">
-                                {initialData.reminders.upcoming.map((r, i) => (
-                                    <Link key={r.id} href={`/leads/${r.id}?edit=true`}
-                                        className="flex items-center gap-4 px-5 py-3.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors group">
-                                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center">{i + 1}</span>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold text-blue-900 dark:text-blue-200 text-sm">{(r.csvData as any)?.name || 'Unknown'}</span>
-                                                {(r.csvData as any)?.phone && (
-                                                    <span className="text-xs text-blue-500 dark:text-blue-400 flex items-center gap-0.5">
-                                                        <PhoneIcon className="h-3 w-3" />{(r.csvData as any).phone}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {r.reminderNote && (
-                                                <p className="text-xs text-blue-600 dark:text-blue-300 mt-0.5 italic">💬 &quot;{r.reminderNote}&quot;</p>
-                                            )}
-                                        </div>
-                                        <span className="hidden sm:inline-flex px-2.5 py-1 bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-lg text-xs font-semibold">{r.product.name}</span>
-                                        {r.assignedTo?.name && (
-                                            <span className="hidden md:inline-flex px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs">{r.assignedTo.name}</span>
-                                        )}
-                                        <div className="flex-shrink-0 text-right">
-                                            <span className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-bold">{format(new Date(r.reminderDate), 'MMM d')}</span>
-                                        </div>
-                                        <span className="text-blue-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all">→</span>
-                                    </Link>
-                                ))}
-                            </div>
-                        </motion.div>
-                    )}
-                </div>
-            )}
-
-            {/* Stats Overview removed per user request */}
-
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Leads Chart */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="rounded-3xl bg-card p-6 shadow-sm ring-1 ring-border/50"
-                >
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                <FunnelIcon className="h-4 w-4" />
-                            </div>
-                            <h3 className="font-semibold text-foreground">Lead Conversion</h3>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4 mb-6">
-                        <div className="p-4 rounded-2xl bg-muted/50">
-                            <div className="text-xs text-muted-foreground mb-1">Total</div>
-                            <div className="text-xl font-bold">{initialData.allTime.totalLeads}</div>
-                        </div>
-                        <div className="p-4 rounded-2xl bg-muted/50">
-                            <div className="text-xs text-muted-foreground mb-1">Converted</div>
-                            <div className="text-xl font-bold">{initialData.allTime.convertedLeads}</div>
-                        </div>
-                        <div className="p-4 rounded-2xl bg-muted/50">
-                            <div className="text-xs text-muted-foreground mb-1">Rate</div>
-                            <div className="text-xl font-bold">{initialData.allTime.conversionRate.toFixed(1)}%</div>
-                        </div>
-                    </div>
-
-                    <div className="h-[300px] w-full">
-                        <LeadsChart data={initialData.leadsByStatus} />
-                    </div>
-                </motion.div>
-
-                {/* Delivered Orders (Placeholder for now, or styled list) */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="rounded-3xl bg-card p-6 shadow-sm ring-1 ring-border/50"
-                >
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600">
-                                <CalendarIcon className="h-4 w-4" />
-                            </div>
-                            <h3 className="font-semibold text-foreground">Recent Deliveries</h3>
-                        </div>
-                        <Link href="/orders" className="text-sm font-medium text-primary hover:underline">
-                            View all
-                        </Link>
-                    </div>
-
-                    <DeliveredOrders />
-                </motion.div>
-            </div>
-        </div>
-    );
+    <div className="grid gap-5 lg:grid-cols-2">
+      <section className="border border-slate-200 bg-white p-4 shadow-sm"><div className="mb-4 flex items-center gap-2"><FunnelIcon className="h-4 w-4 text-amber-600" /><h2 className="text-sm font-bold text-slate-800">Lead conversion</h2></div><div className="mb-3 grid grid-cols-3 gap-px bg-slate-200">{[['Total',initialData.allTime.totalLeads],['Converted',initialData.allTime.convertedLeads],['Rate',`${initialData.allTime.conversionRate.toFixed(1)}%`]].map(([label,value]) => <div key={label} className="bg-slate-50 px-3 py-2"><div className="text-[11px] text-slate-500">{label}</div><div className="font-bold text-slate-800">{value}</div></div>)}</div><div className="h-[260px]"><LeadsChart data={initialData.leadsByStatus} /></div></section>
+      <section className="border border-slate-200 bg-white p-4 shadow-sm"><div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-bold text-slate-800">Recent deliveries</h2><Link href="/orders?status=DELIVERED" className="text-xs font-bold text-amber-700 hover:underline">View all →</Link></div><DeliveredOrders /></section>
+    </div>
+  </main>;
 }

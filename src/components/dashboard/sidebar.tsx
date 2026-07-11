@@ -196,7 +196,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                             onToggle={() => handleToggleGroup('Orders')}
                             links={[
                                 { href: '/orders', label: 'Order Queue' },
-                                ...(userRole === 'ADMIN' ? [{ href: '/orders/bulk-update', label: 'Update from Courier' }] : []),
+                                ...(userRole === 'ADMIN' ? [{ href: '/orders/bulk-update', label: 'Import Deliveries' }] : []),
                                 { href: '/leads/new', label: 'New Order' },
                                 { href: '/search', label: 'Search Orders' },
                             ]}

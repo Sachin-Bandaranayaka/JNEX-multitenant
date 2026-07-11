@@ -74,7 +74,7 @@ interface ApplyResponse {
   processed: number;
   successCount: number;
   failureCount: number;
-  summary: { delivered: number; returned: number; cancelled: number };
+  summary: { delivered: number };
   results: Array<{
     orderId: string;
     success: boolean;
@@ -140,7 +140,7 @@ export function BulkUpdateClient() {
       } else if (data.summary.willUpdate === 0) {
         toast.message('File parsed — no changes needed');
       } else {
-        toast.success(`File parsed. ${data.summary.willUpdate} order(s) ready to update.`);
+        toast.success(`File parsed. ${data.summary.willUpdate} delivered order(s) ready.`);
       }
     } catch (err) {
       playErrorSound();
@@ -193,7 +193,7 @@ export function BulkUpdateClient() {
       toast.error('Nothing to apply');
       return;
     }
-    if (!confirm(`Apply status updates to ${selectedToApply.length} order(s)? This cannot be undone.`)) {
+    if (!confirm(`Mark ${selectedToApply.length} order(s) as delivered?`)) {
       return;
     }
     setApplying(true);
@@ -250,11 +250,10 @@ export function BulkUpdateClient() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <TruckIcon className="h-7 w-7 text-primary" /> Bulk Update from Courier File
+            <TruckIcon className="h-7 w-7 text-primary" /> Update Delivered Orders
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Upload the delivery / return export from your courier (Trans Express, Royal Express, or
-            Farda Express). Orders will be matched by waybill / tracking number and updated in bulk.
+            Upload your courier export to mark delivered orders in bulk. Returns and all other statuses are ignored.
           </p>
         </div>
         <Link
@@ -274,7 +273,7 @@ export function BulkUpdateClient() {
           }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={onDrop}
-          className={`block cursor-pointer rounded-2xl border-2 border-dashed transition-all p-12 text-center ${
+          className={`block cursor-pointer rounded-lg border-2 border-dashed transition-all p-8 text-center ${
             isDragging
               ? 'border-primary bg-primary/5'
               : 'border-border bg-white dark:bg-card hover:border-primary/50 hover:bg-accent/30'
@@ -370,7 +369,7 @@ export function BulkUpdateClient() {
           {/* Summary cards */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <SummaryCard
-              label="Will update"
+              label="Ready to deliver"
               value={preview.summary.willUpdate}
               tint="bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/60 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-200"
             />
@@ -467,7 +466,7 @@ export function BulkUpdateClient() {
                       if (it.match.action === 'update') {
                         actionCell = (
                           <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-300">
-                            <CheckCircleIcon className="h-4 w-4" /> Will update
+                            <CheckCircleIcon className="h-4 w-4" /> Mark delivered
                           </span>
                         );
                       } else if (it.match.action === 'noop') {
@@ -605,16 +604,6 @@ export function BulkUpdateClient() {
                   {applyResult.summary.delivered > 0 && (
                     <span className="px-2 py-1 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
                       {applyResult.summary.delivered} delivered
-                    </span>
-                  )}
-                  {applyResult.summary.returned > 0 && (
-                    <span className="px-2 py-1 rounded-md bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-200">
-                      {applyResult.summary.returned} returned (stock restored)
-                    </span>
-                  )}
-                  {applyResult.summary.cancelled > 0 && (
-                    <span className="px-2 py-1 rounded-md bg-slate-200 text-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
-                      {applyResult.summary.cancelled} cancelled
                     </span>
                   )}
                 </div>

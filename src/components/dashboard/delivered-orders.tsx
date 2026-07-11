@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { CheckCircle, Package, Phone, MapPin, Calendar, Truck, Clock } from 'lucide-react';
+import { CheckCircle, Package, RotateCw } from 'lucide-react';
 import Link from 'next/link';
 
 interface DeliveredOrder {
@@ -18,7 +17,7 @@ interface DeliveredOrder {
     productName: string;
     productCode: string;
     quantity: number;
-    status: 'DELIVERED' | 'RESCHEDULED';
+    status: 'DELIVERED';
 }
 
 interface DeliveredOrdersData {
@@ -58,18 +57,11 @@ export function DeliveredOrders() {
     };
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-        });
+        return new Date(dateString).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     };
 
     const formatCurrency = (amount: number) => {
-        return `LKR ${amount.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        })}`;
+        return `Rs. ${amount.toLocaleString('en-LK', { maximumFractionDigits: 0 })}`;
     };
 
     if (isLoading) {
@@ -90,8 +82,9 @@ export function DeliveredOrders() {
 
     if (error) {
         return (
-            <div className="text-red-500 text-sm p-4 rounded-2xl bg-red-50">
-                Error loading delivered orders: {error}
+            <div className="flex items-center justify-between border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                <span>Couldn&apos;t load recent deliveries.</span>
+                <button onClick={fetchDeliveredOrders} className="inline-flex items-center gap-1 font-bold hover:underline"><RotateCw className="h-4 w-4" /> Retry</button>
             </div>
         );
     }
@@ -106,43 +99,15 @@ export function DeliveredOrders() {
     }
 
     return (
-        <div className="space-y-4">
-            {/* Summary Stats - Optional, maybe remove if too cluttered, but good for context */}
-            <div className="grid grid-cols-3 gap-2 mb-4">
-                <div className="p-3 rounded-2xl bg-muted/30 text-center">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Total</div>
-                    <div className="text-lg font-bold text-foreground">{data.summary.totalDeliveredOrders}</div>
-                </div>
-                <div className="p-3 rounded-2xl bg-muted/30 text-center">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Revenue</div>
-                    <div className="text-lg font-bold text-foreground">{(data.summary.totalRevenue / 1000).toFixed(1)}k</div>
-                </div>
-                <div className="p-3 rounded-2xl bg-muted/30 text-center">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Avg</div>
-                    <div className="text-lg font-bold text-foreground">{(data.summary.averageOrderValue / 1000).toFixed(1)}k</div>
-                </div>
-            </div>
-
-            {/* Orders List */}
-            <div className="space-y-3">
+        <div className="divide-y divide-slate-200 border-y border-slate-200">
                 {data.orders.map((order, index) => (
-                    <motion.div
+                    <div
                         key={order.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 * index }}
-                        className="group flex items-center justify-between p-4 rounded-2xl bg-muted/30 hover:bg-muted/60 transition-colors"
+                        className="group grid grid-cols-[1fr_auto] items-center gap-3 px-2 py-3 hover:bg-slate-50"
                     >
                         <div className="flex items-center gap-4 overflow-hidden">
-                            <div className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${order.status === 'RESCHEDULED'
-                                ? 'bg-orange-500/10 text-orange-600'
-                                : 'bg-emerald-500/10 text-emerald-600'
-                                }`}>
-                                {order.status === 'RESCHEDULED' ? (
-                                    <Clock className="h-5 w-5" />
-                                ) : (
-                                    <CheckCircle className="h-5 w-5" />
-                                )}
+                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-600">
+                                <CheckCircle className="h-4 w-4" />
                             </div>
                             <div className="min-w-0">
                                 <Link
@@ -154,7 +119,7 @@ export function DeliveredOrders() {
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
                                     <span>#{order.orderNumber}</span>
                                     <span>•</span>
-                                    <span className="truncate">{order.productName}</span>
+                                    <span className="truncate">{order.shippingProvider || 'Courier'} · {order.trackingNumber || 'No waybill'}</span>
                                 </div>
                             </div>
                         </div>
@@ -167,9 +132,8 @@ export function DeliveredOrders() {
                                 {formatDate(order.deliveredAt)}
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
                 ))}
-            </div>
         </div>
     );
 }

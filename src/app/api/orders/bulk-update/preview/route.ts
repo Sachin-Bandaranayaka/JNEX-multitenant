@@ -41,15 +41,14 @@ export interface PreviewItem {
     | { kind: 'no_status' }; // file row had a status we don't bulk-update
 }
 
-// Which transitions does the bulk uploader allow?
-// Only forward, terminal-state transitions for safety.
+// Courier file imports are deliberately delivery-only. Returns are verified
+// manually by waybill on /returns/add-return.
 const ALLOWED_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
-  [OrderStatus.PENDING]: [OrderStatus.DELIVERED, OrderStatus.RETURNED, OrderStatus.CANCELLED],
-  [OrderStatus.CONFIRMED]: [OrderStatus.DELIVERED, OrderStatus.RETURNED, OrderStatus.CANCELLED],
-  [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED, OrderStatus.RETURNED, OrderStatus.CANCELLED],
-  [OrderStatus.RESCHEDULED]: [OrderStatus.DELIVERED, OrderStatus.RETURNED, OrderStatus.CANCELLED],
-  [OrderStatus.DELIVERED]: [OrderStatus.RETURNED],
-  // Terminal — no further changes.
+  [OrderStatus.PENDING]: [OrderStatus.DELIVERED],
+  [OrderStatus.CONFIRMED]: [OrderStatus.DELIVERED],
+  [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED],
+  [OrderStatus.RESCHEDULED]: [OrderStatus.DELIVERED],
+  [OrderStatus.DELIVERED]: [],
   [OrderStatus.RETURNED]: [],
   [OrderStatus.CANCELLED]: [],
 };
@@ -155,8 +154,8 @@ export async function POST(request: Request) {
         cod: r.cod,
       };
 
-      // No status mapping — exclude from update altogether (e.g. "In Transit").
-      if (!r.normalizedStatus) {
+      // Everything except a delivered row is informational and ignored.
+      if (r.normalizedStatus !== OrderStatus.DELIVERED) {
         noStatus++;
         return { ...base, match: { kind: 'no_status' } };
       }

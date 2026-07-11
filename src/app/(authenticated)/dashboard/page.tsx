@@ -27,8 +27,8 @@ async function getDashboardData(tenantId: string) {
     // Fetch data going back 2 months to cover previous period comparisons
     const [orders, allTimeLeads, products] = await Promise.all([
         prisma.order.findMany({
-            where: { createdAt: { gte: prevMonthStart } },
-            select: { total: true, createdAt: true, status: true }
+            where: { OR: [{ createdAt: { gte: prevMonthStart } }, { deliveredAt: { gte: prevMonthStart } }, { status: 'DELIVERED', deliveredAt: null, updatedAt: { gte: prevMonthStart } }] },
+            select: { total: true, createdAt: true, updatedAt: true, deliveredAt: true, status: true }
         }),
         prisma.lead.findMany({
             select: { status: true, createdAt: true }
@@ -54,7 +54,12 @@ async function getDashboardData(tenantId: string) {
         const periodConvertedLeads = periodLeads.filter(l => l.status === LeadStatus.CONFIRMED);
 
         const orderCount = periodOrders.length;
-        const revenue = periodOrders.reduce((sum, order) => sum + order.total, 0);
+        const deliveredInPeriod = orders.filter(order => {
+            if (order.status !== 'DELIVERED') return false;
+            const date = new Date(order.deliveredAt ?? order.updatedAt);
+            return date >= startDate && (!endDate || date < endDate);
+        });
+        const revenue = deliveredInPeriod.reduce((sum, order) => sum + order.total, 0);
         const leadCount = periodLeads.length;
         const conversionRate = periodLeads.length > 0 ? (periodConvertedLeads.length / periodLeads.length) * 100 : 0;
 
@@ -65,8 +70,8 @@ async function getDashboardData(tenantId: string) {
             total: { count: orderCount, total: revenue },
             pending: sumBy(['PENDING', 'CONFIRMED', 'RESCHEDULED']),
             shipped: sumBy(['SHIPPED']),
-            returned: sumBy(['RETURNED', 'CANCELLED']),
-            delivered: sumBy(['DELIVERED']),
+            returned: sumBy(['RETURNED']),
+            delivered: { count: deliveredInPeriod.length, total: revenue },
         };
 
         return {
@@ -169,12 +174,14 @@ async function getDashboardData(tenantId: string) {
         }),
     ]);
 
-    const [openLeads, awaitingShipment, awaitingPrint, inTransit, deliveryExceptions] = await Promise.all([
+    const [openLeads, awaitingShipment, awaitingPrint, inTransit, deliveryExceptions, deliveredToday, returnedToday] = await Promise.all([
         prisma.lead.count({ where: { status: { in: ['PENDING', 'NO_ANSWER'] } } }),
         prisma.order.count({ where: { status: { in: ['PENDING', 'CONFIRMED', 'RESCHEDULED'] } } }),
         prisma.order.count({ where: { status: { in: ['CONFIRMED', 'SHIPPED'] }, invoicePrinted: false } }),
         prisma.order.count({ where: { status: 'SHIPPED' } }),
         prisma.trackingUpdate.count({ where: { isException: true } }),
+        prisma.order.count({ where: { status: 'DELIVERED', OR: [{ deliveredAt: { gte: todayStart } }, { deliveredAt: null, updatedAt: { gte: todayStart } }] } }),
+        prisma.order.count({ where: { status: 'RETURNED', updatedAt: { gte: todayStart } } }),
     ]);
     const [nextLead, nextShipment, nextPrint, nextException] = await Promise.all([
         prisma.lead.findFirst({ where: { status: { in: ['PENDING', 'NO_ANSWER'] } }, orderBy: { createdAt: 'asc' }, select: { id: true, number: true, createdAt: true, csvData: true } }),
@@ -200,7 +207,7 @@ async function getDashboardData(tenantId: string) {
             today: todayReminders as any[],
             upcoming: upcomingReminders as any[],
         },
-        operations: { openLeads, awaitingShipment, awaitingPrint, inTransit, deliveryExceptions },
+        operations: { openLeads, awaitingShipment, awaitingPrint, inTransit, deliveryExceptions, deliveredToday, returnedToday },
         priorityWork: [
             nextException && { id: `exception-${nextException.id}`, title: `Delivery exception · Order #${nextException.number}`, detail: nextException.customerName, href: `/orders/${nextException.id}`, action: 'Review exception', date: nextException.shippedAt || new Date() },
             nextShipment && { id: `ship-${nextShipment.id}`, title: `Ship order #${nextShipment.number}`, detail: nextShipment.customerName, href: `/orders/${nextShipment.id}?flow=fulfillment&stage=ship`, action: 'Arrange shipping', date: nextShipment.createdAt },

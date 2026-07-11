@@ -11,7 +11,7 @@ export const runtime = 'nodejs';
 const schema = z.object({
   updates: z.array(z.object({
     orderId: z.string().min(1),
-    newStatus: z.enum(['DELIVERED', 'RETURNED', 'CANCELLED']),
+    newStatus: z.literal('DELIVERED'),
     statusChangeDate: z.string().nullable().optional(),
     sourceWaybill: z.string().optional(),
   })).min(1).max(5000),
@@ -51,8 +51,6 @@ export async function POST(request: Request) {
     failureCount: results.length - successCount,
     summary: {
       delivered: results.filter(r => r.success && r.newStatus === 'DELIVERED').length,
-      returned: results.filter(r => r.success && r.newStatus === 'RETURNED').length,
-      cancelled: results.filter(r => r.success && r.newStatus === 'CANCELLED').length,
     },
     results,
   });

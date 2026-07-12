@@ -13,24 +13,36 @@ function dateKey(date: Date) {
 
 async function getDashboardData(tenantId: string) {
   const prisma = getScopedPrismaClient(tenantId);
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  const start = new Date(today);
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+  const graphEnd = new Date(startOfTomorrow.getTime() - 1);
+  const start = new Date(graphEnd);
   start.setDate(start.getDate() - 89);
   start.setHours(0, 0, 0, 0);
 
-  const [deliveredOrders, leads] = await Promise.all([
+  const [deliveredOrders, leads, pendingLeads, newLeadsToday, shippedToday, deliveredToday] = await Promise.all([
     prisma.order.findMany({
       where: {
         status: "DELIVERED",
         OR: [
-          { deliveredAt: { gte: start, lte: today } },
-          { deliveredAt: null, updatedAt: { gte: start, lte: today } },
+          { deliveredAt: { gte: start, lte: graphEnd } },
+          { deliveredAt: null, updatedAt: { gte: start, lte: graphEnd } },
         ],
       },
       select: { total: true, deliveredAt: true, updatedAt: true },
     }),
     prisma.lead.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.lead.count({ where: { status: LeadStatus.PENDING } }),
+    prisma.lead.count({ where: { createdAt: { gte: startOfToday, lt: startOfTomorrow } } }),
+    prisma.order.count({ where: { shippedAt: { gte: startOfToday, lt: startOfTomorrow } } }),
+    prisma.order.aggregate({
+      where: { deliveredAt: { gte: startOfToday, lt: startOfTomorrow } },
+      _count: { _all: true },
+      _sum: { total: true },
+    }),
   ]);
 
   const daily = new Map<string, { revenue: number; orders: number }>();
@@ -62,6 +74,14 @@ async function getDashboardData(tenantId: string) {
       totalLeads,
       convertedLeads,
       conversionRate: totalLeads ? (convertedLeads / totalLeads) * 100 : 0,
+    },
+    dailyReview: {
+      pendingLeads,
+      newLeadsToday,
+      shippedToday,
+      deliveredToday: deliveredToday._count._all,
+      revenueToday: deliveredToday._sum.total ?? 0,
+      date: dateKey(startOfToday),
     },
   };
 }

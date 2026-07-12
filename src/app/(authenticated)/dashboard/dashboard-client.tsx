@@ -2,7 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { CalendarIcon } from '@heroicons/react/24/outline';
+import Link from 'next/link';
+import {
+  ArrowTrendingUpIcon,
+  CalendarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  CurrencyDollarIcon,
+  TruckIcon,
+} from '@heroicons/react/24/outline';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { LeadsChart } from '@/components/dashboard/leads-chart';
 
@@ -10,6 +18,14 @@ interface DashboardData {
   sales: Array<{ date: string; revenue: number; orders: number }>;
   allTime: { totalLeads: number; convertedLeads: number; conversionRate: number };
   leadsByStatus: Array<{ status: string; count: number }>;
+  dailyReview: {
+    pendingLeads: number;
+    newLeadsToday: number;
+    shippedToday: number;
+    deliveredToday: number;
+    revenueToday: number;
+    date: string;
+  };
 }
 
 type Range = 7 | 30 | 90;
@@ -31,6 +47,13 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
     return { revenue, orders, average: orders ? revenue / orders : 0 };
   }, [sales]);
   const firstName = userName?.trim().split(/\s+/)[0];
+  const dailyReviewCards = [
+    { label: 'Pending leads', value: initialData.dailyReview.pendingLeads.toLocaleString(), context: 'Current backlog', href: '/leads?status=PENDING&all=1', icon: ClockIcon, accent: 'bg-amber-500', iconStyle: 'bg-amber-50 text-amber-700' },
+    { label: 'New leads today', value: initialData.dailyReview.newLeadsToday.toLocaleString(), context: 'Today', href: `/leads?startDate=${initialData.dailyReview.date}&endDate=${initialData.dailyReview.date}`, icon: ArrowTrendingUpIcon, accent: 'bg-sky-600', iconStyle: 'bg-sky-50 text-sky-700' },
+    { label: 'Shipped today', value: initialData.dailyReview.shippedToday.toLocaleString(), context: 'Today', href: '/shipping', icon: TruckIcon, accent: 'bg-violet-600', iconStyle: 'bg-violet-50 text-violet-700' },
+    { label: 'Delivered today', value: initialData.dailyReview.deliveredToday.toLocaleString(), context: 'Today', icon: CheckCircleIcon, accent: 'bg-teal-600', iconStyle: 'bg-teal-50 text-teal-700' },
+    { label: 'Revenue today', value: money(initialData.dailyReview.revenueToday), context: 'Today', icon: CurrencyDollarIcon, accent: 'bg-emerald-600', iconStyle: 'bg-emerald-50 text-emerald-700' },
+  ];
 
   return <main className="space-y-6 pb-8">
     <header className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-5">
@@ -40,6 +63,24 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
       </div>
       <div className="flex items-center gap-2 text-sm font-semibold text-slate-600"><CalendarIcon className="h-4 w-4 text-amber-600" />{format(now, 'EEEE, MMMM d')}</div>
     </header>
+
+    <section aria-label="Daily operational review" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {dailyReviewCards.map(({ label, value, context, href, icon: Icon, accent, iconStyle }) => {
+        const content = <>
+          <span className={`absolute inset-y-0 left-0 w-1 ${accent}`} aria-hidden="true" />
+          <span className="flex items-start justify-between gap-3">
+            <span>
+              <span className="block text-xs font-bold text-slate-600">{label}</span>
+              <span className="mt-2 block text-2xl font-extrabold leading-none tracking-tight tabular-nums text-slate-900">{value}</span>
+              <span className="mt-2 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">{context}</span>
+            </span>
+            <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${iconStyle}`}><Icon className="h-5 w-5" aria-hidden="true" /></span>
+          </span>
+        </>;
+        const className = 'relative min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white px-4 py-3.5 pl-5 shadow-sm transition-colors hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2';
+        return href ? <Link key={label} href={href} className={className} aria-label={`${label}: ${value}. View details`}>{content}</Link> : <article key={label} className={className}>{content}</article>;
+      })}
+    </section>
 
     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">

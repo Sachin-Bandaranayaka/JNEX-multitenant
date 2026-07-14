@@ -60,7 +60,7 @@ export function Invoice({
     const subtotal = total + discount;
 
     const commonInvoice = (
-        <div className={`w-full bg-white text-black ${isMultiPrint ? 'p-1.5' : 'px-2 p-4'} rounded relative`}>
+        <div className={`w-full bg-white text-black ${isMultiPrint ? 'p-1' : 'px-2 p-4'} rounded relative`}>
             <div className={`flex justify-between ${isMultiPrint ? 'mb-1' : 'mb-2'}`}>
                 <div className="text-left">
                     <h1 className={`${isMultiPrint ? 'text-[7pt]' : 'text-[9pt]'} font-bold leading-tight`}>{businessName || 'Your Company Name'}</h1>
@@ -85,7 +85,7 @@ export function Invoice({
                 </div>
             </div>
 
-            <table className={`w-full ${isMultiPrint ? 'text-[5.5pt]' : 'text-[7pt]'} mb-0.5 leading-tight`}>
+            <table className={`w-full ${isMultiPrint ? 'text-[5.25pt]' : 'text-[7pt]'} mb-0.5 leading-tight`}>
                 <thead>
                     <tr>
                         <th className="py-0.5 text-left">Item</th>
@@ -95,10 +95,10 @@ export function Invoice({
                 </thead>
                 <tbody>
                     <tr>
-                        <td className="py-0.5">{order.product.name}</td>
-                        <td className="py-0.5 text-right">{order.quantity}</td>
+                        <td className={`py-0.5 ${isMultiPrint ? 'font-bold' : ''}`}>{order.product.name}</td>
+                        <td className={`py-0.5 text-right ${isMultiPrint ? 'font-bold' : ''}`}>{order.quantity}</td>
                         {/* No discount: the line amount IS the total, so show it once, in bold */}
-                        <td className={`py-0.5 text-right ${discount > 0 ? '' : `font-bold ${isMultiPrint ? 'text-[6pt]' : 'text-[8pt]'}`}`}>
+                        <td className={`py-0.5 text-right ${isMultiPrint ? 'font-bold' : discount > 0 ? '' : 'font-bold text-[8pt]'}`}>
                             {new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' }).format(discount > 0 ? subtotal : total)}
                         </td>
                     </tr>
@@ -140,21 +140,11 @@ export function Invoice({
                 </div>
             )}
 
-            {order.notes && (
+            {!isMultiPrint && order.notes && (
                 <div className={`text-left ${isMultiPrint ? 'mt-0.5 pt-0.5' : 'my-1 pt-1'}`}>
                     <p className={`${isMultiPrint ? 'text-[6.5pt]' : 'text-[8pt]'}`}>
                         <span className="font-medium">Notes: </span>
-                        {/* Clamp in multi-print so a long note can't push the footer out of the cell */}
-                        <span
-                            style={isMultiPrint ? {
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                            } : undefined}
-                        >
-                            {order.notes}
-                        </span>
+                        <span>{order.notes}</span>
                     </p>
                 </div>
             )}

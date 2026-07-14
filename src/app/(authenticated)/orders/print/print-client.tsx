@@ -231,9 +231,9 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             background: #fff !important;
             color: #000 !important;
           }
-          /* Fixed 2x4 grid — exactly 8 invoices per A4 sheet.
-             Sized 1mm under the printable area so sub-pixel rounding can
-             never spill a sheet onto an extra page. */
+          /* Two-column grid with up to 4 content-sized rows — exactly 8
+             invoices per A4 sheet. The page remains 1mm under the printable
+             area so sub-pixel rounding can never spill onto an extra page. */
           .a4-page {
             width: 200mm;
             height: 286mm;
@@ -248,12 +248,9 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
           }
           .invoice-grid {
             display: grid;
-            /* minmax(0, 1fr) — a plain 1fr row grows with tall content and
-               pushes the bottom row onto the next page */
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-template-rows: repeat(4, minmax(0, 1fr));
+            grid-auto-rows: auto;
             width: 100%;
-            height: 100%;
             /* Use a physical stroke instead of a CSS-pixel hairline. Some
                Windows/Linux print pipelines round 1px borders away while
                scaling the page to printer DPI. */
@@ -360,9 +357,8 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
                       <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${order.status === OrderStatus.SHIPPED ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' : 'bg-muted text-muted-foreground'}`}>{order.status}</span>
                     </div>
                   </div>
-                  {/* Exact print-cell size (page 200mm / 2 cols x 286mm / 4 rows) with the same
-                      overflow clipping, so the preview shows precisely what will print */}
-                  <div className="mx-auto w-[100mm] h-[71mm] overflow-hidden bg-white outline-dashed outline-1 outline-gray-300">
+                  {/* True-width, content-height preview matching the compact print cell */}
+                  <div className="mx-auto w-[100mm] bg-white outline-dashed outline-1 outline-gray-300">
                     <Invoice order={order} businessName={tenant.businessName} businessAddress={tenant.businessAddress} businessPhone={tenant.businessPhone} invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`} isMultiPrint={true} showPrintControls={false} printIndex={index + 1} />
                   </div>
                 </div>

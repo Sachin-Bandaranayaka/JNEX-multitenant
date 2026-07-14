@@ -1,4 +1,4 @@
-import { LeadStatus } from "@prisma/client";
+import { LeadStatus, OrderStatus } from "@prisma/client";
 import { getSession } from "@/lib/auth";
 import { getScopedPrismaClient } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -18,12 +18,19 @@ async function getDashboardData(tenantId: string) {
   startOfToday.setHours(0, 0, 0, 0);
   const startOfTomorrow = new Date(startOfToday);
   startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+  const startOfWeek = new Date(startOfToday);
+  const dayOfWeek = startOfWeek.getDay();
+  startOfWeek.setDate(startOfWeek.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+  const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
+  const startOfSecondHalf = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 16);
+  const endOfFirstHalf = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 16);
   const graphEnd = new Date(startOfTomorrow.getTime() - 1);
   const start = new Date(graphEnd);
   start.setDate(start.getDate() - 89);
   start.setHours(0, 0, 0, 0);
 
-  const [deliveredOrders, leads, pendingLeads, newLeadsToday, shippedToday, deliveredToday] = await Promise.all([
+  const orderSummaryStart = startOfWeek < startOfMonth ? startOfWeek : startOfMonth;
+  const [deliveredOrders, leads, summaryOrders] = await Promise.all([
     prisma.order.findMany({
       where: {
         status: "DELIVERED",
@@ -35,15 +42,64 @@ async function getDashboardData(tenantId: string) {
       select: { total: true, deliveredAt: true, updatedAt: true },
     }),
     prisma.lead.groupBy({ by: ["status"], _count: { _all: true } }),
-    prisma.lead.count({ where: { status: LeadStatus.PENDING } }),
-    prisma.lead.count({ where: { createdAt: { gte: startOfToday, lt: startOfTomorrow } } }),
-    prisma.order.count({ where: { shippedAt: { gte: startOfToday, lt: startOfTomorrow } } }),
-    prisma.order.aggregate({
-      where: { deliveredAt: { gte: startOfToday, lt: startOfTomorrow } },
-      _count: { _all: true },
-      _sum: { total: true },
+    prisma.order.findMany({
+      where: { createdAt: { gte: orderSummaryStart, lt: startOfTomorrow } },
+      select: { createdAt: true, status: true, total: true },
     }),
   ]);
+
+  type SummaryBucket = { count: number; total: number };
+  type OrderSummary = {
+    total: SummaryBucket;
+    pending: SummaryBucket;
+    shipped: SummaryBucket;
+    returned: SummaryBucket;
+    delivered: SummaryBucket;
+  };
+  const emptySummary = (): OrderSummary => ({
+    total: { count: 0, total: 0 },
+    pending: { count: 0, total: 0 },
+    shipped: { count: 0, total: 0 },
+    returned: { count: 0, total: 0 },
+    delivered: { count: 0, total: 0 },
+  });
+  const summarizeOrders = (rangeStart: Date, rangeEnd: Date): OrderSummary => {
+    const summary = emptySummary();
+    const pendingStatuses = new Set<OrderStatus>([
+      OrderStatus.PENDING,
+      OrderStatus.CONFIRMED,
+      OrderStatus.RESCHEDULED,
+    ]);
+
+    for (const order of summaryOrders) {
+      if (order.createdAt < rangeStart || order.createdAt >= rangeEnd) continue;
+      summary.total.count += 1;
+      summary.total.total += order.total;
+
+      let bucket: SummaryBucket | undefined;
+      if (pendingStatuses.has(order.status)) bucket = summary.pending;
+      else if (order.status === OrderStatus.SHIPPED) bucket = summary.shipped;
+      else if (order.status === OrderStatus.RETURNED) bucket = summary.returned;
+      else if (order.status === OrderStatus.DELIVERED) bucket = summary.delivered;
+
+      if (bucket) {
+        bucket.count += 1;
+        bucket.total += order.total;
+      }
+    }
+    return summary;
+  };
+
+  const firstHalfEnd = startOfTomorrow < endOfFirstHalf ? startOfTomorrow : endOfFirstHalf;
+  const orderSummaries = {
+    today: summarizeOrders(startOfToday, startOfTomorrow),
+    week: summarizeOrders(startOfWeek, startOfTomorrow),
+    month: summarizeOrders(startOfMonth, startOfTomorrow),
+    firstHalf: summarizeOrders(startOfMonth, firstHalfEnd),
+    secondHalf: startOfToday.getDate() >= 16
+      ? summarizeOrders(startOfSecondHalf, startOfTomorrow)
+      : emptySummary(),
+  };
 
   const daily = new Map<string, { revenue: number; orders: number }>();
   for (let offset = 0; offset < 90; offset++) {
@@ -75,14 +131,7 @@ async function getDashboardData(tenantId: string) {
       convertedLeads,
       conversionRate: totalLeads ? (convertedLeads / totalLeads) * 100 : 0,
     },
-    dailyReview: {
-      pendingLeads,
-      newLeadsToday,
-      shippedToday,
-      deliveredToday: deliveredToday._count._all,
-      revenueToday: deliveredToday._sum.total ?? 0,
-      date: dateKey(startOfToday),
-    },
+    orderSummaries,
   };
 }
 

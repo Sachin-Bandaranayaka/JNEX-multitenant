@@ -133,8 +133,8 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderDe
 
                         {/* Shipping Information Card */}
                         {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && canUpdateShipping && (
-                            <div id="shipping" className={`bg-card border shadow-sm overflow-hidden scroll-mt-6 ${isFulfillmentFlow ? 'rounded-lg' : 'rounded-3xl'} ${isFulfillmentFlow && fulfillmentStage === 'ship' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-border'}`}>
-                                <div className="px-6 py-4 border-b border-border bg-muted/30">
+                            <div id="shipping" className={`bg-card border shadow-sm overflow-visible scroll-mt-6 ${isFulfillmentFlow ? 'rounded-lg' : 'rounded-3xl'} ${isFulfillmentFlow && fulfillmentStage === 'ship' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-border'}`}>
+                                <div className={`px-6 py-4 border-b border-border bg-muted/30 ${isFulfillmentFlow ? 'rounded-t-lg' : 'rounded-t-3xl'}`}>
                                     <h3 className="text-lg font-bold text-foreground">{isFulfillmentFlow ? 'Next: arrange shipping' : 'Shipping Information'}</h3>
                                 </div>
                                 <div className="p-6">

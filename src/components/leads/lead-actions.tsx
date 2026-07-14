@@ -144,7 +144,8 @@ export function LeadActions({
     lead,
     user,
     onAction,
-    tenantConfig
+    tenantConfig,
+    returnTo = '/leads',
 }: {
     lead: LeadWithDetails,
     user: User,
@@ -156,7 +157,8 @@ export function LeadActions({
         transExpressOrderPrefix?: string;
         royalExpressApiKey?: string;
         royalExpressOrderPrefix?: string;
-    }
+    };
+    returnTo?: string;
 }) {
     const router = useRouter();
     const [isCreating, setIsCreating] = useState(false);
@@ -295,9 +297,16 @@ export function LeadActions({
                         {/* Confirm */}
                         {canCreateOrder ? (
                             <Link
-                                href={`/leads/new?leadId=${lead.id}`}
+                                href={`/leads/new?leadId=${lead.id}&returnTo=${encodeURIComponent(returnTo)}`}
                                 title="Confirm Order"
                                 className="text-slate-500 hover:text-green-600 transition-colors"
+                                onClick={() => {
+                                    try {
+                                        window.sessionStorage.setItem('jnex_leads_return_scroll', String(window.scrollY));
+                                    } catch {
+                                        // Storage may be unavailable in private browsing; URL state still survives.
+                                    }
+                                }}
                             >
                                 <ShoppingCartIcon className="h-4 w-4" />
                             </Link>
@@ -322,21 +331,6 @@ export function LeadActions({
                             </span>
                         )}
 
-                        {/* Edit */}
-                        {canEdit ? (
-                            <Link
-                                href={`/leads/${lead.id}?edit=true`}
-                                title="Edit Lead"
-                                className="text-slate-500 hover:text-blue-600 transition-colors"
-                            >
-                                <PencilIcon className="h-4 w-4" />
-                            </Link>
-                        ) : (
-                            <span className="text-slate-300 pointer-events-none" title="Edit Lead (Disabled)">
-                                <PencilIcon className="h-4 w-4" />
-                            </span>
-                        )}
-
                         {/* Reject */}
                         {canEdit ? (
                             <button
@@ -349,6 +343,21 @@ export function LeadActions({
                         ) : (
                             <span className="text-slate-300 pointer-events-none" title="Reject Lead (Disabled)">
                                 <NoSymbolIcon className="h-4 w-4" />
+                            </span>
+                        )}
+
+                        {/* Edit */}
+                        {canEdit ? (
+                            <Link
+                                href={`/leads/${lead.id}?edit=true`}
+                                title="Edit Lead"
+                                className="text-slate-500 hover:text-blue-600 transition-colors"
+                            >
+                                <PencilIcon className="h-4 w-4" />
+                            </Link>
+                        ) : (
+                            <span className="text-slate-300 pointer-events-none" title="Edit Lead (Disabled)">
+                                <PencilIcon className="h-4 w-4" />
                             </span>
                         )}
 

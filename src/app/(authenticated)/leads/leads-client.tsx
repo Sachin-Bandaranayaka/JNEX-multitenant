@@ -165,7 +165,7 @@ export function LeadsClient({
   const [leads, setLeads] = useState<LeadWithDetails[]>(initialLeads);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkLoading, setIsBulkLoading] = useState(false);
-  const [tableSearch, setTableSearch] = useState('');
+  const [tableSearch, setTableSearch] = useState((searchParams.tableSearch as string) || '');
 
   // Filter bar state — initialized from URL search params
   const [statusFilter, setStatusFilter] = useState((searchParams.status as string) || 'ANY');
@@ -183,12 +183,13 @@ export function LeadsClient({
 
   // Sync local filter state when URL changes (browser back/forward, manual nav)
   useEffect(() => {
+    setTableSearch((searchParams.tableSearch as string) || '');
     setStatusFilter((searchParams.status as string) || 'ANY');
     setUserFilter((searchParams.userId as string) || 'ANY');
     setStartDate((searchParams.startDate as string) || '');
     setEndDate((searchParams.endDate as string) || '');
     setDateField((searchParams.dateField as string) === 'statusChangedAt' ? 'statusChangedAt' : 'createdAt');
-  }, [searchParams.status, searchParams.userId, searchParams.startDate, searchParams.endDate, searchParams.all, searchParams.dateField]);
+  }, [searchParams.tableSearch, searchParams.status, searchParams.userId, searchParams.startDate, searchParams.endDate, searchParams.all, searchParams.dateField]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -206,6 +207,7 @@ export function LeadsClient({
       all: showAll ? '1' : '',
       page: currentPage,
       pageSize,
+      tableSearch,
     };
     const merged = { ...base, ...overrides };
     Object.entries(merged).forEach(([k, v]) => {
@@ -270,6 +272,21 @@ export function LeadsClient({
       /* ignore parse errors */
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Confirmation returns to the exact filtered/paginated list. Restore the
+  // operator's vertical position as well so they can continue with the next call.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const savedScroll = window.sessionStorage.getItem('jnex_leads_return_scroll');
+      if (!savedScroll) return;
+      window.sessionStorage.removeItem('jnex_leads_return_scroll');
+      const y = Number(savedScroll);
+      if (Number.isFinite(y)) window.requestAnimationFrame(() => window.scrollTo({ top: y }));
+    } catch {
+      /* ignore unavailable session storage */
+    }
   }, []);
 
   const handleSearch = () => { navigate({}); };
@@ -767,7 +784,13 @@ export function LeadsClient({
                       <td className="px-2 py-2.5 text-muted-foreground hidden md:table-cell text-xs border-r border-b border-slate-200 align-middle">{lead.product.code}</td>
                       <td className="px-2 py-2.5 hidden xl:table-cell text-xs text-muted-foreground border-r border-b border-slate-200 align-middle">{lead.assignedTo?.name || '—'}</td>
                       <td className="px-2 py-2.5 text-right border-b border-slate-200 align-middle">
-                        <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} />
+                        <LeadActions
+                          lead={lead}
+                          user={user}
+                          onAction={refreshLeads}
+                          tenantConfig={tenantConfig}
+                          returnTo={buildUrl()}
+                        />
                       </td>
                     </tr>
                   );

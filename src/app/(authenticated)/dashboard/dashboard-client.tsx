@@ -2,30 +2,28 @@
 
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import Link from 'next/link';
 import {
-  ArrowTrendingUpIcon,
   CalendarIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  CurrencyDollarIcon,
-  TruckIcon,
 } from '@heroicons/react/24/outline';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { LeadsChart } from '@/components/dashboard/leads-chart';
+
+interface SummaryBucket { count: number; total: number }
+interface OrderSummary {
+  total: SummaryBucket;
+  pending: SummaryBucket;
+  shipped: SummaryBucket;
+  returned: SummaryBucket;
+  delivered: SummaryBucket;
+}
+
+type SummaryPeriod = 'today' | 'week' | 'month' | 'firstHalf' | 'secondHalf';
 
 interface DashboardData {
   sales: Array<{ date: string; revenue: number; orders: number }>;
   allTime: { totalLeads: number; convertedLeads: number; conversionRate: number };
   leadsByStatus: Array<{ status: string; count: number }>;
-  dailyReview: {
-    pendingLeads: number;
-    newLeadsToday: number;
-    shippedToday: number;
-    deliveredToday: number;
-    revenueToday: number;
-    date: string;
-  };
+  orderSummaries: Record<SummaryPeriod, OrderSummary>;
 }
 
 type Range = 7 | 30 | 90;
@@ -39,6 +37,7 @@ function greetingForHour(hour: number) {
 
 export function DashboardClient({ initialData, userName }: { initialData: DashboardData; userName?: string | null }) {
   const [range, setRange] = useState<Range>(30);
+  const [summaryPeriod, setSummaryPeriod] = useState<SummaryPeriod>('today');
   const [now] = useState(() => new Date());
   const sales = useMemo(() => initialData.sales.slice(-range), [initialData.sales, range]);
   const summary = useMemo(() => {
@@ -47,12 +46,20 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
     return { revenue, orders, average: orders ? revenue / orders : 0 };
   }, [sales]);
   const firstName = userName?.trim().split(/\s+/)[0];
-  const dailyReviewCards = [
-    { label: 'Pending leads', value: initialData.dailyReview.pendingLeads.toLocaleString(), context: 'Current backlog', href: '/leads?status=PENDING&all=1', icon: ClockIcon, accent: 'bg-amber-500', iconStyle: 'bg-amber-50 text-amber-700' },
-    { label: 'New leads today', value: initialData.dailyReview.newLeadsToday.toLocaleString(), context: 'Today', href: `/leads?startDate=${initialData.dailyReview.date}&endDate=${initialData.dailyReview.date}`, icon: ArrowTrendingUpIcon, accent: 'bg-sky-600', iconStyle: 'bg-sky-50 text-sky-700' },
-    { label: 'Shipped today', value: initialData.dailyReview.shippedToday.toLocaleString(), context: 'Today', href: '/shipping', icon: TruckIcon, accent: 'bg-violet-600', iconStyle: 'bg-violet-50 text-violet-700' },
-    { label: 'Delivered today', value: initialData.dailyReview.deliveredToday.toLocaleString(), context: 'Today', icon: CheckCircleIcon, accent: 'bg-teal-600', iconStyle: 'bg-teal-50 text-teal-700' },
-    { label: 'Revenue today', value: money(initialData.dailyReview.revenueToday), context: 'Today', icon: CurrencyDollarIcon, accent: 'bg-emerald-600', iconStyle: 'bg-emerald-50 text-emerald-700' },
+  const activeOrderSummary = initialData.orderSummaries[summaryPeriod];
+  const summaryFilters: Array<{ value: SummaryPeriod; label: string }> = [
+    { value: 'today', label: 'Today' },
+    { value: 'week', label: 'This Week' },
+    { value: 'month', label: 'This Month' },
+    { value: 'firstHalf', label: 'This Month 1st Half' },
+    { value: 'secondHalf', label: 'This Month 2nd Half' },
+  ];
+  const orderCards: Array<{ label: string; bucket: keyof OrderSummary; style: string }> = [
+    { label: 'Total Orders', bucket: 'total', style: 'bg-[#7ec8e3] text-slate-700' },
+    { label: 'Pending Orders', bucket: 'pending', style: 'bg-[#8d8d8d] text-white' },
+    { label: 'Shipped Orders', bucket: 'shipped', style: 'bg-[#ff9900] text-white' },
+    { label: 'Returned', bucket: 'returned', style: 'bg-[#cf0018] text-white' },
+    { label: 'Delivered', bucket: 'delivered', style: 'bg-[#2f9500] text-white' },
   ];
 
   return <main className="space-y-6 pb-8">
@@ -64,22 +71,41 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
       <div className="flex items-center gap-2 text-sm font-semibold text-slate-600"><CalendarIcon className="h-4 w-4 text-amber-600" />{format(now, 'EEEE, MMMM d')}</div>
     </header>
 
-    <section aria-label="Daily operational review" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-      {dailyReviewCards.map(({ label, value, context, href, icon: Icon, accent, iconStyle }) => {
-        const content = <>
-          <span className={`absolute inset-y-0 left-0 w-1 ${accent}`} aria-hidden="true" />
-          <span className="flex items-start justify-between gap-3">
-            <span>
-              <span className="block text-xs font-bold text-slate-600">{label}</span>
-              <span className="mt-2 block text-2xl font-extrabold leading-none tracking-tight tabular-nums text-slate-900">{value}</span>
-              <span className="mt-2 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">{context}</span>
-            </span>
-            <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md ${iconStyle}`}><Icon className="h-5 w-5" aria-hidden="true" /></span>
-          </span>
-        </>;
-        const className = 'relative min-w-0 overflow-hidden rounded-lg border border-slate-200 bg-white px-4 py-3.5 pl-5 shadow-sm transition-colors hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2';
-        return href ? <Link key={label} href={href} className={className} aria-label={`${label}: ${value}. View details`}>{content}</Link> : <article key={label} className={className}>{content}</article>;
-      })}
+    <section aria-label="Order summary" className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="grid gap-5 xl:grid-cols-[220px_minmax(0,1fr)] xl:gap-7">
+        <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 xl:mx-0 xl:flex-col xl:overflow-visible xl:px-0 xl:pb-0" role="group" aria-label="Order summary period">
+          {summaryFilters.map((filter) => {
+            const isActive = summaryPeriod === filter.value;
+            return <button
+              key={filter.value}
+              type="button"
+              onClick={() => setSummaryPeriod(filter.value)}
+              aria-pressed={isActive}
+              className={`relative shrink-0 rounded-md px-3 py-2 text-left text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 xl:w-full ${isActive ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}
+            >
+              <span className={`absolute inset-y-2 left-0 w-0.5 rounded-full bg-slate-700 transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`} aria-hidden="true" />
+              {filter.label}
+            </button>;
+          })}
+        </div>
+
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+          {orderCards.map(({ label, bucket, style }) => {
+            const metric = activeOrderSummary[bucket];
+            return <article key={bucket} className="min-w-0">
+              <h2 className="mb-2 text-sm font-extrabold text-slate-700">{label}</h2>
+              <div className={`flex min-h-28 flex-col justify-center rounded-md px-4 py-4 shadow-sm ${style}`}>
+                <p className="whitespace-nowrap text-lg font-medium leading-none tracking-tight tabular-nums 2xl:text-xl">
+                  {metric.count.toLocaleString('en-LK')} <span aria-hidden="true">|</span> Rs. {metric.total.toLocaleString('en-LK', { maximumFractionDigits: 0 })}
+                </p>
+                <div className="mt-3 flex items-center justify-between gap-3 text-sm font-bold">
+                  <span>Commission</span><span className="whitespace-nowrap tabular-nums"><span aria-hidden="true">|</span> Rs. 0</span>
+                </div>
+              </div>
+            </article>;
+          })}
+        </div>
+      </div>
     </section>
 
     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">

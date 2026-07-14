@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { OrderActions } from '@/components/orders/order-actions';
@@ -132,7 +132,7 @@ function BulkShipModal({
   isOpen: boolean;
   onClose: () => void;
   selectedOrders: OrderWithRelations[];
-  onSuccess: () => void;
+  onSuccess: (succeededOrderIds: string[]) => void;
 }) {
   const [mode, setMode] = useState<'auto' | 'manual'>('auto');
   const [weight, setWeight] = useState('1');
@@ -147,7 +147,10 @@ function BulkShipModal({
   const [mappings, setMappings] = useState<Record<string, OrderMapping>>({});
   const [isLoadingLocations, setIsLoadingLocations] = useState(false);
 
-  const confirmedOrders = selectedOrders.filter((o) => o.status === 'CONFIRMED');
+  const confirmedOrders = useMemo(
+    () => selectedOrders.filter((o) => o.status === 'CONFIRMED'),
+    [selectedOrders]
+  );
 
   // Load locations for manual mode
   useEffect(() => {
@@ -318,7 +321,13 @@ function BulkShipModal({
           }`
         );
       if (failed > 0 && succeeded === 0) toast.error(`All ${failed} shipments failed`);
-      if (succeeded > 0) onSuccess();
+      if (succeeded > 0) {
+        onSuccess(
+          data.results
+            .filter((result: BulkShipResult) => Boolean(result.trackingNumber))
+            .map((result: BulkShipResult) => result.orderId)
+        );
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -385,10 +394,23 @@ function BulkShipModal({
                   </tbody>
                 </table>
               </div>
-              <div className="flex justify-end">
+              <div className="flex flex-wrap justify-end gap-3">
+                {results.some((result) => result.trackingNumber) && (
+                  <Link
+                    href={`/orders/print?ids=${results
+                      .filter((result) => result.trackingNumber)
+                      .map((result) => result.orderId)
+                      .join(',')}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                  >
+                    <PrinterIcon className="h-4 w-4" />
+                    Print successful invoices
+                  </Link>
+                )}
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  className="rounded-lg bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
                 >
                   Done
                 </button>
@@ -603,6 +625,7 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
   const requestedStatus = searchParams.get('status')?.toUpperCase();
   const [activeCategory, setActiveCategory] = useState<string>(requestedStatus && requestedStatus in CATEGORY_CONFIG ? requestedStatus : 'ALL');
   const [isBulkShipModalOpen, setIsBulkShipModalOpen] = useState(false);
+  const [bulkShippedOrderIds, setBulkShippedOrderIds] = useState<string[]>([]);
 
   const displayedOrders = activeCategory === 'ALL'
     ? orders
@@ -642,16 +665,21 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
   const canPrintInvoices = user.role === 'ADMIN' || user.permissions?.includes('CREATE_ORDERS') || user.permissions?.includes('EDIT_ORDERS');
   const canShip = user.role === 'ADMIN' || user.permissions?.includes('UPDATE_SHIPPING_STATUS');
 
-  const handleBulkShipSuccess = () => {
-    // Mark shipped orders as SHIPPED in local state to reflect immediately
+  const handleBulkShipSuccess = (succeededOrderIds: string[]) => {
+    // Keep the results modal open so invoices can be printed after shipping.
+    // Apply the queue update only when the operator closes the result view so
+    // its customer/order context remains intact for printing.
+    setBulkShippedOrderIds(succeededOrderIds);
+  };
+
+  const closeBulkShipModal = () => {
+    // Only successful rows leave this fulfillment queue. Failed rows remain
+    // confirmed and selected so the operator can correct and retry them.
     setOrders(prev =>
-      prev.map(o =>
-        selectedOrders.includes(o.id) && o.status === 'CONFIRMED'
-          ? { ...o, status: 'SHIPPED' as any }
-          : o
-      )
+      prev.filter(o => !bulkShippedOrderIds.includes(o.id))
     );
-    setSelectedOrders([]);
+    setSelectedOrders(prev => prev.filter(id => !bulkShippedOrderIds.includes(id)));
+    setBulkShippedOrderIds([]);
     setIsBulkShipModalOpen(false);
   };
 
@@ -832,7 +860,7 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
 
       <BulkShipModal
         isOpen={isBulkShipModalOpen}
-        onClose={() => setIsBulkShipModalOpen(false)}
+        onClose={closeBulkShipModal}
         selectedOrders={selectedOrderObjects}
         onSuccess={handleBulkShipSuccess}
       />

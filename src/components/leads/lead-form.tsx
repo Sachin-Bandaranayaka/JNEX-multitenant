@@ -50,6 +50,7 @@ interface PrefilledLead {
 interface LeadFormProps {
   products: Product[];
   prefilledLead?: PrefilledLead;
+  returnTo?: string;
   onSubmit?: () => Promise<void>;
   onCancel?: () => void;
 }
@@ -143,7 +144,7 @@ const LowStockModal = ({
   );
 };
 
-export function LeadForm({ products, prefilledLead, onSubmit, onCancel }: LeadFormProps) {
+export function LeadForm({ products, prefilledLead, returnTo = '/leads', onSubmit, onCancel }: LeadFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -219,7 +220,7 @@ export function LeadForm({ products, prefilledLead, onSubmit, onCancel }: LeadFo
 
         toast.success('Order confirmed successfully!');
         await onSubmit?.();
-        router.push(`/orders/${resultOrder.id}?flow=fulfillment&stage=ship`);
+        router.replace(returnTo);
         router.refresh();
       } else {
         // Standard Lead creation flow

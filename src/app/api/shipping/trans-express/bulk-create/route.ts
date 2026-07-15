@@ -56,6 +56,11 @@ export async function POST(request: Request) {
         customerName: true,
         customerAddress: true,
         customerCity: true,
+        shippingLocationProvider: true,
+        shippingDistrictId: true,
+        shippingDistrictName: true,
+        shippingCityId: true,
+        shippingCityName: true,
         customerPhone: true,
         customerSecondPhone: true,
         total: true,
@@ -76,17 +81,31 @@ export async function POST(request: Request) {
     const yy = String(now.getFullYear()).slice(-2);
     const datePart = `${dd}${mm}${yy}`;
 
-    let results;
-
-    if (orders) {
-      // Manual City ID flow
-      const shipmentInputs = ordersFromDb.map((o) => {
-        const manualOrder = orders.find(mo => mo.orderId === o.id);
-        const cityId = manualOrder?.cityId || 864; // Default to Colombo 1 if missing
+    const locationErrors: Array<{
+      orderId: string;
+      orderNo: string;
+      trackingNumber?: string;
+      error: string;
+    }> = [];
+    const shipmentInputs = ordersFromDb.flatMap((o) => {
+        // Keep accepting explicit city IDs for backwards compatibility, but the
+        // normal queue flow now uses the location saved during confirmation.
+        const manualOrder = orders?.find((item) => item.orderId === o.id);
+        const cityId = manualOrder?.cityId || (
+          o.shippingLocationProvider === 'TRANS_EXPRESS' ? o.shippingCityId : null
+        );
         const orderNo = `${prefix || 'ORD'}-${o.number}-${datePart}`;
-        const w = manualOrder?.weight ?? weight ?? 1;
 
-        return {
+        if (!cityId) {
+          locationErrors.push({
+            orderId: o.id,
+            orderNo,
+            error: 'This older order has no saved Trans Express location. Ship it individually and select the city once.',
+          });
+          return [];
+        }
+
+        return [{
           orderId: o.id,
           orderNo,
           customerName: o.customerName,
@@ -95,48 +114,14 @@ export async function POST(request: Request) {
           customerPhone: o.customerPhone,
           customerSecondPhone: o.customerSecondPhone || undefined,
           orderTotal: o.total,
-          weight: w,
-        };
-      });
+          weight: manualOrder?.weight ?? weight ?? 1,
+        }];
+    });
 
-      results = await provider.createBulkShipmentsWithCityIds(shipmentInputs);
-    } else {
-      // Auto City Name flow
-      const shipmentInputs = ordersFromDb.map((o) => {
-        // Use customerCity if available, otherwise fall back to the lead's CSV city data
-        const leadCsvData = o.lead?.csvData as any;
-        let city = o.customerCity || leadCsvData?.city || leadCsvData?.customerCity || '';
-
-        // If city is still empty, try to extract it from the address (last comma-separated part)
-        if (!city && o.customerAddress) {
-          const parts = o.customerAddress.split(/[,\s]+/).map((p: string) => p.trim()).filter(Boolean);
-          if (parts.length > 1) {
-            city = parts[parts.length - 1]; // Use the last part as a city guess
-          } else if (parts.length === 1) {
-            city = parts[0];
-          }
-        }
-
-        // Generate order_no: PREFIX-NUMBER-DDMMYY
-        const orderNo = `${prefix || 'ORD'}-${o.number}-${datePart}`;
-
-        return {
-          orderId: o.id,
-          orderNo,
-          customerName: o.customerName,
-          customerAddress: o.customerAddress,
-          customerCity: city,
-          customerPhone: o.customerPhone,
-          customerSecondPhone: o.customerSecondPhone || undefined,
-          orderTotal: o.total,
-          weight: weight ?? 1,
-        };
-      });
-
-      // Use the "without-city" endpoint which accepts city as a string name
-      // and lets Trans Express auto-resolve it (more forgiving than exact city ID matching)
-      results = await provider.createBulkShipmentsByCityName(shipmentInputs);
-    }
+    const shipmentResults = shipmentInputs.length > 0
+      ? await provider.createBulkShipmentsWithCityIds(shipmentInputs)
+      : [];
+    const results = [...shipmentResults, ...locationErrors];
 
     // Persist successful shipments to the DB
     const updatePromises = results

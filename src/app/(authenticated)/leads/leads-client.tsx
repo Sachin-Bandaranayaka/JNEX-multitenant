@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
@@ -23,8 +23,6 @@ import {
   PhoneIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  UserGroupIcon,
-  CalendarDaysIcon,
   XMarkIcon,
   DocumentTextIcon,
   BellAlertIcon,
@@ -94,34 +92,35 @@ const STATUS_CONFIG = {
 
 type StatusKey = keyof typeof STATUS_CONFIG;
 
-// Format a Date as local YYYY-MM-DD (avoids UTC shift from toISOString())
-function toYMD(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
 function ContactIcons({ phone }: { phone: string | undefined }) {
   if (!phone) return <span className="text-muted-foreground">—</span>;
   const cleaned = phone.replace(/[^0-9+]/g, '');
   const waNumber = cleaned.startsWith('+') ? cleaned.slice(1) : cleaned;
   return (
-    <div className="flex items-center gap-1">
-      <span className="text-[11px] text-foreground font-medium">{phone}</span>
+    <div className="flex min-w-0 items-center gap-1.5">
+      <span className="whitespace-nowrap text-[13px] font-bold tracking-wide text-slate-900">{phone}</span>
       <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener noreferrer" title="WhatsApp"
         className="text-green-600 hover:text-green-700 transition-colors shrink-0">
-        <ChatBubbleLeftIcon className="h-3.5 w-3.5" />
+        <ChatBubbleLeftIcon className="h-4 w-4" />
       </a>
       <a href={`tel:${cleaned}`} title="Call" className="text-blue-600 hover:text-blue-700 transition-colors shrink-0">
-        <PhoneIcon className="h-3.5 w-3.5" />
+        <PhoneIcon className="h-4 w-4" />
       </a>
     </div>
   );
 }
 
+function CardField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="font-semibold text-slate-500">{label}</dt>
+      <dd className="mt-0.5 break-words text-foreground">{value || '—'}</dd>
+    </div>
+  );
+}
+
 export function LeadsClient({
-  initialLeads, user, searchParams, tenantConfig, totalCount, currentPage, pageSize, teamMembers,
+  initialLeads, user, searchParams, tenantConfig, totalCount, currentPage, pageSize,
 }: {
   initialLeads: LeadWithDetails[];
   user: User;
@@ -134,7 +133,6 @@ export function LeadsClient({
   totalCount: number;
   currentPage: number;
   pageSize: number;
-  teamMembers: { id: string; name: string | null; email: string }[];
 }) {
   const router = useRouter();
   const canCreate = user.role === 'ADMIN' || user.permissions?.includes('CREATE_LEADS');
@@ -169,14 +167,8 @@ export function LeadsClient({
 
   // Filter bar state — initialized from URL search params
   const [statusFilter, setStatusFilter] = useState((searchParams.status as string) || 'ANY');
-  const [userFilter, setUserFilter] = useState((searchParams.userId as string) || 'ANY');
   const [startDate, setStartDate] = useState((searchParams.startDate as string) || '');
   const [endDate, setEndDate] = useState((searchParams.endDate as string) || '');
-  // Which date field the date-range applies to: 'createdAt' (default) or 'statusChangedAt'
-  const [dateField, setDateField] = useState<'createdAt' | 'statusChangedAt'>(
-    (searchParams.dateField as string) === 'statusChangedAt' ? 'statusChangedAt' : 'createdAt'
-  );
-  const showAll = searchParams.all === '1';
 
   // Keep server-provided initialLeads in sync after navigation (filter changes)
   useEffect(() => { setLeads(initialLeads); setSelectedIds([]); }, [initialLeads]);
@@ -185,11 +177,9 @@ export function LeadsClient({
   useEffect(() => {
     setTableSearch((searchParams.tableSearch as string) || '');
     setStatusFilter((searchParams.status as string) || 'ANY');
-    setUserFilter((searchParams.userId as string) || 'ANY');
     setStartDate((searchParams.startDate as string) || '');
     setEndDate((searchParams.endDate as string) || '');
-    setDateField((searchParams.dateField as string) === 'statusChangedAt' ? 'statusChangedAt' : 'createdAt');
-  }, [searchParams.tableSearch, searchParams.status, searchParams.userId, searchParams.startDate, searchParams.endDate, searchParams.all, searchParams.dateField]);
+  }, [searchParams.tableSearch, searchParams.status, searchParams.startDate, searchParams.endDate]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -199,12 +189,8 @@ export function LeadsClient({
     const params = new URLSearchParams();
     const base: Record<string, string | number | null | undefined> = {
       status: statusFilter,
-      userId: userFilter,
       startDate,
       endDate,
-      // Only emit dateField when it's not the default — keeps URLs clean.
-      dateField: dateField === 'statusChangedAt' ? 'statusChangedAt' : '',
-      all: showAll ? '1' : '',
       page: currentPage,
       pageSize,
       tableSearch,
@@ -220,12 +206,12 @@ export function LeadsClient({
 
   // localStorage key for filter persistence. Versioned so we can change
   // the shape later without poisoning users with stale data.
-  const FILTER_STORAGE_KEY = 'jnex_leads_filters_v1';
+  const FILTER_STORAGE_KEY = 'jnex_leads_filters_v2';
 
   // Which search-param keys are considered "filters" for the purpose of
   // restoration. Pagination is intentionally NOT persisted — when you come
   // back to the list, you want page 1 of your filters, not page 47.
-  const FILTER_KEYS = ['status', 'userId', 'startDate', 'endDate', 'all', 'dateField'] as const;
+  const FILTER_KEYS = ['status', 'startDate', 'endDate'] as const;
 
   const persistFilters = (url: string) => {
     if (typeof window === 'undefined') return;
@@ -303,63 +289,10 @@ export function LeadsClient({
     navigate({ status: key });
   };
 
-  // User filter dropdown — auto-applies
-  const handleUserChange = (val: string) => {
-    setUserFilter(val);
-    navigate({ userId: val });
-  };
-
-  // Quick date range filters
-  type QuickRange = 'today' | 'yesterday' | 'week' | 'month' | 'all';
-  const applyQuickRange = (range: QuickRange) => {
-    const today = new Date();
-    if (range === 'all') {
-      setStartDate(''); setEndDate('');
-      navigate({ startDate: '', endDate: '', all: '1' });
-      return;
-    }
-    let s: Date, e: Date;
-    if (range === 'today') {
-      s = new Date(today); e = new Date(today);
-    } else if (range === 'yesterday') {
-      s = new Date(today); s.setDate(s.getDate() - 1);
-      e = new Date(s);
-    } else if (range === 'week') {
-      s = new Date(today); s.setDate(s.getDate() - 6);
-      e = new Date(today);
-    } else { // month
-      s = new Date(today.getFullYear(), today.getMonth(), 1);
-      e = new Date(today);
-    }
-    const sStr = toYMD(s);
-    const eStr = toYMD(e);
-    setStartDate(sStr); setEndDate(eStr);
-    navigate({ startDate: sStr, endDate: eStr, all: '' });
-  };
-
-  // Detect which quick-range chip is currently active (for highlighting)
-  const activeQuickRange: QuickRange | 'custom' | null = useMemo(() => {
-    if (showAll) return 'all';
-    if (!startDate && !endDate) return 'today'; // server defaults to today
-    const todayStr = toYMD(new Date());
-    const yest = new Date(); yest.setDate(yest.getDate() - 1);
-    const yestStr = toYMD(yest);
-    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 6);
-    const weekStartStr = toYMD(weekStart);
-    const monthStart = toYMD(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-    if (startDate === todayStr && endDate === todayStr) return 'today';
-    if (startDate === yestStr && endDate === yestStr) return 'yesterday';
-    if (startDate === weekStartStr && endDate === todayStr) return 'week';
-    if (startDate === monthStart && endDate === todayStr) return 'month';
-    return 'custom';
-  }, [startDate, endDate, showAll]);
-
   const resetFilters = () => {
     setStatusFilter('ANY');
-    setUserFilter('ANY');
     setStartDate('');
     setEndDate('');
-    setDateField('createdAt');
     // Wipe persisted filters so the user actually gets a clean slate next time.
     if (typeof window !== 'undefined') {
       try {
@@ -372,7 +305,7 @@ export function LeadsClient({
   };
 
   const hasActiveCustomFilters =
-    statusFilter !== 'ANY' || userFilter !== 'ANY' || showAll || activeQuickRange === 'custom';
+    statusFilter !== 'ANY' || Boolean(startDate) || Boolean(endDate);
 
   // Client-side table search filter
   const displayedLeads = tableSearch
@@ -492,25 +425,7 @@ export function LeadsClient({
         <div>
           <h1 className="text-2xl font-bold text-foreground">Lead List</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {(() => {
-              const labels: Record<string, string> = {
-                today: "Showing today's leads",
-                yesterday: "Showing yesterday's leads",
-                week: 'Showing leads from the last 7 days',
-                month: 'Showing leads from this month',
-                all: 'Showing all leads',
-                custom: startDate && endDate ? `Showing leads from ${startDate} to ${endDate}` : 'Showing leads',
-              };
-              const base = labels[activeQuickRange ?? 'today'] || 'Showing leads';
-              const extras: string[] = [];
-              if (dateField === 'statusChangedAt') extras.push('by status change date');
-              if (statusFilter !== 'ANY') extras.push(`status: ${STATUS_CONFIG[statusFilter as StatusKey]?.label ?? statusFilter}`);
-              if (userFilter !== 'ANY') {
-                const u = teamMembers.find((m) => m.id === userFilter);
-                if (u) extras.push(`user: ${u.name || u.email}`);
-              }
-              return extras.length ? `${base} \u2022 ${extras.join(' \u2022 ')}` : base;
-            })()}
+            Pending and No Answer leads are prioritized across all import dates.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -527,28 +442,16 @@ export function LeadsClient({
         </div>
       </div>
 
-      {/* Filter Bar — Genzo horizontal dropdown layout */}
-      <div className="p-4 bg-white rounded-md border border-[#e3e6ea] shadow-sm space-y-3">
-        {/* Genzo primary row: Status · User · Start Date · End Date · Search */}
-        <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+      {/* Simple filters: status and an optional lead-date range. */}
+      <div className="p-4 bg-white rounded-md border border-[#e3e6ea] shadow-sm">
+        <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-slate-500">Status</label>
             <select value={statusFilter} onChange={(e) => handleStatusChip(e.target.value as StatusKey | 'ANY')}
               className="h-9 px-3 rounded-md border border-[#d4d9e0] bg-white text-sm text-slate-600 focus:ring-2 focus:ring-[#e89c31]/20 focus:border-[#e89c31] focus:outline-none">
-              <option value="ANY">Any</option>
+              <option value="ANY">All statuses</option>
               {(Object.entries(STATUS_CONFIG) as [StatusKey, typeof STATUS_CONFIG[StatusKey]][]).map(([key, cfg]) => (
                 <option key={key} value={key}>{cfg.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-slate-500">User</label>
-            <select value={userFilter} onChange={(e) => handleUserChange(e.target.value)}
-              className="h-9 px-3 rounded-md border border-[#d4d9e0] bg-white text-sm text-slate-600 focus:ring-2 focus:ring-[#e89c31]/20 focus:border-[#e89c31] focus:outline-none">
-              <option value="ANY">Any</option>
-              {teamMembers.map((m) => (
-                <option key={m.id} value={m.id}>{m.name || m.email}</option>
               ))}
             </select>
           </div>
@@ -578,50 +481,6 @@ export function LeadsClient({
             </button>
           )}
         </div>
-
-        {/* Secondary row: quick period ranges + which date field they apply to (enhancements over Genzo) */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-[#eef0f3]">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 mr-1 pt-2">
-            <CalendarDaysIcon className="h-4 w-4" /> Quick:
-          </div>
-          {([
-            { key: 'today', label: 'Today' },
-            { key: 'yesterday', label: 'Yesterday' },
-            { key: 'week', label: 'Last 7 days' },
-            { key: 'month', label: 'This Month' },
-            { key: 'all', label: 'All Time' },
-          ] as { key: QuickRange; label: string }[]).map(({ key, label }) => {
-            const isActive = activeQuickRange === key;
-            return (
-              <button key={key} type="button" onClick={() => applyQuickRange(key)}
-                className={`mt-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                  isActive
-                    ? 'bg-[#e89c31] text-white border-[#e89c31] shadow-sm'
-                    : 'bg-white text-slate-500 border-[#e0e4e9] hover:bg-gray-50 hover:text-slate-700'
-                }`}>
-                {label}
-              </button>
-            );
-          })}
-          <span className="mx-2 text-[#e0e4e9]">|</span>
-          {([
-            { key: 'createdAt' as const, label: 'By Lead Date' },
-            { key: 'statusChangedAt' as const, label: 'By Status Change' },
-          ]).map(({ key, label }) => {
-            const isActive = dateField === key;
-            return (
-              <button key={key} type="button"
-                onClick={() => { setDateField(key); navigate({ dateField: key === 'statusChangedAt' ? 'statusChangedAt' : '' }); }}
-                className={`mt-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                  isActive
-                    ? 'bg-slate-600 text-white border-slate-600 shadow-sm'
-                    : 'bg-white text-slate-500 border-[#e0e4e9] hover:bg-gray-50 hover:text-slate-700'
-                }`}>
-                {label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* Status color legend (Genzo-style) */}
@@ -637,7 +496,7 @@ export function LeadsClient({
       {/* Search + Export toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm text-muted-foreground">
-          Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount.toLocaleString()} entries
+          Showing {totalCount === 0 ? 0 : ((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount.toLocaleString()} entries
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative">
@@ -681,24 +540,25 @@ export function LeadsClient({
 
       {/* Table */}
       <div className="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs border-collapse border border-slate-200 no-genzo-override">
+        {/* Full-column table on screens where the columns remain readable. */}
+        <div className="hidden xl:block overflow-hidden">
+          <table className="w-full table-fixed text-[11px] border-collapse border border-slate-200 no-genzo-override">
             <thead>
               <tr className="border-b-2 border-slate-300 bg-white">
-                <th className="px-2 py-2 w-8 border-r border-b border-slate-200">
+                <th className="w-8 px-1 py-2 border-r border-b border-slate-200">
                   <input type="checkbox" className="h-4 w-4 rounded border-border text-primary" checked={allSelected} onChange={toggleSelectAll} />
                 </th>
-                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">#</th>
-                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">Lead No</th>
-                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">Lead Date</th>
-                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">Status</th>
-                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">Customer Name</th>
-                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] hidden lg:table-cell border-r border-b border-slate-200">Address</th>
-                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200">Contact No</th>
-                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] hidden xl:table-cell border-r border-b border-slate-200">Contact No 2</th>
-                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] hidden md:table-cell border-r border-b border-slate-200">Product Code</th>
-                <th className="text-left px-2 py-2 font-bold text-slate-600 text-[13px] hidden xl:table-cell border-r border-b border-slate-200">Staff</th>
-                <th className="text-right px-2 py-2 font-bold text-slate-600 text-[13px] border-b border-slate-200">Actions</th>
+                <th className="w-8 px-1 py-2 font-bold text-slate-600 border-r border-b border-slate-200">#</th>
+                <th className="w-14 px-1 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Lead No</th>
+                <th className="w-20 px-1 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Lead Date</th>
+                <th className="w-20 px-1 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Status</th>
+                <th className="px-2 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Customer Name</th>
+                <th className="px-2 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Address</th>
+                <th className="w-32 px-2 py-2 text-left font-bold text-slate-700 border-r border-b border-slate-200">Contact No 1</th>
+                <th className="w-32 px-2 py-2 text-left font-bold text-slate-700 border-r border-b border-slate-200">Contact No 2</th>
+                <th className="w-20 px-1 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Product Code</th>
+                <th className="w-20 px-1 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Staff</th>
+                <th className="w-36 px-2 py-2 text-right font-bold text-slate-600 border-b border-slate-200">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -709,88 +569,47 @@ export function LeadsClient({
                   const config = STATUS_CONFIG[lead.status as StatusKey];
                   const csvData = lead.csvData as any;
                   const isSelected = selectedIds.includes(lead.id);
-                  const rowIdx = ((currentPage - 1) * pageSize) + idx + 1;
                   const StatusIcon = config?.icon;
+                  const rowIdx = ((currentPage - 1) * pageSize) + idx + 1;
 
                   return (
                     <tr key={lead.id}
                       className={`${config?.rowBg ?? ''} border-l-4 ${config?.leftBorder ?? 'border-l-transparent'} ${isSelected ? 'ring-2 ring-inset ring-primary/30' : ''} hover:brightness-[0.98] dark:hover:brightness-110 transition-all`}>
-                      <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
+                      <td className="px-1 py-2.5 border-r border-b border-slate-200 align-middle text-center">
                         <input type="checkbox" className="h-4 w-4 rounded border-border text-primary" checked={isSelected} onChange={() => toggleSelect(lead.id)} />
                       </td>
-                      <td className="px-2 py-2.5 text-xs text-muted-foreground border-r border-b border-slate-200 align-middle">{rowIdx}</td>
-                      <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
+                      <td className="px-1 py-2 border-r border-b border-slate-200 text-center text-muted-foreground">{rowIdx}</td>
+                      <td className="px-1 py-2 border-r border-b border-slate-200 align-middle">
                         <Link href={`/leads/${lead.id}${displayedLeads[idx + 1] ? `?nextLeadId=${displayedLeads[idx + 1].id}` : ''}`}>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${config?.numBadge ?? 'bg-gray-500 text-white'}`}>
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${config?.numBadge ?? 'bg-gray-500 text-white'}`}>
                             {lead.number}
                           </span>
                         </Link>
                       </td>
-                      <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
-                        <div className="flex flex-col text-[11px] text-muted-foreground whitespace-nowrap leading-tight">
-                          <span>{format(new Date(lead.createdAt), 'yyyy-MM-dd')}</span>
-                          <span className="text-[10px] opacity-75">{format(new Date(lead.createdAt), 'HH:mm:ss')}</span>
-                        </div>
+                      <td className="px-1 py-2 border-r border-b border-slate-200 text-[10px] text-muted-foreground leading-tight">
+                        <div>{format(new Date(lead.createdAt), 'yyyy-MM-dd')}</div>
+                        <div>{format(new Date(lead.createdAt), 'HH:mm')}</div>
                       </td>
-                      <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
+                      <td className="px-1 py-2 border-r border-b border-slate-200 align-middle overflow-hidden">
                         {config ? (
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${config.badge}`}>
-                            {StatusIcon && <StatusIcon className="h-3 w-3" />}
-                            {config.label}
+                          <span className={`inline-flex max-w-full items-center gap-0.5 rounded-full px-1 py-0.5 text-[10px] font-medium ${config.badge}`}>
+                            {StatusIcon && <StatusIcon className="h-2.5 w-2.5 shrink-0" />}
+                            <span className="truncate">{config.label}</span>
                           </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">{lead.status}</span>
-                        )}
+                        ) : <span className="text-[10px] text-muted-foreground">{lead.status}</span>}
                       </td>
-                      <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="font-medium text-foreground">{csvData.name || 'Unnamed'}</span>
-                          {csvData.notes && (
-                            <span className="relative group cursor-pointer shrink-0" title={csvData.notes}>
-                              <span className="relative flex h-5 w-5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                                <span className="relative inline-flex items-center justify-center rounded-full h-5 w-5 bg-orange-500 text-white">
-                                  <DocumentTextIcon className="h-3 w-3" />
-                                </span>
-                              </span>
-                              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 w-52 p-2.5 text-xs bg-gray-900 text-white rounded-lg shadow-xl border border-gray-700">
-                                <span className="font-semibold text-orange-300 block mb-0.5">📝 Note:</span>
-                                {csvData.notes}
-                              </span>
-                            </span>
-                          )}
-                          {lead.reminderDate && (lead.status === 'PENDING' || lead.status === 'NO_ANSWER') && (
-                            <span className="relative group shrink-0" title={`Reminder: ${format(new Date(lead.reminderDate), 'MMM d, yyyy')}${lead.reminderNote ? ' - ' + lead.reminderNote : ''}`}>
-                              <BellAlertIcon className={`h-4 w-4 cursor-pointer ${
-                                new Date(lead.reminderDate) < now && new Date(lead.reminderDate).toDateString() !== now.toDateString()
-                                  ? 'text-red-500 animate-bounce'
-                                  : new Date(lead.reminderDate).toDateString() === now.toDateString()
-                                  ? 'text-orange-500 animate-pulse'
-                                  : 'text-blue-500'
-                              }`} />
-                            </span>
-                          )}
-                        </div>
+                      <td className="px-2 py-2 border-r border-b border-slate-200 align-middle truncate font-medium text-foreground" title={csvData.name || 'Unnamed'}>
+                        {csvData.name || 'Unnamed'}
                       </td>
-                      <td className="px-2 py-2.5 text-muted-foreground hidden lg:table-cell border-r border-b border-slate-200 align-middle">
+                      <td className="px-2 py-2 border-r border-b border-slate-200 align-middle truncate text-muted-foreground" title={`${csvData.address || ''}${csvData.city ? `, ${csvData.city}` : ''}`}>
                         {csvData.address}{csvData.city ? `, ${csvData.city}` : ''}
                       </td>
-                      <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
-                        <ContactIcons phone={csvData.phone} />
-                      </td>
-                      <td className="px-2 py-2.5 hidden xl:table-cell border-r border-b border-slate-200 align-middle">
-                        <ContactIcons phone={csvData.secondPhone} />
-                      </td>
-                      <td className="px-2 py-2.5 text-muted-foreground hidden md:table-cell text-xs border-r border-b border-slate-200 align-middle">{lead.product.code}</td>
-                      <td className="px-2 py-2.5 hidden xl:table-cell text-xs text-muted-foreground border-r border-b border-slate-200 align-middle">{lead.assignedTo?.name || '—'}</td>
-                      <td className="px-2 py-2.5 text-right border-b border-slate-200 align-middle">
-                        <LeadActions
-                          lead={lead}
-                          user={user}
-                          onAction={refreshLeads}
-                          tenantConfig={tenantConfig}
-                          returnTo={buildUrl()}
-                        />
+                      <td className="bg-white/45 px-2 py-2 border-r border-b border-slate-200 align-middle"><ContactIcons phone={csvData.phone} /></td>
+                      <td className="bg-white/45 px-2 py-2 border-r border-b border-slate-200 align-middle"><ContactIcons phone={csvData.secondPhone} /></td>
+                      <td className="px-1 py-2 border-r border-b border-slate-200 align-middle truncate text-muted-foreground" title={lead.product.name}>{lead.product.code}</td>
+                      <td className="px-1 py-2 border-r border-b border-slate-200 align-middle truncate text-muted-foreground" title={lead.assignedTo?.name || ''}>{lead.assignedTo?.name || '—'}</td>
+                      <td className="px-2 py-2 text-right border-b border-slate-200 align-middle">
+                        <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} returnTo={buildUrl()} />
                       </td>
                     </tr>
                   );
@@ -798,6 +617,50 @@ export function LeadsClient({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* On smaller screens every original column becomes a labeled field,
+            keeping the complete row visible without horizontal scrolling. */}
+        <div className="divide-y divide-slate-200 xl:hidden">
+          {displayedLeads.length === 0 ? (
+            <div className="px-4 py-12 text-center text-muted-foreground">No leads found</div>
+          ) : displayedLeads.map((lead, idx) => {
+            const config = STATUS_CONFIG[lead.status as StatusKey];
+            const csvData = lead.csvData as any;
+            const isSelected = selectedIds.includes(lead.id);
+            const rowIdx = ((currentPage - 1) * pageSize) + idx + 1;
+            return (
+              <article key={lead.id} className={`${config?.rowBg || 'bg-white'} border-l-4 ${config?.leftBorder || 'border-l-transparent'} p-3`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <input type="checkbox" className="h-4 w-4 shrink-0 rounded border-border text-primary" checked={isSelected} onChange={() => toggleSelect(lead.id)} />
+                    <span className="text-xs text-muted-foreground">#{rowIdx}</span>
+                    <Link href={`/leads/${lead.id}${displayedLeads[idx + 1] ? `?nextLeadId=${displayedLeads[idx + 1].id}` : ''}`}>
+                      <span className={`inline-flex rounded px-2 py-0.5 text-xs font-bold ${config?.numBadge || 'bg-gray-500 text-white'}`}>Lead {lead.number}</span>
+                    </Link>
+                  </div>
+                  <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} returnTo={buildUrl()} />
+                </div>
+
+                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-3 lg:grid-cols-4">
+                  <CardField label="Lead Date" value={format(new Date(lead.createdAt), 'yyyy-MM-dd HH:mm:ss')} />
+                  <CardField label="Status" value={config?.label || lead.status} />
+                  <CardField label="Customer Name" value={csvData.name || 'Unnamed'} />
+                  <CardField label="Address" value={`${csvData.address || ''}${csvData.city ? `, ${csvData.city}` : ''}`} />
+                  <div className="rounded-lg bg-white/80 p-2 ring-1 ring-slate-200">
+                    <dt className="font-semibold text-slate-600">Contact No 1</dt>
+                    <dd className="mt-1"><ContactIcons phone={csvData.phone} /></dd>
+                  </div>
+                  <div className="rounded-lg bg-white/80 p-2 ring-1 ring-slate-200">
+                    <dt className="font-semibold text-slate-600">Contact No 2</dt>
+                    <dd className="mt-1"><ContactIcons phone={csvData.secondPhone} /></dd>
+                  </div>
+                  <CardField label="Product Code" value={lead.product.code} />
+                  <CardField label="Staff" value={lead.assignedTo?.name || '—'} />
+                </dl>
+              </article>
+            );
+          })}
         </div>
       </div>
 

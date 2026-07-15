@@ -14,6 +14,13 @@ const CreateOrderSchema = z.object({
   leadId: z.string().uuid(),
   quantity: z.number().int().positive().default(1),
   forceCreate: z.boolean().optional().default(false),
+  shippingLocation: z.object({
+    provider: z.literal('TRANS_EXPRESS'),
+    districtId: z.number().int().positive(),
+    districtName: z.string().trim().min(1),
+    cityId: z.number().int().positive(),
+    cityName: z.string().trim().min(1),
+  }).optional(),
 });
 
 export async function POST(request: Request) {
@@ -25,8 +32,20 @@ export async function POST(request: Request) {
     }
 
     const json = await request.json();
-    const { leadId, quantity, forceCreate } = CreateOrderSchema.parse(json);
+    const { leadId, quantity, forceCreate, shippingLocation } = CreateOrderSchema.parse(json);
     const currentTenantId = session.user.tenantId;
+
+    const tenant = await unscopedPrisma.tenant.findUnique({
+      where: { id: currentTenantId },
+      select: { transExpressApiKey: true },
+    });
+
+    if (tenant?.transExpressApiKey && !shippingLocation) {
+      return NextResponse.json(
+        { error: 'Select a Trans Express district and city before confirming the order.' },
+        { status: 400 }
+      );
+    }
 
     // 1. Get the details of the lead being converted
     const leadToConvert = await unscopedPrisma.lead.findUnique({
@@ -108,6 +127,7 @@ export async function POST(request: Request) {
       userId: session.user.id,
       quantity,
       tenantId: currentTenantId,
+      shippingLocation,
     });
 
     return NextResponse.json({ ...order, requiresConfirmation: false });

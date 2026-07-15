@@ -92,7 +92,7 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderDe
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                             <Link href={isFulfillmentFlow ? '/dashboard' : '/orders'} className="hover:text-primary transition-colors flex items-center gap-1">
                                 <ArrowLeftIcon className="h-3 w-3" />
-                                {isFulfillmentFlow ? 'Work queue' : 'Back to Orders'}
+                                {isFulfillmentFlow ? 'Work queue' : 'Back to Pending Orders'}
                             </Link>
                             <span>/</span>
                             <span>Order #{order.number}</span>
@@ -147,6 +147,7 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderDe
                                             customerPhone: order.customerPhone,
                                             customerSecondPhone: order.customerSecondPhone || undefined,
                                             customerAddress: order.customerAddress,
+                                            customerCity: order.shippingCityName || order.customerCity,
                                             product: { name: order.product.name, price: order.product.price, },
                                             quantity: order.quantity,
                                             discount: order.discount || undefined,

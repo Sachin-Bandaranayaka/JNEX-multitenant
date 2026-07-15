@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { LeadEditModal } from './lead-edit-modal';
@@ -164,7 +164,6 @@ function ConfirmationModal({
 
 export function LeadDetails({ lead }: LeadDetailsProps) {
     const router = useRouter();
-    const searchParams = useSearchParams();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -191,41 +190,7 @@ export function LeadDetails({ lead }: LeadDetailsProps) {
 
     // --- UPDATED: handleCreateOrder function ---
     const handleCreateOrder = async (force: boolean = false) => {
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const response = await fetch('/api/orders/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    leadId: lead.id,
-                    quantity: lead.csvData.quantity || 1,
-                    forceCreate: force,
-                }),
-            });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || 'Failed to create order');
-            }
-
-            if (result.requiresConfirmation) {
-                setPotentialDuplicates(result.potentialDuplicates);
-                setIsConfirmationModalOpen(true);
-            } else {
-                setIsConfirmationModalOpen(false);
-                const nextLeadId = searchParams.get('nextLeadId');
-                router.push(`/orders/${result.id}?flow=fulfillment&stage=ship${nextLeadId ? `&nextLeadId=${encodeURIComponent(nextLeadId)}` : ''}`);
-                router.refresh();
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'An error occurred');
-            setIsConfirmationModalOpen(false);
-        } finally {
-            setIsLoading(false);
-        }
+        router.push(`/leads/new?leadId=${lead.id}&returnTo=${encodeURIComponent('/leads')}`);
     };
 
     const handleStatusChange = async (newStatus: string) => {

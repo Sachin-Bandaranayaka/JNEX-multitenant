@@ -15,6 +15,10 @@ import {
   CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
+import {
+  TransExpressLocationPicker,
+  type TransExpressLocationValue,
+} from '@/components/shipping/trans-express-location-picker';
 
 interface Product {
   id: string;
@@ -51,6 +55,7 @@ interface LeadFormProps {
   products: Product[];
   prefilledLead?: PrefilledLead;
   returnTo?: string;
+  hasTransExpress?: boolean;
   onSubmit?: () => Promise<void>;
   onCancel?: () => void;
 }
@@ -144,7 +149,7 @@ const LowStockModal = ({
   );
 };
 
-export function LeadForm({ products, prefilledLead, returnTo = '/leads', onSubmit, onCancel }: LeadFormProps) {
+export function LeadForm({ products, prefilledLead, returnTo = '/leads', hasTransExpress = false, onSubmit, onCancel }: LeadFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -161,6 +166,7 @@ export function LeadForm({ products, prefilledLead, returnTo = '/leads', onSubmi
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+  const [shippingLocation, setShippingLocation] = useState<TransExpressLocationValue>();
 
   const handleSubmit = async (e: React.FormEvent, forceCreate: boolean = false) => {
     e.preventDefault();
@@ -174,6 +180,10 @@ export function LeadForm({ products, prefilledLead, returnTo = '/leads', onSubmi
       const normalizedSecondPhone = validatedData.secondPhone
         ? normalizePhoneNumber(validatedData.secondPhone)
         : '';
+
+      if (prefilledLead && hasTransExpress && !shippingLocation) {
+        throw new Error('Select a Trans Express district and city before confirming the order.');
+      }
 
       if (prefilledLead) {
         // 1. Update the lead details via PUT first
@@ -189,7 +199,7 @@ export function LeadForm({ products, prefilledLead, returnTo = '/leads', onSubmi
               notes: validatedData.notes,
               quantity: validatedData.quantity,
               discount: validatedData.discount,
-              city: prefilledLead.csvData.address || "",
+              city: shippingLocation?.cityName || prefilledLead.csvData.city || "",
               source: prefilledLead.csvData.source || "",
             },
             productCode: validatedData.productCode,
@@ -209,6 +219,7 @@ export function LeadForm({ products, prefilledLead, returnTo = '/leads', onSubmi
             leadId: prefilledLead.id,
             quantity: validatedData.quantity,
             forceCreate: true, // Proceed directly
+            shippingLocation,
           }),
         });
 
@@ -220,7 +231,7 @@ export function LeadForm({ products, prefilledLead, returnTo = '/leads', onSubmi
 
         toast.success('Order confirmed successfully!');
         await onSubmit?.();
-        router.replace(returnTo);
+        router.replace('/orders');
         router.refresh();
       } else {
         // Standard Lead creation flow
@@ -368,6 +379,15 @@ export function LeadForm({ products, prefilledLead, returnTo = '/leads', onSubmi
               />
             </div>
           </div>
+
+          {prefilledLead && hasTransExpress && (
+            <TransExpressLocationPicker
+              value={shippingLocation}
+              onChange={setShippingLocation}
+              suggestedCity={prefilledLead.csvData.city}
+              disabled={isLoading}
+            />
+          )}
 
           {/* Quantity Field */}
           <div>

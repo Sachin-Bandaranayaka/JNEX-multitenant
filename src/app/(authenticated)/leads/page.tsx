@@ -54,20 +54,9 @@ export default async function LeadsPage({
   const startDate = resolvedSearchParams.startDate as string | undefined;
   const endDate = resolvedSearchParams.endDate as string | undefined;
   const statusFilter = resolvedSearchParams.status as string | undefined;
-  const userFilter = resolvedSearchParams.userId as string | undefined;
   const searchQuery = resolvedSearchParams.query as string | undefined;
-  const showAll = resolvedSearchParams.all === '1';
   const page = parseInt(resolvedSearchParams.page as string || '1', 10);
   const pageSize = parseInt(resolvedSearchParams.pageSize as string || '25', 10);
-
-  // Which date column to filter against:
-  //   'createdAt'       — when the lead was first imported/created (default)
-  //   'statusChangedAt' — the last time the lead's status changed
-  // The latter is what users want when they say "show today's pending leads"
-  // even for leads imported months ago that were just re-activated today.
-  const rawDateField = resolvedSearchParams.dateField as string | undefined;
-  const dateField: 'createdAt' | 'statusChangedAt' =
-    rawDateField === 'statusChangedAt' ? 'statusChangedAt' : 'createdAt';
 
   // 4. BUILD SECURE WHERE CLAUSE
   const where: Prisma.LeadWhereInput = {};
@@ -77,8 +66,8 @@ export default async function LeadsPage({
     where.userId = session.user.id;
   }
 
-  // Date range filter — default to TODAY when no date range is set and `all=1` is not passed.
-  // Applied to either createdAt or statusChangedAt depending on `dateField`.
+  // Date filters are optional. With no range selected, unresolved leads from
+  // every import date remain visible.
   const buildDateRange = (): { gte?: Date; lte?: Date } | null => {
     if (startDate || endDate) {
       const range: { gte?: Date; lte?: Date } = {};
@@ -90,33 +79,17 @@ export default async function LeadsPage({
       }
       return range;
     }
-    if (!showAll) {
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
-      return { gte: start, lte: end };
-    }
     return null;
   };
 
   const dateRange = buildDateRange();
   if (dateRange) {
-    // Dynamic key — cast through any so we can pick between createdAt / statusChangedAt
-    // without TypeScript inferring an over-narrow type.
-    (where as any)[dateField] = dateRange;
+    where.createdAt = dateRange;
   }
 
   // Status filter
   if (statusFilter && statusFilter !== 'ANY') {
     where.status = statusFilter as any;
-  } else {
-    where.status = { not: 'DELETED' };
-  }
-
-  // User/staff filter
-  if (userFilter && userFilter !== 'ANY') {
-    where.userId = userFilter;
   }
 
   // Search query (search in JSON data)
@@ -131,9 +104,45 @@ export default async function LeadsPage({
   // 5. FETCH SECURE DATA WITH PAGINATION
   const skip = (page - 1) * pageSize;
 
-  const [leads, totalCount, tenant, teamMembers] = await Promise.all([
-    prisma.lead.findMany({
+  const [statusGroups, totalCount, tenant] = await Promise.all([
+    prisma.lead.groupBy({
+      by: ['status'],
       where,
+      _count: { _all: true },
+    }),
+    prisma.lead.count({ where }),
+    // Get tenant configuration for shipping providers
+    globalPrisma.tenant.findUnique({
+      where: { id: session.user.tenantId },
+      select: {
+        fardaExpressClientId: true,
+        fardaExpressApiKey: true,
+        transExpressApiKey: true,
+        transExpressOrderPrefix: true,
+        royalExpressApiKey: true,
+        royalExpressOrderPrefix: true,
+      }
+    }),
+  ]);
+
+  const priority = statusFilter && statusFilter !== 'ANY'
+    ? [statusFilter]
+    : ['PENDING', 'NO_ANSWER', 'CONFIRMED', 'REJECTED', 'DELETED'];
+  const countByStatus = new Map(statusGroups.map((group) => [group.status, group._count._all]));
+  const leads: PrismaLead[] = [];
+  let offset = skip;
+  let remaining = pageSize;
+
+  for (const status of priority) {
+    if (remaining <= 0) break;
+    const statusCount = countByStatus.get(status as any) || 0;
+    if (offset >= statusCount) {
+      offset -= statusCount;
+      continue;
+    }
+
+    const batch = await prisma.lead.findMany({
+      where: { ...where, status: status as any },
       include: {
         product: true,
         assignedTo: true,
@@ -150,55 +159,30 @@ export default async function LeadsPage({
             quantity: true,
             discount: true,
             shippingProvider: true,
-            trackingNumber: true
-          }
+            trackingNumber: true,
+          },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      skip,
-      take: pageSize,
-    }),
-    // Get total count for pagination
-    prisma.lead.count({ where }),
-    // Get tenant configuration for shipping providers
-    globalPrisma.tenant.findUnique({
-      where: { id: session.user.tenantId },
-      select: {
-        fardaExpressClientId: true,
-        fardaExpressApiKey: true,
-        transExpressApiKey: true,
-        transExpressOrderPrefix: true,
-        royalExpressApiKey: true,
-        royalExpressOrderPrefix: true,
-      }
-    }),
-    // Fetch team members for the user filter dropdown
-    prisma.user.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true, email: true },
-      orderBy: { name: 'asc' },
-    }),
-  ]);
-
-  // Sort leads: PENDING status first, then others, keeping createdAt order within status groups
-  const sortedLeads = [...leads].sort((a, b) => {
-    if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
-    if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+      // Forgotten unresolved leads come first. Completed/closed groups retain
+      // the familiar newest-first ordering.
+      orderBy: { createdAt: status === 'PENDING' || status === 'NO_ANSWER' ? 'asc' : 'desc' },
+      skip: offset,
+      take: remaining,
+    });
+    leads.push(...(batch as any));
+    remaining -= batch.length;
+    offset = 0;
+  }
 
   // 6. PASS DATA TO CLIENT COMPONENT
   return (
     <LeadsClient
-      initialLeads={sortedLeads as LeadWithDetails[]}
+      initialLeads={leads as LeadWithDetails[]}
       user={session.user as User}
       searchParams={resolvedSearchParams}
       totalCount={totalCount}
       currentPage={page}
       pageSize={pageSize}
-      teamMembers={teamMembers}
       tenantConfig={tenant ? {
         fardaExpressClientId: tenant.fardaExpressClientId || undefined,
         fardaExpressApiKey: tenant.fardaExpressApiKey || undefined,

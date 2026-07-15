@@ -186,6 +186,11 @@ model Order {
   customerSecondPhone String?
   customerAddress     String
   customerCity        String      @default("")
+  shippingLocationProvider ShippingProvider?
+  shippingDistrictId  Int?
+  shippingDistrictName String?
+  shippingCityId      Int?
+  shippingCityName    String?
   customerEmail       String?
   notes               String?
   shippingProvider    ShippingProvider?

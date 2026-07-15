@@ -29,6 +29,15 @@ export async function PATCH(
     const json = await request.json();
     const { status } = UpdateOrderStatusSchema.parse(json);
 
+    const permissions = session.user.permissions || [];
+    const isAdmin = session.user.role === 'ADMIN';
+    const hasPermission = status === 'CANCELLED'
+      ? isAdmin || permissions.includes('DELETE_ORDERS')
+      : isAdmin || permissions.includes('EDIT_ORDERS') || permissions.includes('UPDATE_SHIPPING_STATUS');
+    if (!hasPermission) {
+      return NextResponse.json({ error: 'You do not have permission to update this order.' }, { status: 403 });
+    }
+
     // 2. Pass the tenantId and userId to the update function
     const order = await updateOrderStatus(resolvedParams.orderId, status, session.user.tenantId, session.user.id);
 

@@ -57,9 +57,9 @@ export default async function OrdersPage({
 
   const where: Prisma.OrderWhereInput = {
     ...(!canViewAll && user.role === 'TEAM_MEMBER' ? { userId: user.id } : {}),
-    status: {
-      notIn: ['SHIPPED', 'DELIVERED', 'RETURNED', 'CANCELLED'],
-    },
+    // This page is the pre-shipping queue. Other lifecycle states remain
+    // available through search, order details, shipping, and return pages.
+    status: 'CONFIRMED',
     ...(searchQuery ? {
       OR: [
         { id: { contains: searchQuery, mode: 'insensitive' } },
@@ -92,9 +92,9 @@ export default async function OrdersPage({
       <div className="flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Orders</h1>
+            <h1 className="text-2xl font-bold text-foreground">Pending Orders</h1>
             <p className="text-sm text-muted-foreground">
-              Manage orders and track their status
+              Edit, delete, or bulk ship confirmed orders awaiting dispatch
               {searchQuery && ` • Searching: "${searchQuery}"`}
               {dateFilter && startDate && endDate && (
                 <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-medium">

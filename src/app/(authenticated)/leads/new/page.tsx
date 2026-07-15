@@ -1,6 +1,6 @@
 // src/app/(authenticated)/leads/new/page.tsx
 
-import { getScopedPrismaClient } from '@/lib/prisma';
+import { getScopedPrismaClient, prisma as globalPrisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
@@ -43,7 +43,7 @@ export default async function NewLeadPage({
         ? { userId: session.user.id }
         : {};
 
-    const [products, confirmedTodayCount, recentConfirmedOrders] = await Promise.all([
+    const [products, confirmedTodayCount, recentConfirmedOrders, tenant] = await Promise.all([
         prisma.product.findMany({
             where: { isActive: true },
             orderBy: { name: 'asc' },
@@ -71,6 +71,12 @@ export default async function NewLeadPage({
             },
             orderBy: { createdAt: 'desc' },
             take: 8,
+        }),
+        // The confirmation form only needs to know whether Trans Express is
+        // available; credentials never leave the server.
+        globalPrisma.tenant.findUnique({
+            where: { id: session.user.tenantId },
+            select: { transExpressApiKey: true },
         }),
     ]);
 
@@ -124,7 +130,12 @@ export default async function NewLeadPage({
 
             <div className="genzo-card overflow-hidden">
                 <div className="p-2 sm:p-3">
-                    <LeadForm products={products} prefilledLead={prefilledLead || undefined} returnTo={returnTo} />
+                    <LeadForm
+                        products={products}
+                        prefilledLead={prefilledLead || undefined}
+                        returnTo={returnTo}
+                        hasTransExpress={Boolean(tenant?.transExpressApiKey)}
+                    />
                 </div>
             </div>
 

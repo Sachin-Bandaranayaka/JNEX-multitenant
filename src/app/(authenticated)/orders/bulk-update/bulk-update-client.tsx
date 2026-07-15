@@ -260,7 +260,7 @@ export function BulkUpdateClient() {
           href="/orders"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-muted border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors shadow-sm"
         >
-          <ArrowLeftIcon className="h-4 w-4" /> Back to Orders
+          <ArrowLeftIcon className="h-4 w-4" /> Back to Pending Orders
         </Link>
       </div>
 
@@ -657,7 +657,7 @@ export function BulkUpdateClient() {
               href="/orders"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white dark:bg-muted border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors shadow-sm"
             >
-              <ArrowLeftIcon className="h-4 w-4" /> Back to Orders
+              <ArrowLeftIcon className="h-4 w-4" /> Back to Pending Orders
             </Link>
           </div>
         </div>

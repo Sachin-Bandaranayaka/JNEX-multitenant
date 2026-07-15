@@ -3,9 +3,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { OrderActions } from '@/components/orders/order-actions';
+import { PendingOrderActions } from '@/components/orders/pending-order-actions';
 import { OrderStatusBadge } from '@/components/orders/order-status-badge';
 import { SyncOrdersButton } from '@/components/orders/sync-orders-button';
 import { Prisma } from '@prisma/client';
@@ -100,13 +99,6 @@ const STATUS_CONFIG = {
 };
 
 // Category groups for the filter tabs
-const CATEGORY_CONFIG = {
-  ALL: { label: 'All', statuses: null },
-  PENDING: { label: 'Pending', statuses: ['PENDING'] },
-  CONFIRMED: { label: 'Confirmed', statuses: ['CONFIRMED'] },
-  RESCHEDULED: { label: 'Rescheduled', statuses: ['RESCHEDULED'] },
-};
-
 // --- Bulk Ship Modal ---
 interface BulkShipResult {
   orderId: string;
@@ -151,6 +143,9 @@ function BulkShipModal({
     () => selectedOrders.filter((o) => o.status === 'CONFIRMED'),
     [selectedOrders]
   );
+  const missingSavedLocationCount = confirmedOrders.filter(
+    (order) => order.shippingLocationProvider !== 'TRANS_EXPRESS' || !order.shippingCityId
+  ).length;
 
   // Load locations for manual mode
   useEffect(() => {
@@ -418,30 +413,13 @@ function BulkShipModal({
             </div>
           ) : (
             <>
-              {/* Mode Selector Tabs */}
-              <div className="flex border-b border-border mb-4">
-                <button
-                  type="button"
-                  onClick={() => setMode('auto')}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                    mode === 'auto'
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Auto (Auto-resolve Cities)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode('manual')}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                    mode === 'manual'
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Manual (Select Locations)
-                </button>
+              <div className={`rounded-lg border px-4 py-3 text-sm ${missingSavedLocationCount > 0
+                ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-300'
+              }`}>
+                {missingSavedLocationCount > 0
+                  ? `${missingSavedLocationCount} older selected order${missingSavedLocationCount === 1 ? ' has' : 's have'} no saved courier location and will be reported for individual shipping. All other orders are ready.`
+                  : 'Courier locations were captured when these orders were confirmed. Review them below, then ship all selected orders in one step.'}
               </div>
 
               {mode === 'manual' && isLoadingLocations ? (
@@ -458,6 +436,7 @@ function BulkShipModal({
                         <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Customer</th>
                         {mode === 'auto' ? (
                           <>
+                            <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">District</th>
                             <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">City</th>
                             <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">COD</th>
                           </>
@@ -480,12 +459,10 @@ function BulkShipModal({
                               <td className="px-4 py-2.5 font-medium text-foreground">#{o.number || o.id.slice(0, 8)}</td>
                               <td className="px-4 py-2.5 text-muted-foreground">{o.customerName}</td>
                               <td className="px-4 py-2.5 text-muted-foreground text-xs">
-                                {(() => {
-                                  const city = o.customerCity || (o.lead?.csvData as any)?.city || '';
-                                  if (city) return city;
-                                  const parts = o.customerAddress?.split(/[,\s]+/).map(p => p.trim()).filter(Boolean) || [];
-                                  return parts.length > 1 ? parts[parts.length - 1] : (parts[0] || '—');
-                                })()}
+                                {o.shippingLocationProvider === 'TRANS_EXPRESS' ? (o.shippingDistrictName || '—') : '—'}
+                              </td>
+                              <td className="px-4 py-2.5 text-muted-foreground text-xs">
+                                {o.shippingLocationProvider === 'TRANS_EXPRESS' ? (o.shippingCityName || o.customerCity || '—') : 'Missing location'}
                               </td>
                               <td className="px-4 py-2.5 text-right text-xs font-medium text-foreground">
                                 {o.total > 0 ? `LKR ${o.total.toLocaleString()}` : '—'}
@@ -564,7 +541,7 @@ function BulkShipModal({
                 </div>
               )}
 
-              {/* Weight input for Auto mode */}
+              {/* One parcel weight is applied to every selected order. */}
               {mode === 'auto' && (
                 <div className="flex items-center gap-3">
                   <label className="text-sm font-medium text-foreground whitespace-nowrap">
@@ -619,26 +596,12 @@ function BulkShipModal({
 
 // --- Main Component ---
 export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClientProps) {
-  const searchParams = useSearchParams();
   const [orders, setOrders] = useState(initialOrders);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
-  const requestedStatus = searchParams.get('status')?.toUpperCase();
-  const [activeCategory, setActiveCategory] = useState<string>(requestedStatus && requestedStatus in CATEGORY_CONFIG ? requestedStatus : 'ALL');
   const [isBulkShipModalOpen, setIsBulkShipModalOpen] = useState(false);
   const [bulkShippedOrderIds, setBulkShippedOrderIds] = useState<string[]>([]);
 
-  const displayedOrders = activeCategory === 'ALL'
-    ? orders
-    : orders.filter(order =>
-        CATEGORY_CONFIG[activeCategory as keyof typeof CATEGORY_CONFIG]?.statuses?.includes(order.status)
-      );
-
-  const countByCategory = {
-    ALL: orders.length,
-    PENDING: orders.filter(o => o.status === 'PENDING').length,
-    CONFIRMED: orders.filter(o => o.status === 'CONFIRMED').length,
-    RESCHEDULED: orders.filter(o => o.status === 'RESCHEDULED').length,
-  };
+  const displayedOrders = orders;
 
   const handleSelectOrder = (orderId: string) => {
     setSelectedOrders(prev =>
@@ -683,6 +646,17 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
     setIsBulkShipModalOpen(false);
   };
 
+  const handleOrderUpdated = (orderId: string, updates: Record<string, unknown>) => {
+    setOrders((previous) => previous.map((order) => (
+      order.id === orderId ? { ...order, ...updates } as OrderWithRelations : order
+    )));
+  };
+
+  const handleOrderDeleted = (orderId: string) => {
+    setOrders((previous) => previous.filter((order) => order.id !== orderId));
+    setSelectedOrders((previous) => previous.filter((id) => id !== orderId));
+  };
+
   return (
     <div className="space-y-6">
       {/* Action Bar */}
@@ -718,42 +692,9 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
         )}
       </div>
 
-      {/* Status filter tabs */}
-      <div className="flex flex-wrap gap-2">
-        {Object.entries(CATEGORY_CONFIG).map(([cat, catConfig]) => {
-          const count = countByCategory[cat as keyof typeof countByCategory];
-          const isActive = activeCategory === cat;
-          const statusKey = cat !== 'ALL' ? cat : null;
-          const Icon = statusKey ? STATUS_CONFIG[statusKey as keyof typeof STATUS_CONFIG]?.icon : null;
-          const filterActiveClass = statusKey ? STATUS_CONFIG[statusKey as keyof typeof STATUS_CONFIG]?.filterActive : '';
-
-          return (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${isActive
-                ? (cat === 'ALL' ? 'bg-foreground text-background' : filterActiveClass)
-                : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-            >
-              {Icon && <Icon className="h-3.5 w-3.5" />}
-              {catConfig.label}
-              <span className="ml-0.5 text-xs opacity-70">{count}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Status Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-sm">
-        {Object.entries(STATUS_CONFIG)
-          .filter(([key]) => ['PENDING', 'CONFIRMED', 'RESCHEDULED'].includes(key))
-          .map(([key, cfg]) => (
-            <div key={key} className="flex items-center gap-1.5">
-              <span className={`h-3 w-3 rounded-full ${cfg.dotColor}`} />
-              <span className="text-muted-foreground">{cfg.label}</span>
-            </div>
-          ))}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+        {orders.length} order{orders.length === 1 ? '' : 's'} awaiting shipment
       </div>
 
       {/* Table */}
@@ -846,7 +787,13 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
                           {order.total > 0 ? `LKR ${order.total.toLocaleString()}` : '—'}
                         </td>
                         <td className="px-2 py-2.5 text-right border-b border-slate-200 align-middle">
-                          <OrderActions order={order} user={user} />
+                          <PendingOrderActions
+                            order={order}
+                            user={user}
+                            hasTransExpress={Boolean(tenantConfig?.hasTransExpress)}
+                            onUpdated={handleOrderUpdated}
+                            onDeleted={handleOrderDeleted}
+                          />
                         </td>
                       </tr>
                     );

@@ -39,7 +39,9 @@ export function TransExpressLocationPicker({
   const [citySearch, setCitySearch] = useState(value?.cityName || suggestedCity || '');
   const [showCities, setShowCities] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingCities, setLoadingCities] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [cityError, setCityError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,38 +50,30 @@ export function TransExpressLocationPicker({
       setLoading(true);
       setLoadError(null);
       try {
-        const response = await fetch('/api/shipping/locations');
+        const response = await fetch('/api/shipping/locations/districts');
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Failed to load courier locations');
         if (cancelled) return;
 
         const loadedDistricts: District[] = data.districts || [];
-        const loadedCities: City[] = data.cities || [];
         setDistricts(loadedDistricts);
-        setCities(loadedCities);
 
-        if (!value && suggestedCity) {
-          const normalized = suggestedCity.trim().toLowerCase();
-          const city = loadedCities.find((item) => item.text.trim().toLowerCase() === normalized);
-          const district = city?.district_id
-            ? loadedDistricts.find((item) => item.id === city.district_id)
-            : undefined;
-          if (city && district) {
-            setDistrictId(district.id);
-            setCitySearch(city.text);
-            onChange({
-              provider: 'TRANS_EXPRESS',
-              districtId: district.id,
-              districtName: district.text,
-              cityId: city.id,
-              cityName: city.text,
-            });
-          }
+        // Existing orders already know their district. Load that district's
+        // cities directly so the saved selection remains editable.
+        if (value?.districtId) {
+          setLoadingCities(true);
+          const cityResponse = await fetch(`/api/shipping/locations/cities?district_id=${value.districtId}`);
+          const cityData = await cityResponse.json();
+          if (!cityResponse.ok) throw new Error(cityData.error || 'Failed to load cities');
+          if (!cancelled) setCities(cityData.cities || []);
         }
       } catch (error) {
         if (!cancelled) setLoadError(error instanceof Error ? error.message : 'Failed to load courier locations');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setLoadingCities(false);
+        }
       }
     };
 
@@ -94,16 +88,32 @@ export function TransExpressLocationPicker({
     if (!districtId) return [];
     const query = citySearch.trim().toLowerCase();
     return cities
-      .filter((city) => city.district_id === districtId)
       .filter((city) => !query || city.text.toLowerCase().includes(query))
       .slice(0, 50);
   }, [cities, districtId, citySearch]);
 
-  const selectDistrict = (nextDistrictId: number | '') => {
+  const selectDistrict = async (nextDistrictId: number | '') => {
+    const firstSelection = districtId === '';
     setDistrictId(nextDistrictId);
-    setCitySearch('');
+    setCitySearch(firstSelection ? (suggestedCity || '') : '');
+    setCities([]);
     setShowCities(false);
+    setCityError(null);
     onChange(undefined);
+
+    if (!nextDistrictId) return;
+    setLoadingCities(true);
+    try {
+      const response = await fetch(`/api/shipping/locations/cities?district_id=${nextDistrictId}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to load cities');
+      setCities(data.cities || []);
+      setShowCities(true);
+    } catch (error) {
+      setCityError(error instanceof Error ? error.message : 'Failed to load cities');
+    } finally {
+      setLoadingCities(false);
+    }
   };
 
   const selectCity = (city: City) => {
@@ -173,14 +183,14 @@ export function TransExpressLocationPicker({
                   onChange(undefined);
                 }}
                 onFocus={() => setShowCities(true)}
-                disabled={disabled || loading || !districtId}
-                placeholder={districtId ? 'Search and select city' : 'Select district first'}
+                disabled={disabled || loading || loadingCities || !districtId}
+                placeholder={loadingCities ? 'Loading cities…' : districtId ? 'Search and select city' : 'Select district first'}
                 autoComplete="off"
                 className="block w-full rounded-lg border-input bg-background py-2.5 pl-9 text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm disabled:opacity-60"
                 required
               />
             </div>
-            {showCities && districtId && !loading && (
+            {showCities && districtId && !loading && !loadingCities && (
               <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
                 {filteredCities.length > 0 ? filteredCities.map((city) => (
                   <button
@@ -197,6 +207,7 @@ export function TransExpressLocationPicker({
                 )}
               </div>
             )}
+            {cityError && <p className="mt-1.5 text-xs text-destructive">{cityError}. Select the district again to retry.</p>}
           </div>
         </div>
       )}

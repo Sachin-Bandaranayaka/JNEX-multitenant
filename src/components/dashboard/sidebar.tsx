@@ -7,13 +7,12 @@ import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { Tenant } from '@prisma/client';
 import {
-    HomeIcon,
+    ChartPieIcon,
     ShoppingCartIcon,
-    ArchiveBoxIcon,
-    ClipboardDocumentListIcon,
-    UsersIcon,
-    ChartBarIcon,
-    TruckIcon,
+    CubeIcon,
+    UserIcon,
+    BuildingOffice2Icon,
+    PaperAirplaneIcon,
     CogIcon,
     ArrowRightOnRectangleIcon,
     XMarkIcon,
@@ -32,7 +31,7 @@ interface SidebarProps {
     userPermissions: string[];
 }
 
-/* ---- Single nav link (Genzo style: amber left-border when active) ---- */
+/* ---- Single top-level nav link ---- */
 function NavLink({ href, icon, children, isActive, onClick }: {
     href: string;
     icon: React.ReactNode;
@@ -41,14 +40,14 @@ function NavLink({ href, icon, children, isActive, onClick }: {
     onClick?: () => void;
 }) {
     return (
-        <Link href={href} onClick={onClick} className="block group">
+        <Link href={href} onClick={onClick} className="mx-2 block rounded-md group">
             <div
-                className={`flex items-center gap-3 px-5 py-3 border-l-[3px] font-semibold text-[14px] transition-colors ${isActive
-                    ? 'bg-[#eceef1] text-slate-700 border-[#e89c31]'
-                    : 'text-slate-500 border-transparent hover:bg-[#f5f6f8] hover:text-slate-700'
+                className={`flex items-center gap-3 px-3 py-3 rounded-md font-bold text-[15px] transition-colors ${isActive
+                    ? 'bg-[#dfe4ec] text-[#40516e] shadow-[inset_3px_0_0_#50617e]'
+                    : 'text-[#50617e] hover:bg-[#e5e8ee] hover:text-[#40516e]'
                     }`}
             >
-                <span className="flex-shrink-0 opacity-85">{icon}</span>
+                <span className="flex-shrink-0">{icon}</span>
                 <span className="flex-1 whitespace-nowrap">{children}</span>
             </div>
         </Link>
@@ -66,20 +65,21 @@ function NavGroup({ icon, label, isExpanded, onToggle, links, pathname, onNaviga
     onNavigate?: () => void;
 }) {
     return (
-        <div>
+        <div className="mx-2">
             <button
                 onClick={onToggle}
-                className={`flex items-center gap-3 w-full px-5 py-3 border-l-[3px] font-semibold text-[14px] transition-colors ${isExpanded
-                    ? 'bg-[#eceef1] text-slate-700 border-[#e89c31]'
-                    : 'text-slate-500 border-transparent hover:bg-[#f5f6f8] hover:text-slate-700'
+                aria-expanded={isExpanded}
+                className={`flex items-center gap-3 w-full px-3 py-3 rounded-md font-bold text-[15px] transition-colors ${isExpanded
+                    ? 'bg-[#dfe4ec] text-[#40516e] shadow-[inset_3px_0_0_#50617e]'
+                    : 'text-[#50617e] hover:bg-[#e5e8ee] hover:text-[#40516e]'
                     }`}
             >
-                <span className="flex-shrink-0 opacity-85">{icon}</span>
-                <span className="flex-1 text-left whitespace-nowrap">{label}</span>
-                <ChevronLeftIcon className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${isExpanded ? '-rotate-90' : ''}`} />
+                <span className="flex-shrink-0">{icon}</span>
+                <span className="min-w-0 flex-1 text-left whitespace-nowrap">{label}</span>
+                <ChevronLeftIcon className={`h-4 w-4 flex-shrink-0 text-[#50617e] transition-transform duration-200 ${isExpanded ? '-rotate-90' : ''}`} />
             </button>
             {isExpanded && (
-                <div className="bg-[#fafbfc]">
+                <div className="my-1 overflow-hidden rounded-md bg-[#e9ecf1] py-1">
                     {links.map((link) => {
                         const linkActive = pathname === link.href;
                         return (
@@ -87,9 +87,9 @@ function NavGroup({ icon, label, isExpanded, onToggle, links, pathname, onNaviga
                                 key={link.href}
                                 href={link.href}
                                 onClick={onNavigate}
-                                className={`block pl-[51px] pr-5 py-2.5 text-[13px] font-semibold transition-colors ${linkActive
-                                    ? 'bg-[#eceef1] text-slate-800'
-                                    : 'text-slate-500 hover:bg-[#f0f1f4] hover:text-slate-700'
+                                className={`block pl-[44px] pr-3 py-2 text-[13px] font-semibold transition-colors ${linkActive
+                                    ? 'bg-[#d9dee7] text-[#40516e]'
+                                    : 'text-[#687791] hover:bg-[#dfe4eb] hover:text-[#40516e]'
                                     }`}
                             >
                                 {link.label}
@@ -133,7 +133,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
             )}
 
             <aside
-                className={`fixed lg:sticky top-0 h-screen z-50 flex flex-col bg-white border-r border-[#e3e6ea] transition-all duration-300 ease-in-out print:hidden w-[232px] ${isMobile
+                className={`fixed lg:sticky top-0 h-screen z-50 flex flex-col bg-[#f1f2f5] border-r border-[#dfe3e9] transition-all duration-300 ease-in-out print:hidden w-[232px] ${isMobile
                     ? isOpen ? 'translate-x-0' : '-translate-x-full'
                     : 'translate-x-0'
                     }`}
@@ -164,17 +164,53 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                 </div>
 
                 {/* Nav */}
-                <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin">
-                    {/* --- Ordered to follow the daily workflow: Leads -> Orders -> Shipping -> Return --- */}
+                <nav className="flex-1 overflow-y-auto py-2 space-y-0.5 scrollbar-thin">
                     {has('VIEW_DASHBOARD') && (
-                        <NavLink href="/dashboard" icon={<HomeIcon className="h-[18px] w-[18px]" />}
+                        <NavLink href="/dashboard" icon={<ChartPieIcon className="h-5 w-5" />}
                             isActive={pathname === '/dashboard'} onClick={closeMobileSidebar}>Dashboard</NavLink>
                     )}
 
-                    {/* 1. Leads — import & call */}
+                    <NavGroup
+                        icon={<ShoppingCartIcon className="h-5 w-5" />}
+                        label="Products Purchase"
+                        isExpanded={expandedGroup === 'Products Purchase'}
+                        onToggle={() => handleToggleGroup('Products Purchase')}
+                        links={[
+                            { href: '/store', label: 'Buy Products' },
+                            { href: '/store/purchases', label: 'My Invoices' },
+                            { href: '/store/cart', label: 'Cart' },
+                        ]}
+                        pathname={pathname} onNavigate={closeMobileSidebar}
+                    />
+
+                    {has('VIEW_INVENTORY') && (
+                        <NavGroup
+                            icon={<CubeIcon className="h-5 w-5" />}
+                            label="Stock"
+                            isExpanded={expandedGroup === 'Stock'}
+                            onToggle={() => handleToggleGroup('Stock')}
+                            links={[
+                                { href: '/inventory', label: 'Stock List' },
+                                { href: '/products', label: 'Products' },
+                            ]}
+                            pathname={pathname} onNavigate={closeMobileSidebar}
+                        />
+                    )}
+
+                    {has('VIEW_SHIPPING') && (
+                        <NavLink
+                            href="/shipping"
+                            icon={<PaperAirplaneIcon className="h-5 w-5" />}
+                            isActive={pathname.startsWith('/shipping')}
+                            onClick={closeMobileSidebar}
+                        >
+                            Shipping
+                        </NavLink>
+                    )}
+
                     {has('VIEW_LEADS') && (
                         <NavGroup
-                            icon={<UserGroupIcon className="h-[18px] w-[18px]" />}
+                            icon={<UserGroupIcon className="h-5 w-5" />}
                             label="Leads"
                             isExpanded={expandedGroup === 'Leads'}
                             onToggle={() => handleToggleGroup('Leads')}
@@ -187,10 +223,9 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                         />
                     )}
 
-                    {/* 2. Orders — confirm, print invoice & mark delivered */}
                     {has('VIEW_ORDERS') && (
                         <NavGroup
-                            icon={<ClipboardDocumentListIcon className="h-[18px] w-[18px]" />}
+                            icon={<ShoppingCartIcon className="h-5 w-5" />}
                             label="Orders"
                             isExpanded={expandedGroup === 'Orders'}
                             onToggle={() => handleToggleGroup('Orders')}
@@ -204,21 +239,8 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                         />
                     )}
 
-                    {/* 3. Shipping */}
-                    {has('VIEW_SHIPPING') && (
-                        <NavLink
-                            href="/shipping"
-                            icon={<TruckIcon className="h-[18px] w-[18px]" />}
-                            isActive={pathname.startsWith('/shipping')}
-                            onClick={closeMobileSidebar}
-                        >
-                            Shipping
-                        </NavLink>
-                    )}
-
-                    {/* 4. Return */}
                     <NavGroup
-                        icon={<ArrowUturnLeftIcon className="h-[18px] w-[18px]" />}
+                        icon={<ArrowUturnLeftIcon className="h-5 w-5" />}
                         label="Return"
                         isExpanded={expandedGroup === 'Return'}
                         onToggle={() => handleToggleGroup('Return')}
@@ -229,56 +251,27 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                         pathname={pathname} onNavigate={closeMobileSidebar}
                     />
 
-                    {/* --- Supporting / inventory / admin --- */}
-                    {has('VIEW_INVENTORY') && (
-                        <NavGroup
-                            icon={<ArchiveBoxIcon className="h-[18px] w-[18px]" />}
-                            label="Stock"
-                            isExpanded={expandedGroup === 'Stock'}
-                            onToggle={() => handleToggleGroup('Stock')}
-                            links={[
-                                { href: '/inventory', label: 'Stock List' },
-                                { href: '/products', label: 'Products' },
-                            ]}
-                            pathname={pathname} onNavigate={closeMobileSidebar}
-                        />
-                    )}
-
-                    {/* Products Purchase */}
-                    <NavGroup
-                        icon={<ShoppingCartIcon className="h-[18px] w-[18px]" />}
-                        label="Products Purchase"
-                        isExpanded={expandedGroup === 'Products Purchase'}
-                        onToggle={() => handleToggleGroup('Products Purchase')}
-                        links={[
-                            { href: '/store', label: 'Buy Products' },
-                            { href: '/store/purchases', label: 'My Invoices' },
-                            { href: '/store/cart', label: 'Cart' },
-                        ]}
-                        pathname={pathname} onNavigate={closeMobileSidebar}
-                    />
-
                     {has('VIEW_REPORTS') && (
-                        <NavLink href="/reports" icon={<ChartBarIcon className="h-[18px] w-[18px]" />}
+                        <NavLink href="/reports" icon={<BuildingOffice2Icon className="h-5 w-5" />}
                             isActive={pathname.startsWith('/reports')} onClick={closeMobileSidebar}>Reports</NavLink>
                     )}
 
                     {has('MANAGE_USERS') && (
-                        <NavLink href="/users" icon={<UsersIcon className="h-[18px] w-[18px]" />}
+                        <NavLink href="/users" icon={<UserIcon className="h-5 w-5" />}
                             isActive={pathname.startsWith('/users')} onClick={closeMobileSidebar}>Staff</NavLink>
                     )}
 
                     {has('MANAGE_SETTINGS') && (
-                        <NavLink href="/settings" icon={<CogIcon className="h-[18px] w-[18px]" />}
+                        <NavLink href="/settings" icon={<CogIcon className="h-5 w-5" />}
                             isActive={pathname.startsWith('/settings')} onClick={closeMobileSidebar}>Settings</NavLink>
                     )}
 
                     {/* Logout */}
                     <button
                         onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-                        className="flex items-center gap-3 w-full px-5 py-3 border-l-[3px] border-transparent font-semibold text-[14px] text-slate-500 hover:bg-[#fdeceb] hover:text-[#c9453f] transition-colors"
+                        className="mx-2 flex w-[calc(100%-1rem)] items-center gap-3 rounded-md px-3 py-3 font-bold text-[15px] text-[#50617e] transition-colors hover:bg-[#fdeceb] hover:text-[#c9453f]"
                     >
-                        <ArrowRightOnRectangleIcon className="h-[18px] w-[18px]" />
+                        <ArrowRightOnRectangleIcon className="h-5 w-5" />
                         <span>Log out</span>
                     </button>
                 </nav>

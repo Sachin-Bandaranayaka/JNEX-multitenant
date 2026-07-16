@@ -39,6 +39,8 @@ export function TransExpressLocationPicker({
   const [citySearch, setCitySearch] = useState(value?.cityName || suggestedCity || '');
   const [showCities, setShowCities] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [resolvingCity, setResolvingCity] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [cityError, setCityError] = useState<string | null>(null);
 
@@ -61,8 +63,15 @@ export function TransExpressLocationPicker({
         if (!cityResponse.ok) throw new Error(cityData.error || 'Failed to load courier cities');
         if (cancelled) return;
 
-        const loadedDistricts: District[] = districtData.districts || [];
-        const loadedCities: City[] = cityData.cities || [];
+        const loadedDistricts: District[] = (districtData.districts || []).map((district: District) => ({
+          ...district,
+          id: Number(district.id),
+        }));
+        const loadedCities: City[] = (cityData.cities || []).map((city: City) => ({
+          ...city,
+          id: Number(city.id),
+          district_id: city.district_id ? Number(city.district_id) : undefined,
+        }));
         setDistricts(loadedDistricts);
         setCities(loadedCities);
 
@@ -113,7 +122,7 @@ export function TransExpressLocationPicker({
       .slice(0, 50);
   }, [cities, districtId, citySearch]);
 
-  const selectDistrict = (nextDistrictId: number | '') => {
+  const selectDistrict = async (nextDistrictId: number | '') => {
     const firstSelection = districtId === '';
     setDistrictId(nextDistrictId);
     setCitySearch(firstSelection ? (suggestedCity || '') : '');
@@ -121,16 +130,32 @@ export function TransExpressLocationPicker({
     setCityError(null);
     onChange(undefined);
 
-    if (nextDistrictId) setShowCities(true);
+    if (!nextDistrictId) return;
+
+    setLoadingCities(true);
+    try {
+      const response = await fetch(`/api/shipping/locations/cities?district_id=${nextDistrictId}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to load cities');
+      const districtCities: City[] = (data.cities || []).map((city: City) => ({
+        ...city,
+        id: Number(city.id),
+        district_id: nextDistrictId,
+      }));
+      setCities((currentCities) => {
+        const cityMap = new Map(currentCities.map((city) => [city.id, city]));
+        districtCities.forEach((city) => cityMap.set(city.id, city));
+        return Array.from(cityMap.values());
+      });
+      setShowCities(true);
+    } catch (error) {
+      setCityError(error instanceof Error ? error.message : 'Failed to load cities');
+    } finally {
+      setLoadingCities(false);
+    }
   };
 
-  const selectCity = (city: City) => {
-    const matchingDistrictId = city.district_id || districtId;
-    const district = districts.find((item) => item.id === matchingDistrictId);
-    if (!district) {
-      setCityError('The courier did not provide a district for this city');
-      return;
-    }
+  const applyCitySelection = (city: City, district: District) => {
     setDistrictId(district.id);
     setCitySearch(city.text);
     setShowCities(false);
@@ -142,6 +167,32 @@ export function TransExpressLocationPicker({
       cityId: city.id,
       cityName: city.text,
     });
+  };
+
+  const selectCity = async (city: City) => {
+    const matchingDistrictId = city.district_id || districtId;
+    const knownDistrict = districts.find((item) => item.id === matchingDistrictId);
+    if (knownDistrict) {
+      applyCitySelection(city, knownDistrict);
+      return;
+    }
+
+    setShowCities(false);
+    setResolvingCity(true);
+    setCityError(null);
+    try {
+      const response = await fetch(`/api/shipping/locations/cities?city_id=${city.id}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to find the city district');
+      applyCitySelection(
+        { ...city, district_id: Number(data.district.id) },
+        { id: Number(data.district.id), text: data.district.text },
+      );
+    } catch (error) {
+      setCityError(error instanceof Error ? error.message : 'Failed to find the city district');
+    } finally {
+      setResolvingCity(false);
+    }
   };
 
   return (
@@ -176,19 +227,20 @@ export function TransExpressLocationPicker({
                   onChange(undefined);
                 }}
                 onFocus={() => setShowCities(true)}
-                disabled={disabled || loading}
-                placeholder={loading ? 'Loading cities…' : 'Search and select city'}
+                disabled={disabled || loading || loadingCities || resolvingCity}
+                placeholder={loading || loadingCities ? 'Loading cities…' : resolvingCity ? 'Finding district…' : 'Search and select city'}
                 autoComplete="off"
                 className="block w-full rounded-lg border-input bg-background py-2.5 pl-9 text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm disabled:opacity-60"
                 required
               />
             </div>
-            {showCities && !loading && (
+            {showCities && !loading && !loadingCities && (
               <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
                 {filteredCities.length > 0 ? filteredCities.map((city) => (
                   <button
                     key={city.id}
                     type="button"
+                    disabled={resolvingCity}
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => selectCity(city)}
                     className="block w-full px-4 py-2 text-left text-sm text-foreground hover:bg-accent"
@@ -205,7 +257,7 @@ export function TransExpressLocationPicker({
                 )}
               </div>
             )}
-            {cityError && <p className="mt-1.5 text-xs text-destructive">{cityError}. Please choose the district manually.</p>}
+            {cityError && <p className="mt-1.5 text-xs text-destructive">{cityError}. Please try again or choose the district manually.</p>}
           </div>
 
           <div>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { User } from 'next-auth';
 import { PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
@@ -45,10 +46,10 @@ export function PendingOrderActions({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({
-    customerName: order.customerName,
-    customerPhone: order.customerPhone,
+    customerName: order.customerName || '',
+    customerPhone: order.customerPhone || '',
     customerSecondPhone: order.customerSecondPhone || '',
-    customerAddress: order.customerAddress,
+    customerAddress: order.customerAddress || '',
     notes: order.notes || '',
   });
   const initialLocation = order.shippingLocationProvider === 'TRANS_EXPRESS'
@@ -65,6 +66,33 @@ export function PendingOrderActions({
       }
     : undefined;
   const [shippingLocation, setShippingLocation] = useState<TransExpressLocationValue | undefined>(initialLocation);
+
+  useEffect(() => {
+    if (showEdit) {
+      setForm({
+        customerName: order.customerName || '',
+        customerPhone: order.customerPhone || '',
+        customerSecondPhone: order.customerSecondPhone || '',
+        customerAddress: order.customerAddress || '',
+        notes: order.notes || '',
+      });
+      setShippingLocation(
+        order.shippingLocationProvider === 'TRANS_EXPRESS'
+          && order.shippingDistrictId
+          && order.shippingDistrictName
+          && order.shippingCityId
+          && order.shippingCityName
+          ? {
+              provider: 'TRANS_EXPRESS' as const,
+              districtId: order.shippingDistrictId,
+              districtName: order.shippingDistrictName,
+              cityId: order.shippingCityId,
+              cityName: order.shippingCityName,
+            }
+          : undefined
+      );
+    }
+  }, [showEdit, order]);
 
   const saveOrder = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -150,7 +178,7 @@ export function PendingOrderActions({
         )}
       </div>
 
-      {showEdit && (
+      {showEdit && createPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-order-title">
           <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl">
             <div className="flex items-center justify-between border-b border-border px-6 py-4">
@@ -198,10 +226,11 @@ export function PendingOrderActions({
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {showDelete && (
+      {showDelete && createPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-order-title">
           <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
             <h2 id="delete-order-title" className="text-lg font-bold text-foreground">Delete Order #{order.number}?</h2>
@@ -215,7 +244,8 @@ export function PendingOrderActions({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

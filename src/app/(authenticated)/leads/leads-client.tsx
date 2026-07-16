@@ -548,11 +548,9 @@ export function LeadsClient({
                 <th className="w-8 px-1 py-2 border-r border-b border-slate-200">
                   <input type="checkbox" className="h-4 w-4 rounded border-border text-primary" checked={allSelected} onChange={toggleSelectAll} />
                 </th>
-                <th className="w-8 px-1 py-2 font-bold text-slate-600 border-r border-b border-slate-200">#</th>
-                <th className="w-14 px-1 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Lead No</th>
+                <th className="w-20 px-2 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200"># / Lead No</th>
                 <th className="w-20 px-1 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Lead Date</th>
-                <th className="w-20 px-1 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Status</th>
-                <th className="px-2 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Customer Name</th>
+                <th className="w-32 px-2 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Customer Name</th>
                 <th className="px-2 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Address</th>
                 <th className="w-32 px-2 py-2 text-left font-bold text-slate-700 border-r border-b border-slate-200">Contact No 1</th>
                 <th className="w-32 px-2 py-2 text-left font-bold text-slate-700 border-r border-b border-slate-200">Contact No 2</th>
@@ -563,13 +561,12 @@ export function LeadsClient({
             </thead>
             <tbody>
               {displayedLeads.length === 0 ? (
-                <tr><td colSpan={12} className="px-4 py-12 text-center text-muted-foreground border-b border-slate-200">No leads found</td></tr>
+                <tr><td colSpan={10} className="px-4 py-12 text-center text-muted-foreground border-b border-slate-200">No leads found</td></tr>
               ) : (
                 displayedLeads.map((lead, idx) => {
                   const config = STATUS_CONFIG[lead.status as StatusKey];
                   const csvData = lead.csvData as any;
                   const isSelected = selectedIds.includes(lead.id);
-                  const StatusIcon = config?.icon;
                   const rowIdx = ((currentPage - 1) * pageSize) + idx + 1;
 
                   return (
@@ -578,25 +575,19 @@ export function LeadsClient({
                       <td className="px-1 py-2.5 border-r border-b border-slate-200 align-middle text-center">
                         <input type="checkbox" className="h-4 w-4 rounded border-border text-primary" checked={isSelected} onChange={() => toggleSelect(lead.id)} />
                       </td>
-                      <td className="px-1 py-2 border-r border-b border-slate-200 text-center text-muted-foreground">{rowIdx}</td>
-                      <td className="px-1 py-2 border-r border-b border-slate-200 align-middle">
-                        <Link href={`/leads/${lead.id}${displayedLeads[idx + 1] ? `?nextLeadId=${displayedLeads[idx + 1].id}` : ''}`}>
-                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${config?.numBadge ?? 'bg-gray-500 text-white'}`}>
-                            {lead.number}
-                          </span>
-                        </Link>
+                      <td className="px-2 py-2 border-r border-b border-slate-200 align-middle">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-muted-foreground shrink-0 font-medium">{rowIdx}</span>
+                          <Link href={`/leads/${lead.id}${displayedLeads[idx + 1] ? `?nextLeadId=${displayedLeads[idx + 1].id}` : ''}`} className="min-w-0">
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold truncate ${config?.numBadge ?? 'bg-gray-500 text-white'}`}>
+                              {lead.number}
+                            </span>
+                          </Link>
+                        </div>
                       </td>
                       <td className="px-1 py-2 border-r border-b border-slate-200 text-[10px] text-muted-foreground leading-tight">
                         <div>{format(new Date(lead.createdAt), 'yyyy-MM-dd')}</div>
                         <div>{format(new Date(lead.createdAt), 'HH:mm')}</div>
-                      </td>
-                      <td className="px-1 py-2 border-r border-b border-slate-200 align-middle overflow-hidden">
-                        {config ? (
-                          <span className={`inline-flex max-w-full items-center gap-0.5 rounded-full px-1 py-0.5 text-[10px] font-medium ${config.badge}`}>
-                            {StatusIcon && <StatusIcon className="h-2.5 w-2.5 shrink-0" />}
-                            <span className="truncate">{config.label}</span>
-                          </span>
-                        ) : <span className="text-[10px] text-muted-foreground">{lead.status}</span>}
                       </td>
                       <td className="px-2 py-2 border-r border-b border-slate-200 align-middle truncate font-medium text-foreground" title={csvData.name || 'Unnamed'}>
                         {csvData.name || 'Unnamed'}
@@ -644,7 +635,6 @@ export function LeadsClient({
 
                 <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-3 lg:grid-cols-4">
                   <CardField label="Lead Date" value={format(new Date(lead.createdAt), 'yyyy-MM-dd HH:mm:ss')} />
-                  <CardField label="Status" value={config?.label || lead.status} />
                   <CardField label="Customer Name" value={csvData.name || 'Unnamed'} />
                   <CardField label="Address" value={`${csvData.address || ''}${csvData.city ? `, ${csvData.city}` : ''}`} />
                   <div className="rounded-lg bg-white/80 p-2 ring-1 ring-slate-200">

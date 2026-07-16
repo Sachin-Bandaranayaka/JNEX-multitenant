@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Loader2, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -35,23 +36,21 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-white text-slate-700">
+    <div className="relative flex min-h-screen w-full overflow-hidden bg-[#fffafa] text-slate-700 lg:bg-white">
+      <div className="pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full border-[36px] border-red-100/60 lg:hidden" aria-hidden="true" />
+      <Image src="/brand/jnex-logo.png" alt="" width={280} height={280} className="pointer-events-none absolute -bottom-20 -right-20 h-72 w-72 object-contain opacity-[0.035] lg:hidden" aria-hidden="true" />
       {/* ===== Left: Login form ===== */}
-      <div className="w-full lg:w-[40%] flex flex-col justify-center px-8 sm:px-14 py-10">
-        <div className="w-full max-w-sm mx-auto">
+      <div className="relative z-10 flex w-full flex-col justify-center px-5 py-8 sm:px-14 lg:w-[40%] lg:py-10">
+        <div className="mx-auto w-full max-w-sm rounded-lg border border-red-100 bg-white p-6 shadow-[0_18px_45px_rgba(127,29,29,0.08)] sm:p-8 lg:rounded-none lg:border-0 lg:p-0 lg:shadow-none">
           {/* Logo */}
           <div className="flex flex-col items-center mb-6">
-            <div className="h-16 w-16 rounded-2xl bg-[#e89c31] flex items-center justify-center shadow-sm">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="h-9 w-9 text-white">
-                <path d="M12 2l2.9 6.26 6.9.6-5.2 4.52 1.56 6.74L12 17.27 5.84 20.12 7.4 13.38 2.2 8.86l6.9-.6z" />
-              </svg>
-            </div>
+            <Image src="/brand/jnex-logo.png" alt="JNEX" width={80} height={80} priority className="h-20 w-20 object-contain drop-shadow-md" />
             <span className="mt-3 text-xl font-extrabold tracking-wide text-slate-600">
-              JNEX<span className="text-[#e89c31]">OMS</span>
+              JNEX<span className="text-[#e10600]">OMS</span>
             </span>
           </div>
 
-          <h1 className="text-center text-2xl font-light text-slate-400 mb-8">
+          <h1 className="mb-8 text-center text-2xl font-semibold text-slate-700">
             Login to Your Account
           </h1>
 
@@ -74,7 +73,7 @@ export default function SignInPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="username"
-                className="w-full border-0 border-b-2 border-[#e3e6ea] bg-transparent py-2 text-slate-700 focus:border-[#e89c31] focus:outline-none focus:ring-0 transition-colors"
+                className="w-full border-0 border-b-2 border-[#e3e6ea] bg-transparent py-2 text-slate-700 transition-colors focus:border-[#e10600] focus:outline-none focus:ring-0"
               />
             </div>
 
@@ -90,12 +89,12 @@ export default function SignInPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="w-full border-0 border-b-2 border-[#e3e6ea] bg-transparent py-2 pr-9 text-slate-700 focus:border-[#e89c31] focus:outline-none focus:ring-0 transition-colors"
+                  className="w-full border-0 border-b-2 border-[#e3e6ea] bg-transparent py-2 pr-9 text-slate-700 transition-colors focus:border-[#e10600] focus:outline-none focus:ring-0"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 rounded-sm p-1 text-slate-500 transition-colors hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e10600] focus-visible:ring-offset-2"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -107,7 +106,7 @@ export default function SignInPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-[#e89c31] px-8 py-2.5 text-sm font-semibold text-white hover:bg-[#d4860f] disabled:opacity-60 transition-colors"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-[#e10600] px-8 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#b80505] focus:outline-none focus:ring-2 focus:ring-[#e10600] focus:ring-offset-2 disabled:opacity-60"
               >
                 {isLoading ? (
                   <>
@@ -120,7 +119,7 @@ export default function SignInPage() {
             </div>
           </form>
 
-          <p className="mt-10 text-center text-xs text-slate-400 leading-relaxed px-2">
+          <p className="mt-10 px-2 text-center text-xs leading-relaxed text-slate-600">
             Seamless shopping, reliable shipping &ndash; satisfaction to your doorstep
             with our innovative sales system!
           </p>
@@ -129,20 +128,16 @@ export default function SignInPage() {
 
       {/* ===== Right: Hero ===== */}
       <div className="hidden lg:block lg:w-[60%] relative overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?q=80&w=1920&auto=format&fit=crop"
-          alt="Logistics"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        <Image src="/brand/jnex-brand-background.jpg" alt="JNEX brand mark" fill priority sizes="60vw" className="object-cover object-center" />
         <div
           className="absolute inset-0"
-          style={{ background: "linear-gradient(120deg, rgba(58,45,26,0.78), rgba(122,90,47,0.45) 60%, rgba(0,0,0,0.25))" }}
+          style={{ background: "linear-gradient(180deg, rgba(15,15,18,0.08), rgba(184,5,5,0.12) 48%, rgba(15,15,18,0.92))" }}
         />
-        <div className="relative z-10 flex h-full flex-col justify-center px-14 text-white max-w-2xl">
+        <div className="relative z-10 flex h-full max-w-2xl flex-col justify-end px-14 pb-14 text-white xl:px-20 xl:pb-20">
           <h2 className="text-5xl font-extrabold tracking-tight drop-shadow">
-            JNEX <span className="text-[#f5b94d]">OMS</span>
+            JNEX <span className="text-red-200">OMS</span>
           </h2>
-          <p className="mt-3 text-sm font-medium text-[#f5b94d]">Order Management System</p>
+          <p className="mt-3 text-sm font-medium text-red-100">Order Management System</p>
           <p className="mt-4 text-lg leading-relaxed text-white/90">
             Welcome to Jnex! Effortlessly organize, access, and collaborate on your products.
             Streamline workflows, manage orders, and boost your sales game. Let&apos;s make your

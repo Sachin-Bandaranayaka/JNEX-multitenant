@@ -9,7 +9,7 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 export const viewport: Viewport = {
-  themeColor: '#111827', // Dark theme color
+  themeColor: '#e10600',
   width: 'device-width',
   initialScale: 1
 };

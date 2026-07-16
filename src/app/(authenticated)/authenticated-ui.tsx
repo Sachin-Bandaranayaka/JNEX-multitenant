@@ -6,6 +6,7 @@ import { useSessionStatus } from '@/hooks/use-session-status';
 import { Tenant } from '@prisma/client';
 import { Header } from '@/components/dashboard/header';
 import { Sidebar } from '@/components/dashboard/sidebar';
+import { LogoLoader } from '@/components/ui/logo-loader';
 
 export default function AuthenticatedUI({ children, tenant }: { children: React.ReactNode; tenant: Tenant; }) {
   useSessionStatus();
@@ -46,11 +47,7 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
   }, [isMobile, isSidebarOpen]);
 
   if (status === 'loading' || !session) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="h-16 w-16 animate-spin rounded-full border-t-4 border-b-4 border-primary"></div>
-      </div>
-    );
+    return <LogoLoader fullScreen label="Loading your JNEX workspace" />;
   }
 
   const userRole = session.user.role;

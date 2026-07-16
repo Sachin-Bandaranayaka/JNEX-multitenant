@@ -4,9 +4,9 @@
 
 @layer base {
   :root {
-    /* ===== Genzo palette ===== */
-    --background: 216 16% 91%; /* #e6e8ec - Genzo light grey content bg */
-    --foreground: 218 16% 32%; /* #454d5d - Genzo slate text */
+    /* ===== JNEX red/white palette ===== */
+    --background: 210 40% 98%; /* #f8fafc - cool white page background */
+    --foreground: 215 28% 17%; /* #1e293b - charcoal text */
 
     --card: 0 0% 100%; /* White cards */
     --card-foreground: 218 16% 32%;
@@ -14,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 218 16% 32%;
 
-    --primary: 34 79% 55%; /* #e89c31 - Genzo amber */
+    --primary: 2 100% 44%; /* #e10600 - JNEX red */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 216 16% 94%;
@@ -23,21 +23,21 @@
     --muted: 216 16% 94%;
     --muted-foreground: 214 11% 58%; /* #8a93a2 */
 
-    --accent: 36 60% 95%; /* amber tint hover */
-    --accent-foreground: 32 80% 38%;
+    --accent: 0 100% 98%; /* #fff5f5 - red tint hover */
+    --accent-foreground: 0 95% 37%;
 
-    --destructive: 2 53% 52%; /* #c9453f - Genzo red */
+    --destructive: 2 100% 44%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 214 14% 90%; /* #e3e6ea */
     --input: 214 14% 86%;
-    --ring: 34 79% 55%;
+    --ring: 2 100% 44%;
 
-    /* Genzo brand helpers */
-    --genzo-header: 218 16% 28%;    /* #3c4452 top bar */
-    --genzo-amber: 34 79% 55%;      /* #e89c31 */
-    --genzo-amber-dark: 35 88% 45%; /* #d4860f */
-    --genzo-teal: 184 38% 47%;      /* #4aa3a8 */
+    /* Legacy aliases map to the JNEX brand for backwards compatibility */
+    --genzo-header: 220 13% 9%;
+    --genzo-amber: 2 100% 44%;
+    --genzo-amber-dark: 0 95% 37%;
+    --genzo-teal: 2 100% 44%;
 
     --radius: 0.5rem; /* Genzo squarer corners */
   }
@@ -80,6 +80,72 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* JNEX logo loader: the mark stays readable while its orbit supplies motion. */
+.jnex-loader {
+  position: relative;
+  display: grid;
+  width: 7rem;
+  height: 7rem;
+  place-items: center;
+}
+
+.jnex-loader__orbit {
+  position: absolute;
+  inset: 0;
+  border: 2px solid #fee2e2;
+  border-top-color: #e10600;
+  border-right-color: #e10600;
+  border-radius: 50%;
+  animation: jnex-orbit 1.15s linear infinite;
+}
+
+.jnex-loader__orbit::after {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.9rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #e10600;
+  box-shadow: 0 0 0.8rem rgba(225, 6, 0, 0.45);
+  content: '';
+}
+
+.jnex-loader__halo {
+  position: absolute;
+  inset: 0.8rem;
+  border-radius: 50%;
+  background: rgba(225, 6, 0, 0.08);
+  filter: blur(0.5rem);
+  animation: jnex-breathe 1.8s ease-in-out infinite;
+}
+
+.jnex-loader__logo {
+  position: relative;
+  width: 5.25rem;
+  height: 5.25rem;
+  object-fit: contain;
+  filter: drop-shadow(0 0.35rem 0.65rem rgba(15, 23, 42, 0.16));
+  animation: jnex-breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes jnex-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes jnex-breathe {
+  0%, 100% { opacity: 0.9; transform: scale(0.96); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jnex-loader__orbit,
+  .jnex-loader__halo,
+  .jnex-loader__logo {
+    animation: none;
   }
 }
 
@@ -206,11 +272,11 @@
 
   /* Buttons */
   .genzo-btn { @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors; }
-  .genzo-btn-amber { @apply genzo-btn bg-[#e89c31] text-white hover:bg-[#d4860f]; }
-  .genzo-btn-teal  { @apply genzo-btn bg-[#4aa3a8] text-white hover:bg-[#3d8a8e]; }
-  .genzo-btn-red   { @apply genzo-btn bg-[#c9453f] text-white hover:bg-[#b03a35]; }
+  .genzo-btn-amber { @apply genzo-btn bg-[#e10600] text-white hover:bg-[#b80505]; }
+  .genzo-btn-teal  { @apply genzo-btn bg-[#e10600] text-white hover:bg-[#b80505]; }
+  .genzo-btn-red   { @apply genzo-btn bg-[#e10600] text-white hover:bg-[#b80505]; }
   .genzo-btn-gray  { @apply genzo-btn bg-[#eceef1] text-slate-600 hover:bg-[#e1e4e8]; }
-  .genzo-btn-out   { @apply genzo-btn bg-white border border-[#c9453f] text-[#c9453f] hover:bg-[#fdeceb]; }
+  .genzo-btn-out   { @apply genzo-btn bg-white border border-[#e10600] text-[#b80505] hover:bg-[#fff5f5]; }
 
   /* DataTables-style toolbar + table */
   .genzo-toolbar { @apply flex flex-wrap items-center justify-between gap-3 mb-3 text-sm text-slate-600; }
@@ -223,19 +289,19 @@
 
   /* Pagination */
   .genzo-pager a { @apply px-3 py-1.5 border border-[#e0e4e9] rounded text-slate-600 cursor-pointer text-[13px]; }
-  .genzo-pager a.cur { @apply bg-[#e89c31] text-white border-[#e89c31]; }
+  .genzo-pager a.cur { @apply bg-[#e10600] text-white border-[#e10600]; }
 
   /* Row action icons */
   .genzo-act { @apply inline-flex w-[30px] h-[30px] items-center justify-center rounded cursor-pointer mr-1 border border-transparent; }
-  .genzo-act-edit { @apply text-[#3a8ee6] hover:bg-[#eaf4fd]; }
-  .genzo-act-del  { @apply text-[#c9453f] hover:bg-[#fdeceb]; }
+  .genzo-act-edit { @apply text-[#b80505] hover:bg-[#fff5f5]; }
+  .genzo-act-del  { @apply text-[#e10600] hover:bg-[#fee2e2]; }
 
   /* Status tags */
   .genzo-tag { @apply inline-block rounded px-2.5 py-0.5 text-[11px] font-bold; }
   .genzo-tag-green  { @apply bg-[#e3f3e3] text-[#3c8c3c]; }
-  .genzo-tag-red    { @apply bg-[#fae6e5] text-[#c9453f]; }
-  .genzo-tag-orange { @apply bg-[#fbeeda] text-[#c07d18]; }
-  .genzo-tag-blue   { @apply bg-[#e4f0fb] text-[#2f7cc4]; }
+  .genzo-tag-red    { @apply bg-[#fee2e2] text-[#b80505]; }
+  .genzo-tag-orange { @apply bg-[#fff5f5] text-[#b80505]; }
+  .genzo-tag-blue   { @apply bg-[#fff5f5] text-[#b80505]; }
   .genzo-tag-gray   { @apply bg-[#eceef1] text-[#6b7483]; }
 
   /* Dashboard stat cards */
@@ -243,21 +309,21 @@
   .genzo-stat .lbl { @apply text-[13px] font-semibold mb-2; }
   .genzo-stat .big { @apply text-xl font-bold; }
   .genzo-stat .com { @apply text-[11px] mt-2 flex justify-between opacity-95; }
-  .genzo-stat-blue   { @apply bg-[#aed3f0] text-[#2c3e50]; }
-  .genzo-stat-gray   { @apply bg-[#9aa3ad]; }
-  .genzo-stat-orange { @apply bg-[#e89c31]; }
-  .genzo-stat-red    { @apply bg-[#c9453f]; }
-  .genzo-stat-green  { @apply bg-[#5cb85c]; }
+  .genzo-stat-blue   { @apply bg-[#fff5f5] text-slate-800 border border-[#fecaca]; }
+  .genzo-stat-gray   { @apply bg-white text-slate-800 border border-[#fecaca]; }
+  .genzo-stat-orange { @apply bg-[#fee2e2] text-slate-800 border border-[#fecaca]; }
+  .genzo-stat-red    { @apply bg-[#e10600] text-white border border-[#e10600]; }
+  .genzo-stat-green  { @apply bg-[#b80505] text-white border border-[#b80505]; }
 
   /* Product card (Buy Products) */
   .genzo-pcard { @apply border border-[#e7eaee] rounded-md overflow-hidden bg-white flex flex-col; }
   .genzo-pcard .img { @apply h-[150px] bg-[#f3f5f7] flex items-center justify-center; }
-  .genzo-pcard .buy { @apply mt-auto bg-[#e89c31] text-white text-center py-3 font-bold cursor-pointer hover:bg-[#d4860f] transition-colors; }
+  .genzo-pcard .buy { @apply mt-auto bg-[#e10600] text-white text-center py-3 font-bold cursor-pointer hover:bg-[#b80505] transition-colors; }
 
   /* Form rows */
   .genzo-frow { @apply grid grid-cols-[140px_1fr] items-center gap-3 mb-4; }
   .genzo-frow label { @apply font-semibold text-slate-600; }
-  .genzo-input { @apply w-full border border-[#d4d9e0] rounded-md px-3 py-2 text-[13px] text-slate-600 focus:outline-none focus:border-[#e89c31]; }
+  .genzo-input { @apply w-full border border-[#d4d9e0] rounded-md px-3 py-2 text-[13px] text-slate-600 focus:outline-none focus:border-[#e10600] focus:ring-2 focus:ring-[#fee2e2]; }
 }
 
 /* =========================================================

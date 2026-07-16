@@ -23,16 +23,31 @@ const orderedRoutes = [
     '/reports',
 ];
 
-export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-  const { pathname } = request.nextUrl;
-  const userRole = token?.role as Role;
-  const userPermissions = (token?.permissions as string[]) || [];
+const publicAssetPrefixes = ['/brand/', '/icons/', '/IMAGES/', '/templates/'];
+const publicAssetFiles = new Set([
+  '/favicon.ico',
+  '/manifest.json',
+  '/sw.js',
+  '/Trans Express Main.postman_collection.json',
+]);
 
-  // --- Allow API routes to pass through (they handle their own auth) ---
-  if (pathname.startsWith('/api/')) {
+function isPublicAsset(pathname: string) {
+  const isWorkboxRuntime = pathname.startsWith('/workbox-') && pathname.endsWith('.js');
+  return isWorkboxRuntime || publicAssetFiles.has(pathname) || publicAssetPrefixes.some(prefix => pathname.startsWith(prefix));
+}
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Public files must remain available before authentication (sign-in branding,
+  // PWA metadata, icons, and downloadable templates).
+  if (isPublicAsset(pathname) || pathname.startsWith('/api/')) {
     return NextResponse.next();
   }
+
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  const userRole = token?.role as Role;
+  const userPermissions = (token?.permissions as string[]) || [];
 
   // --- FIX: Explicitly allow access to the unauthorized page to prevent redirect loops ---
   if (pathname === '/unauthorized') {
@@ -105,7 +120,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Update matcher to exclude /unauthorized from the middleware's initial run if needed,
-  // but the explicit check at the top is more robust.
+  // Public files that reach middleware are handled by the narrow allowlist
+  // above; all non-static application routes remain protected here.
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };

@@ -55,11 +55,11 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
     { value: 'secondHalf', label: 'This Month 2nd Half' },
   ];
   const orderCards: Array<{ label: string; bucket: keyof OrderSummary; style: string }> = [
-    { label: 'Total Orders', bucket: 'total', style: 'bg-[#7ec8e3] text-slate-700' },
-    { label: 'Pending Orders', bucket: 'pending', style: 'bg-[#8d8d8d] text-white' },
-    { label: 'Shipped Orders', bucket: 'shipped', style: 'bg-[#ff9900] text-white' },
-    { label: 'Returned', bucket: 'returned', style: 'bg-[#cf0018] text-white' },
-    { label: 'Delivered', bucket: 'delivered', style: 'bg-[#2f9500] text-white' },
+    { label: 'Total Orders', bucket: 'total', style: 'bg-[#e10600] text-white border-[#e10600]' },
+    { label: 'Pending Orders', bucket: 'pending', style: 'bg-white text-slate-800 border-[#fecaca] border-l-[#e10600]' },
+    { label: 'Shipped Orders', bucket: 'shipped', style: 'bg-[#fff5f5] text-slate-800 border-[#fecaca] border-l-[#e10600]' },
+    { label: 'Returned', bucket: 'returned', style: 'bg-[#b80505] text-white border-[#b80505]' },
+    { label: 'Delivered', bucket: 'delivered', style: 'bg-[#fee2e2] text-slate-900 border-[#fecaca] border-l-[#b80505]' },
   ];
 
   return <main className="space-y-6 pb-8">
@@ -68,7 +68,7 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
         <h1 className="text-2xl font-extrabold tracking-tight text-slate-800 sm:text-[28px]">{greetingForHour(now.getHours())}{firstName ? `, ${firstName}` : ''}</h1>
         <p className="mt-1.5 text-sm text-slate-500">A clear view of sales and lead conversion.</p>
       </div>
-      <div className="flex items-center gap-2 text-sm font-semibold text-slate-600"><CalendarIcon className="h-4 w-4 text-amber-600" />{format(now, 'EEEE, MMMM d')}</div>
+      <div className="flex items-center gap-2 text-sm font-semibold text-slate-600"><CalendarIcon className="h-4 w-4 text-[#e10600]" />{format(now, 'EEEE, MMMM d')}</div>
     </header>
 
     <section aria-label="Order summary" className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -81,9 +81,9 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
               type="button"
               onClick={() => setSummaryPeriod(filter.value)}
               aria-pressed={isActive}
-              className={`relative shrink-0 rounded-md px-3 py-2 text-left text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 xl:w-full ${isActive ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}
+              className={`relative shrink-0 rounded-md px-3 py-2 text-left text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e10600] focus-visible:ring-offset-1 xl:w-full ${isActive ? 'bg-[#fff5f5] text-[#b80505]' : 'text-slate-400 hover:bg-[#fff5f5] hover:text-slate-700'}`}
             >
-              <span className={`absolute inset-y-2 left-0 w-0.5 rounded-full bg-slate-700 transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`} aria-hidden="true" />
+              <span className={`absolute inset-y-2 left-0 w-0.5 rounded-full bg-[#e10600] transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'}`} aria-hidden="true" />
               {filter.label}
             </button>;
           })}
@@ -94,7 +94,7 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
             const metric = activeOrderSummary[bucket];
             return <article key={bucket} className="min-w-0">
               <h2 className="mb-2 text-sm font-extrabold text-slate-700">{label}</h2>
-              <div className={`flex min-h-28 flex-col justify-center rounded-md px-4 py-4 shadow-sm ${style}`}>
+              <div className={`flex min-h-28 flex-col justify-center rounded-md border border-l-4 px-4 py-4 shadow-sm ${style}`}>
                 <p className="whitespace-nowrap text-lg font-medium leading-none tracking-tight tabular-nums 2xl:text-xl">
                   {metric.count.toLocaleString('en-LK')} <span aria-hidden="true">|</span> Rs. {metric.total.toLocaleString('en-LK', { maximumFractionDigits: 0 })}
                 </p>
@@ -112,7 +112,7 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
       <div className="flex flex-col gap-4 border-b border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div><h2 className="text-base font-bold text-slate-800">Sales performance</h2><p className="mt-0.5 text-xs text-slate-500">Delivered revenue and orders for the selected period.</p></div>
         <div className="flex w-fit rounded-md border border-slate-300 p-0.5" aria-label="Sales date range">
-          {([7, 30, 90] as Range[]).map(value => <button key={value} type="button" onClick={() => setRange(value)} aria-pressed={range === value} className={`rounded px-3 py-1.5 text-xs font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 ${range === value ? 'bg-slate-800 text-white' : 'text-slate-500 hover:bg-slate-50'}`}>{value} days</button>)}
+          {([7, 30, 90] as Range[]).map(value => <button key={value} type="button" onClick={() => setRange(value)} aria-pressed={range === value} className={`rounded px-3 py-1.5 text-xs font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-[#e10600] ${range === value ? 'bg-[#e10600] text-white' : 'text-slate-500 hover:bg-[#fff5f5]'}`}>{value} days</button>)}
         </div>
       </div>
       <div className="grid grid-cols-2 gap-px bg-slate-200 sm:grid-cols-4">
@@ -120,17 +120,17 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
       </div>
       <div className="h-[310px] px-1 pb-4 pt-6 sm:h-[360px] sm:px-4">
         {summary.orders === 0 ? <div className="flex h-full items-center justify-center px-6 text-center"><div><p className="text-sm font-bold text-slate-700">No delivered sales in this period</p><p className="mt-1 text-xs text-slate-500">Choose a longer range or check back after an order is delivered.</p></div></div> : <ResponsiveContainer width="100%" height="100%"><AreaChart data={sales} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
-          <defs><linearGradient id="salesRevenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#d97706" stopOpacity={0.4}/><stop offset="95%" stopColor="#d97706" stopOpacity={0.03}/></linearGradient><linearGradient id="salesOrders" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0f766e" stopOpacity={0.3}/><stop offset="95%" stopColor="#0f766e" stopOpacity={0.02}/></linearGradient></defs>
+          <defs><linearGradient id="salesRevenue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#e10600" stopOpacity={0.32}/><stop offset="95%" stopColor="#e10600" stopOpacity={0.03}/></linearGradient><linearGradient id="salesOrders" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#334155" stopOpacity={0.2}/><stop offset="95%" stopColor="#334155" stopOpacity={0.02}/></linearGradient></defs>
           <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
           <XAxis dataKey="date" axisLine={false} tickLine={false} minTickGap={28} tickMargin={10} fontSize={11} tick={{ fill: '#64748b' }} tickFormatter={(value) => format(new Date(`${value}T00:00:00`), 'MMM d')} />
           <YAxis yAxisId="revenue" axisLine={false} tickLine={false} width={56} fontSize={11} tick={{ fill: '#64748b' }} tickFormatter={(value) => value >= 1000 ? `${Math.round(value / 1000)}k` : String(value)} />
           <YAxis yAxisId="orders" orientation="right" axisLine={false} tickLine={false} width={28} allowDecimals={false} fontSize={11} tick={{ fill: '#64748b' }} />
-          <Tooltip cursor={{ stroke: '#94a3b8', strokeDasharray: '3 3' }} content={({ active, payload, label }) => active && payload?.length ? <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs shadow-lg"><div className="mb-1.5 font-bold text-slate-700">{format(new Date(`${label}T00:00:00`), 'EEEE, MMM d')}</div><div className="flex min-w-40 justify-between gap-5 text-amber-700"><span>Revenue</span><strong>{money(Number(payload.find(p => p.dataKey === 'revenue')?.value ?? 0))}</strong></div><div className="mt-1 flex justify-between gap-5 text-teal-700"><span>Orders</span><strong>{Number(payload.find(p => p.dataKey === 'orders')?.value ?? 0)}</strong></div></div> : null} />
-          <Area yAxisId="revenue" dataKey="revenue" name="Revenue" type="monotone" fill="url(#salesRevenue)" stroke="#d97706" strokeWidth={2} />
-          <Area yAxisId="orders" dataKey="orders" name="Orders" type="monotone" fill="url(#salesOrders)" stroke="#0f766e" strokeWidth={2} />
+          <Tooltip cursor={{ stroke: '#94a3b8', strokeDasharray: '3 3' }} content={({ active, payload, label }) => active && payload?.length ? <div className="rounded-md border border-[#fecaca] bg-white px-3 py-2 text-xs shadow-lg"><div className="mb-1.5 font-bold text-slate-700">{format(new Date(`${label}T00:00:00`), 'EEEE, MMM d')}</div><div className="flex min-w-40 justify-between gap-5 text-[#b80505]"><span>Revenue</span><strong>{money(Number(payload.find(p => p.dataKey === 'revenue')?.value ?? 0))}</strong></div><div className="mt-1 flex justify-between gap-5 text-slate-700"><span>Orders</span><strong>{Number(payload.find(p => p.dataKey === 'orders')?.value ?? 0)}</strong></div></div> : null} />
+          <Area yAxisId="revenue" dataKey="revenue" name="Revenue" type="monotone" fill="url(#salesRevenue)" stroke="#e10600" strokeWidth={2} />
+          <Area yAxisId="orders" dataKey="orders" name="Orders" type="monotone" fill="url(#salesOrders)" stroke="#334155" strokeWidth={2} />
         </AreaChart></ResponsiveContainer>}
       </div>
-      <div className="flex items-center justify-center gap-5 border-t border-slate-100 py-3 text-xs font-semibold text-slate-600"><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-amber-600" />Revenue</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-teal-700" />Orders</span></div>
+      <div className="flex items-center justify-center gap-5 border-t border-slate-100 py-3 text-xs font-semibold text-slate-600"><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-[#e10600]" />Revenue</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-slate-700" />Orders</span></div>
     </section>
 
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm">

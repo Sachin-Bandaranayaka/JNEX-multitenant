@@ -28,64 +28,47 @@ import {
   BellAlertIcon,
 } from '@heroicons/react/24/outline';
 
-// Production-grade status palette: each status has a clearly distinct hue,
-// a colored left-border stripe, a strong row tint, and a pill badge.
+// Operational status palette. Colors intentionally fill the entire row/card so
+// operators can identify a lead's state without hunting for a small badge.
 const STATUS_CONFIG = {
-  // Colors matched to Genzo's lead-table legend:
-  // Pending = lavender, Ok = green, No Answer = yellow, Rejected = salmon, Deleted = pale pink.
   PENDING: {
     label: 'Pending',
-    rowBg: 'bg-[#e9eaf7]',
-    leftBorder: 'border-l-[#9499d8]',
-    badge: 'bg-[#e3e4f5] text-[#5b60a8] ring-1 ring-[#c9cdef]',
-    numBadge: 'bg-[#8b90d4] text-white',
-    dot: 'bg-[#b7bbe0]',
-    chipActive: 'bg-[#8b90d4] text-white border-[#8b90d4] shadow-sm',
-    chipIdle: 'bg-[#eceefa] text-[#5b60a8] border-[#c9cdef] hover:bg-[#dde0f4]',
+    rowBg: 'bg-[#e5e7eb] dark:bg-slate-700',
+    leftBorder: 'border-l-[#6b7280]',
+    numBadge: 'bg-[#4b5563] text-white',
+    dot: 'bg-[#6b7280]',
     icon: ClockIcon,
   },
   NO_ANSWER: {
     label: 'No Answer',
-    rowBg: 'bg-[#fbf7cf]',
-    leftBorder: 'border-l-[#e0cf3a]',
-    badge: 'bg-[#faf4c2] text-[#8a7a1a] ring-1 ring-[#ece0a0]',
-    numBadge: 'bg-[#d9c83a] text-white',
-    dot: 'bg-[#e6d84a]',
-    chipActive: 'bg-[#d9c83a] text-white border-[#d9c83a] shadow-sm',
-    chipIdle: 'bg-[#fbf7cf] text-[#8a7a1a] border-[#ece0a0] hover:bg-[#f7f1b8]',
+    rowBg: 'bg-[#fde047] dark:bg-[#a16207]',
+    leftBorder: 'border-l-[#ca8a04]',
+    numBadge: 'bg-[#854d0e] text-white',
+    dot: 'bg-[#eab308]',
     icon: PhoneXMarkIcon,
   },
   CONFIRMED: {
     label: 'Ok',
-    rowBg: 'bg-[#e4f5e0]',
-    leftBorder: 'border-l-[#5cb85c]',
-    badge: 'bg-[#e3f3e3] text-[#3c8c3c] ring-1 ring-[#bce3bc]',
-    numBadge: 'bg-[#5cb85c] text-white',
-    dot: 'bg-[#86d486]',
-    chipActive: 'bg-[#5cb85c] text-white border-[#5cb85c] shadow-sm',
-    chipIdle: 'bg-[#e4f5e0] text-[#3c8c3c] border-[#bce3bc] hover:bg-[#d4efce]',
+    rowBg: 'bg-[#4ade80] dark:bg-[#166534]',
+    leftBorder: 'border-l-[#15803d]',
+    numBadge: 'bg-[#166534] text-white',
+    dot: 'bg-[#22c55e]',
     icon: CheckCircleIcon,
   },
   REJECTED: {
     label: 'Rejected',
-    rowBg: 'bg-[#fbe7e4]',
-    leftBorder: 'border-l-[#d9655c]',
-    badge: 'bg-[#fae6e5] text-[#c9453f] ring-1 ring-[#f0c2bd]',
-    numBadge: 'bg-[#d9655c] text-white',
-    dot: 'bg-[#e98a80]',
-    chipActive: 'bg-[#d9655c] text-white border-[#d9655c] shadow-sm',
-    chipIdle: 'bg-[#fbe7e4] text-[#c9453f] border-[#f0c2bd] hover:bg-[#f7d8d3]',
+    rowBg: 'bg-[#f87171] dark:bg-[#991b1b]',
+    leftBorder: 'border-l-[#b91c1c]',
+    numBadge: 'bg-[#991b1b] text-white',
+    dot: 'bg-[#ef4444]',
     icon: XCircleIcon,
   },
   DELETED: {
     label: 'Deleted',
-    rowBg: 'bg-[#f3ece8]',
-    leftBorder: 'border-l-[#c9b3a8]',
-    badge: 'bg-[#f1e8e3] text-[#8a7268] ring-1 ring-[#ddccc3]',
-    numBadge: 'bg-[#bfa99e] text-white',
-    dot: 'bg-[#d8c2b8]',
-    chipActive: 'bg-[#bfa99e] text-white border-[#bfa99e] shadow-sm',
-    chipIdle: 'bg-[#f3ece8] text-[#8a7268] border-[#ddccc3] hover:bg-[#ebe0d9]',
+    rowBg: 'bg-[#b98b6f] dark:bg-[#713f2a]',
+    leftBorder: 'border-l-[#78350f]',
+    numBadge: 'bg-[#78350f] text-white',
+    dot: 'bg-[#92400e]',
     icon: TrashIcon,
   },
 } as const;
@@ -98,7 +81,7 @@ function ContactIcons({ phone }: { phone: string | undefined }) {
   const waNumber = cleaned.startsWith('+') ? cleaned.slice(1) : cleaned;
   return (
     <div className="flex min-w-0 items-center gap-1.5">
-      <span className="whitespace-nowrap text-[13px] font-bold tracking-wide text-slate-900">{phone}</span>
+      <span className="whitespace-nowrap text-[13px] font-bold tracking-wide text-slate-900 dark:text-white">{phone}</span>
       <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener noreferrer" title="WhatsApp"
         className="text-green-600 hover:text-green-700 transition-colors shrink-0">
         <ChatBubbleLeftIcon className="h-4 w-4" />
@@ -539,24 +522,24 @@ export function LeadsClient({
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
+      <div className="overflow-hidden border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
         {/* Full-column table on screens where the columns remain readable. */}
         <div className="hidden xl:block overflow-hidden">
-          <table className="w-full table-fixed text-[11px] border-collapse border border-slate-200 no-genzo-override">
+          <table className="w-full table-fixed border-collapse text-left text-[11px] leading-[1.25] text-slate-800 dark:text-slate-100 no-genzo-override">
             <thead>
-              <tr className="border-b-2 border-slate-300 bg-white">
-                <th className="w-8 px-1 py-2 border-r border-b border-slate-200">
+              <tr className="bg-[#f2f2f2] dark:bg-slate-800">
+                <th className="w-8 border-b border-r border-slate-200 px-1 py-2 text-center dark:border-slate-700">
                   <input type="checkbox" className="h-4 w-4 rounded border-border text-primary" checked={allSelected} onChange={toggleSelectAll} />
                 </th>
-                <th className="w-20 px-2 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200"># / Lead No</th>
-                <th className="w-20 px-1 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Lead Date</th>
-                <th className="w-32 px-2 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Customer Name</th>
-                <th className="px-2 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Address</th>
-                <th className="w-32 px-2 py-2 text-left font-bold text-slate-700 border-r border-b border-slate-200">Contact No 1</th>
-                <th className="w-32 px-2 py-2 text-left font-bold text-slate-700 border-r border-b border-slate-200">Contact No 2</th>
-                <th className="w-20 px-1 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Product Code</th>
-                <th className="w-20 px-1 py-2 text-left font-bold text-slate-600 border-r border-b border-slate-200">Staff</th>
-                <th className="w-36 px-2 py-2 text-right font-bold text-slate-600 border-b border-slate-200">Actions</th>
+                <th className="w-20 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200"># / Lead No</th>
+                <th className="w-20 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Lead Date</th>
+                <th className="w-32 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Customer Name</th>
+                <th className="border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Address</th>
+                <th className="w-32 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Contact No 1</th>
+                <th className="w-32 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Contact No 2</th>
+                <th className="w-20 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Product Code</th>
+                <th className="w-20 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Staff</th>
+                <th className="w-36 border-b border-slate-200 px-2 py-2 text-right font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -571,35 +554,36 @@ export function LeadsClient({
 
                   return (
                     <tr key={lead.id}
-                      className={`${config?.rowBg ?? ''} border-l-4 ${config?.leftBorder ?? 'border-l-transparent'} ${isSelected ? 'ring-2 ring-inset ring-primary/30' : ''} hover:brightness-[0.98] dark:hover:brightness-110 transition-all`}>
-                      <td className="px-1 py-2.5 border-r border-b border-slate-200 align-middle text-center">
+                      className={`relative ${config?.rowBg ?? 'bg-white dark:bg-slate-900'} border-l-4 ${config?.leftBorder ?? 'border-l-transparent'} ${isSelected ? 'ring-2 ring-inset ring-primary' : ''} hover:brightness-[0.96] dark:hover:brightness-110 transition-[filter]`}>
+                      <td className="relative border-b border-r border-slate-200 px-1 py-2 text-center align-top dark:border-slate-700">
+                        {lead.status === 'DELETED' && <span aria-hidden="true" className="pointer-events-none absolute left-0 top-1/2 z-10 h-px w-[calc(100vw-2rem)] -translate-y-1/2 bg-[#3f2417]/80" />}
                         <input type="checkbox" className="h-4 w-4 rounded border-border text-primary" checked={isSelected} onChange={() => toggleSelect(lead.id)} />
                       </td>
-                      <td className="px-2 py-2 border-r border-b border-slate-200 align-middle">
+                      <td className="border-b border-r border-slate-200 px-2 py-2 align-top dark:border-slate-700">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="text-muted-foreground shrink-0 font-medium">{rowIdx}</span>
                           <Link href={`/leads/${lead.id}${displayedLeads[idx + 1] ? `?nextLeadId=${displayedLeads[idx + 1].id}` : ''}`} className="min-w-0">
-                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold truncate ${config?.numBadge ?? 'bg-gray-500 text-white'}`}>
+                            <span className={`inline-flex max-w-full items-center truncate rounded-sm px-1.5 py-0.5 text-[10px] font-bold underline underline-offset-2 ${config?.numBadge ?? 'bg-gray-500 text-white'}`}>
                               {lead.number}
                             </span>
                           </Link>
                         </div>
                       </td>
-                      <td className="px-1 py-2 border-r border-b border-slate-200 text-[10px] text-muted-foreground leading-tight">
+                      <td className="border-b border-r border-slate-200 px-2 py-2 align-top text-[10px] leading-tight text-slate-700 dark:border-slate-700 dark:text-slate-200">
                         <div>{format(new Date(lead.createdAt), 'yyyy-MM-dd')}</div>
                         <div>{format(new Date(lead.createdAt), 'HH:mm')}</div>
                       </td>
-                      <td className="px-2 py-2 border-r border-b border-slate-200 align-middle truncate font-medium text-foreground" title={csvData.name || 'Unnamed'}>
+                      <td className="truncate border-b border-r border-slate-200 px-2 py-2 align-top font-semibold text-slate-800 dark:border-slate-700 dark:text-slate-100" title={csvData.name || 'Unnamed'}>
                         {csvData.name || 'Unnamed'}
                       </td>
-                      <td className="px-2 py-2 border-r border-b border-slate-200 align-middle truncate text-muted-foreground" title={`${csvData.address || ''}${csvData.city ? `, ${csvData.city}` : ''}`}>
+                      <td className="truncate border-b border-r border-slate-200 px-2 py-2 align-top text-slate-700 dark:border-slate-700 dark:text-slate-200" title={`${csvData.address || ''}${csvData.city ? `, ${csvData.city}` : ''}`}>
                         {csvData.address}{csvData.city ? `, ${csvData.city}` : ''}
                       </td>
-                      <td className="bg-white/45 px-2 py-2 border-r border-b border-slate-200 align-middle"><ContactIcons phone={csvData.phone} /></td>
-                      <td className="bg-white/45 px-2 py-2 border-r border-b border-slate-200 align-middle"><ContactIcons phone={csvData.secondPhone} /></td>
-                      <td className="px-1 py-2 border-r border-b border-slate-200 align-middle truncate text-muted-foreground" title={lead.product.name}>{lead.product.code}</td>
-                      <td className="px-1 py-2 border-r border-b border-slate-200 align-middle truncate text-muted-foreground" title={lead.assignedTo?.name || ''}>{lead.assignedTo?.name || '—'}</td>
-                      <td className="px-2 py-2 text-right border-b border-slate-200 align-middle">
+                      <td className="border-b border-r border-slate-200 px-2 py-2 align-top dark:border-slate-700"><ContactIcons phone={csvData.phone} /></td>
+                      <td className="border-b border-r border-slate-200 px-2 py-2 align-top dark:border-slate-700"><ContactIcons phone={csvData.secondPhone} /></td>
+                      <td className="truncate border-b border-r border-slate-200 px-2 py-2 align-top text-slate-700 dark:border-slate-700 dark:text-slate-200" title={lead.product.name}>{lead.product.code}</td>
+                      <td className="truncate border-b border-r border-slate-200 px-2 py-2 align-top text-slate-700 dark:border-slate-700 dark:text-slate-200" title={lead.assignedTo?.name || ''}>{lead.assignedTo?.name || '—'}</td>
+                      <td className="border-b border-slate-200 px-2 py-2 text-right align-top dark:border-slate-700">
                         <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} returnTo={buildUrl()} />
                       </td>
                     </tr>
@@ -621,13 +605,14 @@ export function LeadsClient({
             const isSelected = selectedIds.includes(lead.id);
             const rowIdx = ((currentPage - 1) * pageSize) + idx + 1;
             return (
-              <article key={lead.id} className={`${config?.rowBg || 'bg-white'} border-l-4 ${config?.leftBorder || 'border-l-transparent'} p-3`}>
+              <article key={lead.id} className={`relative overflow-hidden ${config?.rowBg || 'bg-white dark:bg-slate-900'} border-l-4 ${config?.leftBorder || 'border-l-transparent'} p-3 ${isSelected ? 'ring-2 ring-inset ring-primary' : ''}`}>
+                {lead.status === 'DELETED' && <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-1/2 z-10 h-px -translate-y-1/2 bg-[#3f2417]/80" />}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2">
                     <input type="checkbox" className="h-4 w-4 shrink-0 rounded border-border text-primary" checked={isSelected} onChange={() => toggleSelect(lead.id)} />
                     <span className="text-xs text-muted-foreground">#{rowIdx}</span>
                     <Link href={`/leads/${lead.id}${displayedLeads[idx + 1] ? `?nextLeadId=${displayedLeads[idx + 1].id}` : ''}`}>
-                      <span className={`inline-flex rounded px-2 py-0.5 text-xs font-bold ${config?.numBadge || 'bg-gray-500 text-white'}`}>Lead {lead.number}</span>
+                      <span className={`inline-flex rounded-sm px-2 py-0.5 text-xs font-bold underline underline-offset-2 ${config?.numBadge || 'bg-gray-500 text-white'}`}>Lead {lead.number}</span>
                     </Link>
                   </div>
                   <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} returnTo={buildUrl()} />
@@ -637,12 +622,12 @@ export function LeadsClient({
                   <CardField label="Lead Date" value={format(new Date(lead.createdAt), 'yyyy-MM-dd HH:mm:ss')} />
                   <CardField label="Customer Name" value={csvData.name || 'Unnamed'} />
                   <CardField label="Address" value={`${csvData.address || ''}${csvData.city ? `, ${csvData.city}` : ''}`} />
-                  <div className="rounded-lg bg-white/80 p-2 ring-1 ring-slate-200">
-                    <dt className="font-semibold text-slate-600">Contact No 1</dt>
+                  <div className="border border-slate-300/80 bg-white/45 p-2 dark:border-slate-600 dark:bg-black/10">
+                    <dt className="font-semibold text-slate-600 dark:text-slate-200">Contact No 1</dt>
                     <dd className="mt-1"><ContactIcons phone={csvData.phone} /></dd>
                   </div>
-                  <div className="rounded-lg bg-white/80 p-2 ring-1 ring-slate-200">
-                    <dt className="font-semibold text-slate-600">Contact No 2</dt>
+                  <div className="border border-slate-300/80 bg-white/45 p-2 dark:border-slate-600 dark:bg-black/10">
+                    <dt className="font-semibold text-slate-600 dark:text-slate-200">Contact No 2</dt>
                     <dd className="mt-1"><ContactIcons phone={csvData.secondPhone} /></dd>
                   </div>
                   <CardField label="Product Code" value={lead.product.code} />

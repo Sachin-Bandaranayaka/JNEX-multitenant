@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   BellAlertIcon,
   CalendarDaysIcon,
@@ -125,6 +126,8 @@ export function LeadReminderModal({
     const previouslyFocused = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const focusFrame = window.requestAnimationFrame(() => {
       const target = dialogRef.current?.querySelector<HTMLElement>('[data-dialog-autofocus]');
       target?.focus();
@@ -157,6 +160,7 @@ export function LeadReminderModal({
     return () => {
       window.cancelAnimationFrame(focusFrame);
       window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousBodyOverflow;
       previouslyFocused?.focus();
     };
   }, [isOpen, onClose]);
@@ -225,7 +229,7 @@ export function LeadReminderModal({
     }
   };
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-4"
       onMouseDown={(event) => {
@@ -378,6 +382,7 @@ export function LeadReminderModal({
           </footer>
         </form>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

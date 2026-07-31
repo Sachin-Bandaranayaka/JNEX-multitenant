@@ -21,6 +21,15 @@ export async function PUT(
         if (!session?.user?.tenantId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
+        const canEdit = session.user.role === 'ADMIN'
+            || session.user.role === 'SUPER_ADMIN'
+            || session.user.permissions?.includes('EDIT_LEADS');
+        if (!canEdit) {
+            return NextResponse.json(
+                { error: 'You do not have permission to update leads' },
+                { status: 403 }
+            );
+        }
 
         // Tenant-scoped client: an ADMIN of one tenant can no longer read or
         // mutate leads belonging to another tenant — the lookup below returns
@@ -56,6 +65,7 @@ export async function PUT(
         // an old NO_ANSWER lead reactivated as PENDING today will appear in today's
         // "Status Changed" filter.
         const statusActuallyChanged = lead.status !== validatedData.status;
+        const isClosingLead = ['CONFIRMED', 'REJECTED', 'DELETED'].includes(validatedData.status);
 
         const updatedLead = await prisma.lead.update({
             where: { id: resolvedParams.leadId },
@@ -63,6 +73,7 @@ export async function PUT(
                 status: validatedData.status,
                 ...(validatedData.status === 'NO_ANSWER' ? { callAttempts: { increment: 1 } } : {}),
                 ...(statusActuallyChanged ? { statusChangedAt: new Date() } : {}),
+                ...(isClosingLead ? { reminderDate: null, reminderNote: null } : {}),
             },
             include: {
                 product: true,
@@ -70,6 +81,17 @@ export async function PUT(
                 order: true,
             },
         });
+
+        if (isClosingLead) {
+            await prisma.leadReminder.updateMany({
+                where: { leadId: lead.id, status: 'PENDING' },
+                data: {
+                    status: 'CANCELLED',
+                    completedAt: new Date(),
+                    completedById: session.user.id,
+                },
+            });
+        }
 
         return NextResponse.json(updatedLead);
     } catch (error) {

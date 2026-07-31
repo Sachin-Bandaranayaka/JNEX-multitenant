@@ -26,6 +26,11 @@ export type LeadWithRelations = Prisma.LeadGetPayload<{
         product: true;
         assignedTo: { select: { id: true, name: true, email: true } };
         order: { include: { product: true } };
+        reminders: {
+            where: { status: 'PENDING' };
+            orderBy: { remindAt: 'asc' };
+            take: 1;
+        };
     }
 }>;
 
@@ -44,6 +49,11 @@ export default async function LeadDetailsPage({ params }: LeadDetailsPageProps) 
         include: {
             product: true,
             assignedTo: { select: { id: true, name: true, email: true } },
+            reminders: {
+                where: { status: 'PENDING' },
+                orderBy: { remindAt: 'asc' },
+                take: 1,
+            },
             order: { include: { product: true } }
         }
     });

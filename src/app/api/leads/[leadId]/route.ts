@@ -1,4 +1,4 @@
-import { getScopedPrismaClient } from '@/lib/prisma';
+import { getScopedPrismaClient, prisma as globalPrisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -25,7 +25,6 @@ export async function DELETE(
     if (!session?.user?.tenantId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
-    
     // Check for specific delete permission
     const canDelete = session.user.role === 'ADMIN' || session.user.permissions?.includes('DELETE_LEADS');
     if (!canDelete) {
@@ -115,6 +114,12 @@ export async function PUT(
     if (!session?.user?.tenantId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
+    const canEdit = session.user.role === 'ADMIN'
+      || session.user.role === 'SUPER_ADMIN'
+      || session.user.permissions?.includes('EDIT_LEADS');
+    if (!canEdit) {
+      return NextResponse.json({ error: 'You do not have permission to edit leads' }, { status: 403 });
+    }
     
     const resolvedParams = await params;
     // Use the scoped client for all operations
@@ -152,14 +157,20 @@ export async function PUT(
       return NextResponse.json({ error: 'Product not found for this tenant' }, { status: 404 });
     }
 
-    // Securely update the lead
+    const nextReminderDate = validatedData.reminderDate ? new Date(validatedData.reminderDate) : null;
+    const nextReminderNote = validatedData.reminderNote ?? null;
+    const reminderChanged =
+      lead.reminderDate?.getTime() !== nextReminderDate?.getTime()
+      || (lead.reminderNote ?? null) !== nextReminderNote;
+
+    // Securely update the lead.
     const updatedLead = await prisma.lead.update({
       where: { id: resolvedParams.leadId },
       data: {
         csvData: validatedData.csvData as unknown as Prisma.JsonObject,
         productCode: validatedData.productCode,
-        reminderDate: validatedData.reminderDate ? new Date(validatedData.reminderDate) : null,
-        reminderNote: validatedData.reminderNote ?? null,
+        reminderDate: nextReminderDate,
+        reminderNote: nextReminderNote,
       },
       include: {
         product: true,
@@ -167,6 +178,37 @@ export async function PUT(
         order: { include: { product: true } }
       },
     });
+
+    // Keep the legacy edit form compatible with the auditable reminder queue.
+    // A changed date closes the previous record and creates a new history entry.
+    if (reminderChanged) {
+      await globalPrisma.$transaction(async (tx) => {
+        await tx.leadReminder.updateMany({
+          where: {
+            tenantId: session.user.tenantId,
+            leadId: lead.id,
+            status: 'PENDING',
+          },
+          data: {
+            status: 'CANCELLED',
+            completedAt: new Date(),
+            completedById: session.user.id,
+          },
+        });
+        if (nextReminderDate) {
+          await tx.leadReminder.create({
+            data: {
+              tenantId: session.user.tenantId,
+              leadId: lead.id,
+              assignedUserId: lead.userId,
+              createdById: session.user.id,
+              remindAt: nextReminderDate,
+              note: nextReminderNote,
+            },
+          });
+        }
+      });
+    }
 
     return NextResponse.json(updatedLead);
   } catch (error) {

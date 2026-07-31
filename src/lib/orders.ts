@@ -85,7 +85,19 @@ export async function createOrderFromLead(data: CreateOrderData) {
 
       await tx.lead.update({
         where: { id: data.leadId },
-        data: { status: LeadStatus.CONFIRMED }
+        data: {
+          status: LeadStatus.CONFIRMED,
+          reminderDate: null,
+          reminderNote: null,
+        }
+      });
+      await tx.leadReminder.updateMany({
+        where: { leadId: data.leadId, tenantId: data.tenantId, status: 'PENDING' },
+        data: {
+          status: 'CANCELLED',
+          completedAt: new Date(),
+          completedById: data.userId,
+        },
       });
 
       const currentProduct = await tx.product.findUnique({ where: { id: lead.product.id } });

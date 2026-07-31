@@ -17,18 +17,24 @@ export default async function RemindLeadsPage() {
 
   const prisma = getScopedPrismaClient(session.user.tenantId);
 
-  const leads = await prisma.lead.findMany({
+  const reminders = await prisma.leadReminder.findMany({
     where: {
-      reminderDate: { not: null },
-      status: { in: ['PENDING', 'NO_ANSWER'] },
-      ...(session.user.role === 'TEAM_MEMBER' ? { userId: session.user.id } : {}),
+      status: 'PENDING',
+      lead: {
+        status: { in: ['PENDING', 'NO_ANSWER'] },
+        ...(session.user.role === 'TEAM_MEMBER' ? { userId: session.user.id } : {}),
+      },
     },
     include: {
-      product: true,
-      assignedTo: true,
+      lead: {
+        include: {
+          product: true,
+          assignedTo: true,
+        },
+      },
     },
-    orderBy: { reminderDate: 'asc' },
+    orderBy: { remindAt: 'asc' },
   });
 
-  return <RemindLeadsClient leads={leads as any} />;
+  return <RemindLeadsClient reminders={reminders} />;
 }

@@ -26,6 +26,12 @@ export type LeadWithDetails = PrismaLead & {
     shippingProvider: string | null;
     trackingNumber: string | null;
   } | null;
+  reminders?: Array<{
+    id: string;
+    remindAt: Date;
+    note: string | null;
+    status: string;
+  }>;
 };
 
 export default async function LeadsPage({
@@ -146,6 +152,17 @@ export default async function LeadsPage({
       include: {
         product: true,
         assignedTo: true,
+        reminders: {
+          where: { status: 'PENDING' },
+          orderBy: { remindAt: 'asc' },
+          take: 1,
+          select: {
+            id: true,
+            remindAt: true,
+            note: true,
+            status: true,
+          },
+        },
         order: {
           select: {
             id: true,

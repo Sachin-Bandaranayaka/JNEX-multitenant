@@ -9,8 +9,13 @@ import type { LeadWithDetails } from '@/app/(authenticated)/leads/page';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ShippingModal } from '@/components/orders/shipping-modal';
+import {
+    EditableLeadReminder,
+    LeadReminderModal,
+} from '@/components/leads/lead-reminder-modal';
 import { toast } from 'sonner';
 import {
+    BellAlertIcon,
     ExclamationTriangleIcon,
     ShoppingCartIcon,
     ArrowUturnLeftIcon,
@@ -25,6 +30,11 @@ interface PotentialDuplicate {
     customerName: string;
     confirmedDate: string;
 }
+
+type LeadWithReminder = LeadWithDetails & {
+    activeReminder?: EditableLeadReminder | null;
+    reminders?: EditableLeadReminder[];
+};
 
 // --- Delete Confirmation Modal ---
 function DeleteConfirmModal({
@@ -166,6 +176,7 @@ export function LeadActions({
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isShippingModalOpen, setIsShippingModalOpen] = useState(false);
+    const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
     const [potentialDuplicates, setPotentialDuplicates] = useState<PotentialDuplicate[]>([]);
 
     // --- PERMISSION CHECKS ---
@@ -255,6 +266,8 @@ export function LeadActions({
 
     // A lead is "open" (still being worked) while PENDING or NO_ANSWER.
     const isOpen = lead.status === 'PENDING' || lead.status === 'NO_ANSWER';
+    const leadWithReminder = lead as LeadWithReminder;
+    const activeReminder = leadWithReminder.activeReminder ?? leadWithReminder.reminders?.[0] ?? null;
     // A confirmed lead that already has an order gets a quick link to it.
     const isConfirmedWithOrder = lead.status === 'CONFIRMED' && !!lead.order;
 
@@ -313,6 +326,27 @@ export function LeadActions({
                         ) : (
                             <span className="text-slate-300 pointer-events-none" title="Confirm Order (Disabled)">
                                 <ShoppingCartIcon className="h-4 w-4" />
+                            </span>
+                        )}
+
+                        {/* Schedule or edit a follow-up reminder */}
+                        {canEdit ? (
+                            <button
+                                type="button"
+                                onClick={() => setIsReminderModalOpen(true)}
+                                title={activeReminder ? 'Reschedule Reminder' : 'Set Reminder'}
+                                aria-label={activeReminder ? `Reschedule reminder for lead ${lead.number}` : `Set reminder for lead ${lead.number}`}
+                                className={`transition-colors ${
+                                    activeReminder
+                                        ? 'text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300'
+                                        : 'text-slate-500 hover:text-blue-600'
+                                }`}
+                            >
+                                <BellAlertIcon className="h-4 w-4" />
+                            </button>
+                        ) : (
+                            <span className="pointer-events-none text-slate-300" title="Set Reminder (Disabled)">
+                                <BellAlertIcon className="h-4 w-4" />
                             </span>
                         )}
 
@@ -393,6 +427,20 @@ export function LeadActions({
                 duplicates={potentialDuplicates}
                 isCreating={isCreating}
             />
+
+            {isOpen && (
+                <LeadReminderModal
+                    isOpen={isReminderModalOpen}
+                    onClose={() => setIsReminderModalOpen(false)}
+                    leadId={lead.id}
+                    leadLabel={`Lead #${lead.number}`}
+                    existingReminder={activeReminder}
+                    onSaved={() => {
+                        router.refresh();
+                        onAction();
+                    }}
+                />
+            )}
 
             {canShipOrder && lead.order && tenantConfig && (
                 <ShippingModal

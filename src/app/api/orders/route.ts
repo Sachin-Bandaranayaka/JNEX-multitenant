@@ -230,7 +230,23 @@ export async function POST(request: Request) {
 
                 await tx.lead.update({
                     where: { id: validatedData.leadId },
-                    data: { status: LeadStatus.CONFIRMED }
+                    data: {
+                        status: LeadStatus.CONFIRMED,
+                        reminderDate: null,
+                        reminderNote: null,
+                    }
+                });
+                await tx.leadReminder.updateMany({
+                    where: {
+                        leadId: validatedData.leadId,
+                        tenantId: session.user.tenantId,
+                        status: 'PENDING',
+                    },
+                    data: {
+                        status: 'CANCELLED',
+                        completedAt: new Date(),
+                        completedById: session.user.id,
+                    },
                 });
 
                 // Adjust product stock based on order quantity

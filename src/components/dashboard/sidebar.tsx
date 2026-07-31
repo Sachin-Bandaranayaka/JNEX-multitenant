@@ -60,7 +60,7 @@ function NavGroup({ icon, label, isExpanded, onToggle, links, pathname, onNaviga
     label: string;
     isExpanded: boolean;
     onToggle: () => void;
-    links: { href: string; label: string }[];
+    links: { href: string; label: string; badge?: number }[];
     pathname: string;
     onNavigate?: () => void;
 }) {
@@ -92,7 +92,14 @@ function NavGroup({ icon, label, isExpanded, onToggle, links, pathname, onNaviga
                                     : 'text-[#687791] hover:bg-[#dfe4eb] hover:text-[#40516e]'
                                     }`}
                             >
-                                {link.label}
+                                <span className="flex items-center justify-between gap-2">
+                                    <span>{link.label}</span>
+                                    {Boolean(link.badge) && (
+                                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                                            {link.badge! > 99 ? '99+' : link.badge}
+                                        </span>
+                                    )}
+                                </span>
                             </Link>
                         );
                     })}
@@ -117,10 +124,32 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
     };
 
     const [expandedGroup, setExpandedGroup] = useState<string | null>(() => getActiveGroup(pathname));
+    const [dueReminderCount, setDueReminderCount] = useState(0);
 
     useEffect(() => {
         setExpandedGroup(getActiveGroup(pathname));
     }, [pathname]);
+
+    useEffect(() => {
+        if (!has('VIEW_LEADS')) return;
+        let active = true;
+        const loadDueCount = async () => {
+            try {
+                const response = await fetch('/api/lead-reminders/due-count', { cache: 'no-store' });
+                if (!response.ok) return;
+                const data = await response.json();
+                if (active) setDueReminderCount(Number(data.count) || 0);
+            } catch {
+                // Navigation remains usable if the count cannot be refreshed.
+            }
+        };
+        loadDueCount();
+        const interval = window.setInterval(loadDueCount, 60_000);
+        return () => {
+            active = false;
+            window.clearInterval(interval);
+        };
+    }, [pathname, userRole, userPermissions]);
 
     const handleToggleGroup = (label: string) => {
         setExpandedGroup(prev => prev === label ? null : label);
@@ -217,7 +246,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                             links={[
                                 { href: '/leads/import', label: 'Import Lead' },
                                 { href: '/leads', label: 'Lead List' },
-                                { href: '/leads/remind-leads', label: 'Remind Leads' },
+                                { href: '/leads/remind-leads', label: 'Remind Leads', badge: dueReminderCount },
                             ]}
                             pathname={pathname} onNavigate={closeMobileSidebar}
                         />

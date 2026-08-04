@@ -20,6 +20,8 @@ const leadSchema = z.object({
     city: z.string().optional().default(""),
     source: z.string().optional().default(""),
     notes: z.string().optional(),
+    quantity: z.number().int().positive().optional().default(1),
+    discount: z.number().min(0).optional().default(0),
   }),
   productCode: z.string().min(1, 'Product code is required'),
   forceCreate: z.boolean().optional().default(false),

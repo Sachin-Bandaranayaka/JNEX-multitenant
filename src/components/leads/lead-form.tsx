@@ -1,18 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import { z } from 'zod';
 import {
-  UserIcon,
-  PhoneIcon,
-  MapPinIcon,
-  CubeIcon,
-  DocumentTextIcon,
+  ArrowLeftIcon,
+  CheckIcon,
   ExclamationTriangleIcon,
-  HashtagIcon,
-  CurrencyDollarIcon
+  MagnifyingGlassIcon,
+  MinusIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
 import {
@@ -32,16 +29,12 @@ interface Product {
 interface PrefilledLead {
   id: string;
   productCode: string;
-  product: {
-    id: string;
-    name: string;
-    code: string;
-    price: number;
-  };
+  product: { id: string; name: string; code: string; price: number };
   csvData: {
     name?: string;
     phone?: string;
     secondPhone?: string;
+    email?: string;
     address?: string;
     notes?: string;
     quantity?: number;
@@ -61,437 +54,339 @@ interface LeadFormProps {
 }
 
 const leadSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  phone: z.string().min(1, 'Phone number is required'),
+  name: z.string().trim().min(1, 'Customer name is required'),
+  address: z.string().trim().min(1, 'Address is required'),
+  city: z.string().optional(),
+  phone: z.string().trim().min(1, 'Contact number one is required'),
   secondPhone: z.string().optional(),
-  address: z.string().min(1, 'Address is required'),
-  productCode: z.string().min(1, 'Product is required'),
+  email: z.string().email('Enter a valid email address').optional().or(z.literal('')),
   notes: z.string().optional(),
-  quantity: z.number().int().positive().default(1),
-  discount: z.number().min(0).default(0),
+  source: z.enum(['Facebook', 'WhatsApp', 'Advertisement', 'Other']),
 });
 
 type LeadFormData = z.infer<typeof leadSchema>;
+type StagedProduct = { product: Product; quantity: number; discount: number };
 
 function normalizePhoneNumber(phone: string): string {
-  if (!phone) return '';
   let cleaned = phone.trim().replace(/[^\d+]/g, '');
-  if (cleaned.startsWith('+94') && cleaned.length === 12) {
-    return '0' + cleaned.substring(3);
-  }
-  if (cleaned.startsWith('94') && cleaned.length === 11) {
-    return '0' + cleaned.substring(2);
-  }
-  if (cleaned.length === 9 && !cleaned.startsWith('0')) {
-    return '0' + cleaned;
-  }
+  if (cleaned.startsWith('+94') && cleaned.length === 12) return `0${cleaned.substring(3)}`;
+  if (cleaned.startsWith('94') && cleaned.length === 11) return `0${cleaned.substring(2)}`;
+  if (cleaned.length === 9 && !cleaned.startsWith('0')) return `0${cleaned}`;
   return cleaned.replace('+', '');
 }
 
-const getStockStatusColor = (product: Product): string => {
-  if (product.stock <= 0) {
-    return 'text-destructive';
-  }
-  if (product.stock <= product.lowStockAlert) {
-    return 'text-orange-500';
-  }
-  return 'text-green-500';
-};
+const inputClass = 'h-10 w-full border border-input bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:bg-muted/40 disabled:opacity-70';
 
-const LowStockModal = ({
-  isOpen,
-  message,
-  onConfirm,
-  onCancel,
-  isLoading,
-}: {
-  isOpen: boolean;
-  message: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-  isLoading: boolean;
-}) => {
-  if (!isOpen) return null;
+function FieldRow({ label, htmlFor, required, children }: { label: string; htmlFor?: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl ring-1 ring-border"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-full bg-yellow-500/10 text-yellow-500">
-            <ExclamationTriangleIcon className="w-6 h-6" />
-          </div>
-          <h2 className="text-lg font-bold text-foreground">Stock Warning</h2>
-        </div>
-        <p className="text-sm text-muted-foreground mb-6">{message}</p>
-        <div className="flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isLoading}
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={isLoading}
-            className="rounded-lg bg-yellow-500 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-600 disabled:opacity-50"
-          >
-            {isLoading ? 'Creating...' : 'Proceed Anyway'}
-          </button>
-        </div>
-      </motion.div>
+    <div className="grid gap-2 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-start">
+      <label htmlFor={htmlFor} className="pt-2.5 text-sm font-semibold text-foreground/75 sm:border-l-2 sm:border-border sm:pl-3">
+        {label}{required && <span className="ml-1 text-primary" aria-hidden="true">*</span>}
+      </label>
+      <div className="min-w-0">{children}</div>
     </div>
   );
-};
+}
+
+function LoadingButtonText({ confirmationMode }: { confirmationMode: boolean }) {
+  return <>{confirmationMode ? 'Adding order…' : 'Creating lead…'}</>;
+}
 
 export function LeadForm({ products, prefilledLead, returnTo = '/leads', hasTransExpress = false, onSubmit, onCancel }: LeadFormProps) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const confirmationMode = Boolean(prefilledLead);
+  const initialSource = prefilledLead?.csvData.source;
   const [formData, setFormData] = useState<LeadFormData>({
     name: prefilledLead?.csvData.name || '',
     phone: prefilledLead?.csvData.phone || '',
     secondPhone: prefilledLead?.csvData.secondPhone || '',
+    email: prefilledLead?.csvData.email || '',
     address: prefilledLead?.csvData.address || '',
-    productCode: prefilledLead?.productCode || '',
+    city: prefilledLead?.csvData.city || '',
     notes: prefilledLead?.csvData.notes || '',
-    quantity: prefilledLead?.csvData.quantity || 1,
-    discount: prefilledLead?.csvData.discount || 0,
+    source: initialSource === 'WhatsApp' || initialSource === 'Advertisement' || initialSource === 'Other'
+      ? initialSource
+      : 'Facebook',
   });
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMessage, setModalMessage] = useState('');
+  const [productCode, setProductCode] = useState(prefilledLead?.productCode || '');
+  const [productSearch, setProductSearch] = useState('');
+  const [quantity, setQuantity] = useState(prefilledLead?.csvData.quantity || 1);
+  const [discount, setDiscount] = useState(prefilledLead?.csvData.discount || 0);
+  const [stagedProduct, setStagedProduct] = useState<StagedProduct | null>(null);
   const [shippingLocation, setShippingLocation] = useState<TransExpressLocationValue>();
+  const [isLoading, setIsLoading] = useState(false);
+  const [statusLoading, setStatusLoading] = useState<'NO_ANSWER' | 'REJECTED' | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent, forceCreate: boolean = false) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const selectedProduct = products.find((product) => product.code === productCode);
+  const filteredProducts = useMemo(() => {
+    const query = productSearch.trim().toLowerCase();
+    return query
+      ? products.filter((product) => `${product.name} ${product.code}`.toLowerCase().includes(query))
+      : products;
+  }, [productSearch, products]);
+  const previewTotal = Math.max(0, (selectedProduct?.price || 0) * quantity - discount);
+  const stagedTotal = stagedProduct
+    ? Math.max(0, stagedProduct.product.price * stagedProduct.quantity - stagedProduct.discount)
+    : 0;
+
+  const setField = <K extends keyof LeadFormData>(field: K, value: LeadFormData[K]) => {
+    setFormData((current) => ({ ...current, [field]: value }));
+  };
+
+  const stageProduct = () => {
     setError(null);
+    if (!selectedProduct) return setError('Select a product before adding it.');
+    if (quantity < 1 || !Number.isInteger(quantity)) return setError('Quantity must be a whole number greater than zero.');
+    if (discount < 0) return setError('Discount cannot be negative.');
+    setStagedProduct({ product: selectedProduct, quantity, discount });
+    toast.success(stagedProduct ? 'Product updated.' : 'Product added.');
+  };
 
+  const handleStatus = async (status: 'NO_ANSWER' | 'REJECTED') => {
+    if (!prefilledLead) return;
+    const confirmationMessage = status === 'NO_ANSWER'
+      ? 'Mark this lead as no answer and return it to the follow-up queue?'
+      : 'Reject this lead? This will remove it from the active lead queue.';
+    if (!window.confirm(confirmationMessage)) return;
+    setStatusLoading(status);
+    setError(null);
     try {
-      const validatedData = leadSchema.parse(formData);
+      const response = await fetch(`/api/leads/${prefilledLead.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to update lead status.');
+      toast.success(status === 'NO_ANSWER' ? 'Lead marked as no answer.' : 'Lead rejected.');
+      router.replace(returnTo);
+      router.refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Failed to update lead status.');
+      setStatusLoading(null);
+    }
+  };
 
-      const normalizedPhone = normalizePhoneNumber(validatedData.phone);
-      const normalizedSecondPhone = validatedData.secondPhone
-        ? normalizePhoneNumber(validatedData.secondPhone)
-        : '';
-
-      if (prefilledLead && hasTransExpress && !shippingLocation) {
-        throw new Error('Select a Trans Express district and city before confirming the order.');
+  const handleSubmit = async (event: React.FormEvent, forceCreate = false) => {
+    event.preventDefault();
+    setError(null);
+    if (!stagedProduct) return setError('Add a product before continuing.');
+    setIsLoading(true);
+    try {
+      const validated = leadSchema.parse(formData);
+      if (confirmationMode && hasTransExpress && !shippingLocation) {
+        throw new Error('Select a Trans Express city before adding the order.');
       }
+      const csvData = {
+        name: validated.name,
+        phone: normalizePhoneNumber(validated.phone),
+        secondPhone: validated.secondPhone ? normalizePhoneNumber(validated.secondPhone) : '',
+        email: validated.email || null,
+        address: validated.address,
+        notes: validated.notes || '',
+        city: shippingLocation?.cityName || validated.city || '',
+        source: validated.source,
+        quantity: stagedProduct.quantity,
+        discount: stagedProduct.discount,
+      };
 
       if (prefilledLead) {
-        // 1. Update the lead details via PUT first
-        const responseUpdate = await fetch(`/api/leads/${prefilledLead.id}`, {
+        const updateResponse = await fetch(`/api/leads/${prefilledLead.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            csvData: {
-              name: validatedData.name,
-              phone: normalizedPhone,
-              secondPhone: normalizedSecondPhone,
-              address: validatedData.address,
-              notes: validatedData.notes,
-              quantity: validatedData.quantity,
-              discount: validatedData.discount,
-              city: shippingLocation?.cityName || prefilledLead.csvData.city || "",
-              source: prefilledLead.csvData.source || "",
-            },
-            productCode: validatedData.productCode,
-          }),
+          body: JSON.stringify({ csvData, productCode: stagedProduct.product.code }),
         });
+        const updated = await updateResponse.json();
+        if (!updateResponse.ok) throw new Error(updated.error || 'Failed to update lead details.');
 
-        if (!responseUpdate.ok) {
-          const resultUpdate = await responseUpdate.json();
-          throw new Error(resultUpdate.error || 'Failed to update lead details.');
-        }
-
-        // 2. Create the order from the updated lead
-        const responseOrder = await fetch('/api/orders/create', {
+        const orderResponse = await fetch('/api/orders/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             leadId: prefilledLead.id,
-            quantity: validatedData.quantity,
-            forceCreate: true, // Proceed directly
+            quantity: stagedProduct.quantity,
+            forceCreate: true,
             shippingLocation,
           }),
         });
-
-        const resultOrder = await responseOrder.json();
-
-        if (!responseOrder.ok) {
-          throw new Error(resultOrder.error || 'Failed to confirm order.');
-        }
-
-        toast.success('Order confirmed successfully!');
+        const order = await orderResponse.json();
+        if (!orderResponse.ok) throw new Error(order.error || 'Failed to add order.');
+        toast.success('Order added successfully.');
         await onSubmit?.();
-        router.replace('/leads');
-        router.refresh();
+        router.replace(returnTo);
       } else {
-        // Standard Lead creation flow
         const response = await fetch('/api/leads', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            csvData: {
-              name: validatedData.name,
-              phone: normalizedPhone,
-              secondPhone: normalizedSecondPhone,
-              address: validatedData.address,
-              notes: validatedData.notes,
-              city: "",
-              source: "",
-            },
-            productCode: validatedData.productCode,
-            forceCreate: forceCreate,
-          }),
+          body: JSON.stringify({ csvData, productCode: stagedProduct.product.code, forceCreate }),
         });
-
         const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to create lead');
-        }
-
+        if (!response.ok) throw new Error(result.error || 'Failed to create lead.');
         if (result.requiresConfirmation) {
-          setModalMessage(result.message);
-          setIsModalOpen(true);
+          if (window.confirm(result.message)) {
+            setIsLoading(false);
+            return handleSubmit({ preventDefault() {} } as React.FormEvent, true);
+          }
           setIsLoading(false);
           return;
         }
-
         toast.success('Lead created successfully.');
         await onSubmit?.();
-        router.push('/leads');
-        router.refresh();
+        router.replace(returnTo);
       }
-
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        setError(err.errors[0].message);
-      } else {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-      }
+      router.refresh();
+    } catch (caught) {
+      setError(caught instanceof z.ZodError ? caught.errors[0].message : caught instanceof Error ? caught.message : 'An error occurred.');
       setIsLoading(false);
     }
   };
 
-  const handleForceCreate = () => {
-    setIsModalOpen(false);
-    handleSubmit({ preventDefault: () => { } } as React.FormEvent, true);
-  };
+  const cancel = onCancel || (() => router.push(returnTo));
 
   return (
-    <>
-      <form onSubmit={(e) => handleSubmit(e)} className="space-y-6">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {/* Name Field */}
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-muted-foreground mb-2">Name</label>
-            <div className="relative">
-              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5"
-                placeholder="John Doe"
-                required
-              />
+    <form onSubmit={handleSubmit} className="border-t-[3px] border-t-primary bg-card">
+      <header className="flex flex-col gap-3 border-b border-border bg-muted/15 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-lg font-semibold text-foreground">Customer Form</h1>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {confirmationMode ? 'Review the lead, stage its product and add the order.' : 'Capture customer details and stage a product for a new lead.'}
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {confirmationMode && (
+            <div className="flex items-center gap-2 sm:border-r sm:border-border sm:pr-3" aria-label="Lead status actions">
+              <span className="hidden text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground xl:inline">Lead actions</span>
+              <button type="button" onClick={() => handleStatus('NO_ANSWER')} disabled={Boolean(statusLoading || isLoading)} className="h-9 bg-cyan-600 px-3 text-sm font-semibold text-white hover:bg-cyan-700 disabled:opacity-60">
+                {statusLoading === 'NO_ANSWER' ? 'Updating…' : 'No answer'}
+              </button>
+              <button type="button" onClick={() => handleStatus('REJECTED')} disabled={Boolean(statusLoading || isLoading)} className="h-9 bg-red-500 px-3 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60">
+                {statusLoading === 'REJECTED' ? 'Updating…' : 'Reject'}
+              </button>
             </div>
-          </div>
-
-          {/* Phone Field */}
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-muted-foreground mb-2">Phone</label>
-            <div className="relative">
-              <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="tel"
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5"
-                placeholder="0771234567"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Second Phone Field */}
-          <div>
-            <label htmlFor="secondPhone" className="block text-sm font-medium text-muted-foreground mb-2">Second Phone (Optional)</label>
-            <div className="relative">
-              <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="tel"
-                id="secondPhone"
-                value={formData.secondPhone || ''}
-                onChange={(e) => setFormData({ ...formData, secondPhone: e.target.value })}
-                className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5"
-                placeholder="0712345678"
-              />
-            </div>
-          </div>
-
-          {/* Product Field */}
-          <div>
-            <label htmlFor="product" className="block text-sm font-medium text-muted-foreground mb-2">Product</label>
-            <div className="relative">
-              <CubeIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <select
-                id="product"
-                value={formData.productCode}
-                onChange={(e) => setFormData({ ...formData, productCode: e.target.value })}
-                className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5 appearance-none"
-                required
-              >
-                <option value="">Select a product</option>
-                {products.map((product) => (
-                  <option key={product.code} value={product.code} className={getStockStatusColor(product)}>
-                    {product.name} (Stock: {product.stock})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Address Field */}
-          <div className="sm:col-span-2">
-            <label htmlFor="address" className="block text-sm font-medium text-muted-foreground mb-2">Address</label>
-            <div className="relative">
-              <MapPinIcon className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                id="address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5"
-                placeholder="123 Main St, City"
-                required
-              />
-            </div>
-          </div>
-
-          {prefilledLead && hasTransExpress && (
-            <TransExpressLocationPicker
-              value={shippingLocation}
-              onChange={setShippingLocation}
-              suggestedCity={prefilledLead.csvData.city}
-              disabled={isLoading}
-            />
           )}
-
-          {/* Quantity Field */}
-          <div>
-            <label htmlFor="quantity" className="block text-sm font-medium text-muted-foreground mb-2">Quantity</label>
-            <div className="relative">
-              <HashtagIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="number"
-                id="quantity"
-                min="1"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
-                className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Discount Field */}
-          <div>
-            <label htmlFor="discount" className="block text-sm font-medium text-muted-foreground mb-2">Discount (LKR)</label>
-            <div className="relative">
-              <CurrencyDollarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="number"
-                id="discount"
-                min="0"
-                value={formData.discount}
-                onChange={(e) => setFormData({ ...formData, discount: parseFloat(e.target.value) || 0 })}
-                className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Notes Field */}
-          <div className="sm:col-span-2">
-            <label htmlFor="notes" className="block text-sm font-medium text-muted-foreground mb-2">Notes (Optional)</label>
-            <div className="relative">
-              <DocumentTextIcon className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-              <textarea
-                id="notes"
-                value={formData.notes || ''}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
-                className="block w-full pl-9 rounded-lg border-input bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-2.5 resize-none"
-                placeholder="Any additional information..."
-              />
-            </div>
-          </div>
+          <button type="button" onClick={cancel} className="inline-flex h-9 items-center gap-1.5 border border-input px-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+            <ArrowLeftIcon className="h-4 w-4" /> Back to leads
+          </button>
         </div>
+      </header>
 
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive flex items-center gap-2"
-          >
-            <ExclamationTriangleIcon className="w-5 h-5" />
-            {error}
-          </motion.div>
-        )}
+      <div className="grid divide-y divide-border lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+        <section aria-labelledby="customer-details" className="space-y-4 p-4 sm:p-5">
+          <h2 id="customer-details" className="-mx-4 -mt-4 border-b border-border bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-[0.12em] text-slate-700 sm:-mx-5 sm:-mt-5 sm:px-5 dark:bg-slate-900/40 dark:text-slate-200"><span className="mr-2 text-primary">01</span>Customer details</h2>
+          <FieldRow label="Customer Name" htmlFor="name" required>
+            <input id="name" required value={formData.name} onChange={(event) => setField('name', event.target.value)} placeholder="Enter customer name" className={inputClass} />
+          </FieldRow>
+          <FieldRow label="Address" htmlFor="address" required>
+            <input id="address" required value={formData.address} onChange={(event) => setField('address', event.target.value)} placeholder="Enter delivery address" className={inputClass} />
+          </FieldRow>
+          {confirmationMode && hasTransExpress ? (
+            <FieldRow label="City" required>
+              <TransExpressLocationPicker value={shippingLocation} onChange={setShippingLocation} suggestedCity={prefilledLead?.csvData.city} disabled={isLoading} compact />
+            </FieldRow>
+          ) : (
+            <FieldRow label="City" htmlFor="city">
+              <input id="city" value={formData.city || ''} onChange={(event) => setField('city', event.target.value)} placeholder="Enter city" className={inputClass} />
+            </FieldRow>
+          )}
+          <FieldRow label="Contact Number One" htmlFor="phone" required>
+            <input id="phone" required type="tel" value={formData.phone} onChange={(event) => setField('phone', event.target.value)} placeholder="Enter contact number" className={inputClass} />
+          </FieldRow>
+          <FieldRow label="Contact Number Two" htmlFor="secondPhone">
+            <input id="secondPhone" type="tel" value={formData.secondPhone || ''} onChange={(event) => setField('secondPhone', event.target.value)} placeholder="Optional contact number" className={inputClass} />
+          </FieldRow>
+          <FieldRow label="Email" htmlFor="email">
+            <input id="email" type="email" value={formData.email || ''} onChange={(event) => setField('email', event.target.value)} placeholder="Optional email address" className={inputClass} />
+          </FieldRow>
+          <FieldRow label="Other" htmlFor="notes">
+            <textarea id="notes" rows={2} value={formData.notes || ''} onChange={(event) => setField('notes', event.target.value)} placeholder="Notes or special instructions" className={`${inputClass} h-16 resize-y py-2`} />
+          </FieldRow>
+          <FieldRow label="Lead From">
+            <div className="flex min-h-10 flex-wrap items-center gap-x-5 gap-y-2">
+              {(['Facebook', 'WhatsApp', 'Advertisement', 'Other'] as const).map((source) => (
+                <label key={source} className="flex cursor-pointer items-center gap-2 text-sm text-foreground/80">
+                  <input type="radio" name="source" checked={formData.source === source} onChange={() => setField('source', source)} className="text-primary focus:ring-primary" />
+                  {source}
+                </label>
+              ))}
+            </div>
+          </FieldRow>
+        </section>
 
-        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-border">
-          <motion.button
-            type="button"
-            onClick={onCancel || (() => router.back())}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-6 py-2.5 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            Cancel
-          </motion.button>
-          <motion.button
-            type="submit"
-            disabled={isLoading}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            className="inline-flex items-center justify-center rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 transition-colors"
-          >
-            {isLoading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                {prefilledLead ? 'Confirming...' : 'Creating...'}
-              </>
-            ) : (prefilledLead ? 'Confirm Order' : 'Create Lead')}
-          </motion.button>
+        <section aria-labelledby="product-details" className="space-y-4 p-4 sm:p-5">
+          <h2 id="product-details" className="-mx-4 -mt-4 border-b border-border bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-[0.12em] text-slate-700 sm:-mx-5 sm:-mt-5 sm:px-5 dark:bg-slate-900/40 dark:text-slate-200"><span className="mr-2 text-primary">02</span>Product &amp; order details</h2>
+          <FieldRow label="Find Product" htmlFor="productSearch">
+            <div className="relative">
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <input id="productSearch" value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Filter by name or code" className={`${inputClass} pl-9`} />
+            </div>
+          </FieldRow>
+          <FieldRow label="Product" htmlFor="product" required>
+            <select id="product" required value={productCode} onChange={(event) => setProductCode(event.target.value)} className={inputClass}>
+              <option value="">Select product</option>
+              {filteredProducts.map((product) => <option key={product.id} value={product.code}>{product.name} · {product.code} · Stock {product.stock}</option>)}
+            </select>
+            <div className="mt-1.5 flex flex-wrap justify-between gap-1 text-xs">
+              <span className="text-muted-foreground">One product per order; adding again replaces it.</span>
+              {selectedProduct && <span className={`font-semibold ${selectedProduct.stock <= 0 ? 'text-destructive' : selectedProduct.stock <= selectedProduct.lowStockAlert ? 'text-amber-600' : 'text-emerald-600'}`}>{selectedProduct.stock} available · Rs. {selectedProduct.price.toLocaleString('en-LK')} each</span>}
+            </div>
+          </FieldRow>
+          <FieldRow label="Qty" htmlFor="quantity" required>
+            <input id="quantity" required type="number" min={1} step={1} value={quantity} onChange={(event) => setQuantity(Number(event.target.value) || 1)} className={inputClass} />
+          </FieldRow>
+          <FieldRow label="Sale Amount (Rs)" htmlFor="saleAmount">
+            <input id="saleAmount" readOnly value={previewTotal.toLocaleString('en-LK')} className={`${inputClass} bg-muted/30 font-semibold`} />
+          </FieldRow>
+          <FieldRow label="Discount (Rs)" htmlFor="discount">
+            <input id="discount" type="number" min={0} value={discount} onChange={(event) => setDiscount(Math.max(0, Number(event.target.value) || 0))} className={inputClass} />
+          </FieldRow>
+          <div className="grid grid-cols-3 border-l-[3px] border-primary bg-slate-900 text-white dark:bg-slate-800">
+            <div className="border-r border-white/10 px-3 py-2.5"><span className="block text-[10px] uppercase tracking-wider text-slate-400">Item</span><strong className="mt-0.5 block truncate text-sm">{selectedProduct?.name || 'Not selected'}</strong></div>
+            <div className="border-r border-white/10 px-3 py-2.5 text-center"><span className="block text-[10px] uppercase tracking-wider text-slate-400">Qty</span><strong className="mt-0.5 block text-sm">{quantity}</strong></div>
+            <div className="px-3 py-2.5 text-right"><span className="block text-[10px] uppercase tracking-wider text-slate-400">Line total</span><strong className="mt-0.5 block text-sm">Rs. {previewTotal.toLocaleString('en-LK')}</strong></div>
+          </div>
+          <div className="flex justify-end">
+            <button type="button" onClick={stageProduct} disabled={!selectedProduct || isLoading} className="inline-flex h-10 items-center gap-2 bg-amber-500 px-5 text-sm font-semibold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-50">
+              <PlusIcon className="h-4 w-4" /> {stagedProduct ? 'Update Product' : 'Add Product'}
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <section aria-labelledby="added-products" className="border-t border-border px-4 py-5 sm:px-5">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
+          <h2 id="added-products" className="text-sm font-semibold text-foreground/80">Added Products</h2>
+          <span className="inline-flex h-5 min-w-5 items-center justify-center bg-primary px-1.5 text-xs font-bold text-primary-foreground">{stagedProduct ? 1 : 0}</span>
         </div>
-      </form>
-
-      <AnimatePresence>
-        {isModalOpen && (
-          <LowStockModal
-            isOpen={isModalOpen}
-            message={modalMessage}
-            onConfirm={handleForceCreate}
-            onCancel={() => setIsModalOpen(false)}
-            isLoading={isLoading}
-          />
+        {stagedProduct ? (
+          <>
+            <div className="rounded-sm border border-border bg-slate-50 p-3 sm:hidden dark:bg-slate-900/30">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0"><p className="truncate text-sm font-semibold text-foreground">{stagedProduct.product.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{stagedProduct.product.code} · {stagedProduct.quantity} × Rs. {stagedProduct.product.price.toLocaleString('en-LK')}</p></div>
+                <button type="button" onClick={() => setStagedProduct(null)} aria-label="Remove staged product" className="inline-flex h-8 w-8 shrink-0 items-center justify-center bg-red-500 text-white hover:bg-red-600"><MinusIcon className="h-4 w-4" /></button>
+              </div>
+              <div className="mt-3 grid grid-cols-2 border-t border-border pt-2 text-xs"><span className="text-muted-foreground">Discount <strong className="ml-1 text-foreground">Rs. {stagedProduct.discount.toLocaleString('en-LK')}</strong></span><span className="text-right text-muted-foreground">Total <strong className="ml-1 text-base text-foreground">Rs. {stagedTotal.toLocaleString('en-LK')}</strong></span></div>
+            </div>
+            <div className="hidden overflow-x-auto sm:block">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead className="bg-muted/30 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"><tr><th className="px-3 py-2.5">#</th><th className="px-3 py-2.5">Product</th><th className="px-3 py-2.5">Code</th><th className="px-3 py-2.5 text-right">Qty</th><th className="px-3 py-2.5 text-right">Unit price</th><th className="px-3 py-2.5 text-right">Discount</th><th className="px-3 py-2.5 text-right">Total</th><th className="px-3 py-2.5 text-center">Remove</th></tr></thead>
+              <tbody><tr className="border-t border-border"><td className="px-3 py-3 text-muted-foreground">1</td><td className="px-3 py-3 font-medium text-foreground">{stagedProduct.product.name}</td><td className="px-3 py-3 text-muted-foreground">{stagedProduct.product.code}</td><td className="px-3 py-3 text-right">{stagedProduct.quantity}</td><td className="px-3 py-3 text-right">Rs. {stagedProduct.product.price.toLocaleString('en-LK')}</td><td className="px-3 py-3 text-right">Rs. {stagedProduct.discount.toLocaleString('en-LK')}</td><td className="px-3 py-3 text-right font-semibold">Rs. {stagedTotal.toLocaleString('en-LK')}</td><td className="px-3 py-3 text-center"><button type="button" onClick={() => setStagedProduct(null)} aria-label="Remove staged product" className="inline-flex h-7 w-7 items-center justify-center bg-red-500 text-white hover:bg-red-600"><MinusIcon className="h-4 w-4" /></button></td></tr></tbody>
+            </table>
+            </div>
+          </>
+        ) : (
+          <div className="py-8 text-center text-sm font-medium text-muted-foreground">No products added</div>
         )}
-      </AnimatePresence>
-    </>
+      </section>
+
+      {error && <div role="alert" className="mx-4 mb-4 flex items-start gap-2 border border-destructive/20 bg-destructive/10 px-3 py-2.5 text-sm text-destructive sm:mx-5"><ExclamationTriangleIcon className="mt-0.5 h-4 w-4 shrink-0" />{error}</div>}
+
+      <footer className="flex flex-col-reverse gap-2 border-t border-border bg-muted/10 px-4 py-4 sm:flex-row sm:justify-end sm:px-5">
+        <button type="button" onClick={cancel} disabled={isLoading} className="h-10 border border-red-300 px-5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">Cancel</button>
+        <button type="submit" disabled={!stagedProduct || isLoading || Boolean(statusLoading)} className="inline-flex h-10 min-w-40 items-center justify-center gap-2 bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-cyan-400 disabled:text-white">
+          {isLoading ? <LoadingButtonText confirmationMode={confirmationMode} /> : stagedProduct ? <><CheckIcon className="h-4 w-4" />{confirmationMode ? 'Add Order' : 'Create Lead'}</> : 'Please Add Product'}
+        </button>
+      </footer>
+    </form>
   );
 }

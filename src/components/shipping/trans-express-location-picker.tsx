@@ -27,11 +27,13 @@ export function TransExpressLocationPicker({
   onChange,
   suggestedCity,
   disabled = false,
+  compact = false,
 }: {
   value?: TransExpressLocationValue;
   onChange: (value: TransExpressLocationValue | undefined) => void;
   suggestedCity?: string;
   disabled?: boolean;
+  compact?: boolean;
 }) {
   const [districts, setDistricts] = useState<District[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -135,6 +137,14 @@ export function TransExpressLocationPicker({
     });
   };
 
+  const resetSelection = () => {
+    setDistrictId('');
+    setCitySearch('');
+    setShowCities(false);
+    setCityError(null);
+    onChange(undefined);
+  };
+
   const selectCity = async (city: City) => {
     const matchingDistrictId = city.district_id || districtId;
     const knownDistrict = districts.find((item) => item.id === matchingDistrictId);
@@ -162,13 +172,13 @@ export function TransExpressLocationPicker({
   };
 
   return (
-    <div className="sm:col-span-2 rounded-xl border border-border bg-muted/20 p-4">
-      <div className="mb-4">
+    <div className={compact ? 'w-full' : 'sm:col-span-2 rounded-xl border border-border bg-muted/20 p-4'}>
+      {!compact && <div className="mb-4">
         <h3 className="text-sm font-semibold text-foreground">Trans Express delivery location</h3>
         <p className="mt-1 text-xs text-muted-foreground">
           Select the city and its district will be filled automatically. This location will be reused for bulk shipping.
         </p>
-      </div>
+      </div>}
 
       {loadError ? (
         <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
@@ -177,9 +187,7 @@ export function TransExpressLocationPicker({
       ) : (
         <div>
           <div className="relative trans-express-confirm-city">
-            <label htmlFor="shippingCity" className="mb-2 block text-sm font-medium text-muted-foreground">
-              City
-            </label>
+            {!compact && <label htmlFor="shippingCity" className="mb-2 block text-sm font-medium text-muted-foreground">City</label>}
             <div className="relative">
               <BuildingOfficeIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -196,7 +204,7 @@ export function TransExpressLocationPicker({
                 disabled={disabled || loading || resolvingCity}
                 placeholder={loading ? 'Loading cities…' : resolvingCity ? 'Finding district…' : 'Search and select city'}
                 autoComplete="off"
-                className="block w-full rounded-lg border-input bg-background py-2.5 pl-9 text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm disabled:opacity-60"
+                className={`block h-10 w-full border border-input bg-background py-2 pl-9 pr-3 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-60 ${compact ? '' : 'rounded-lg shadow-sm'}`}
                 required
               />
             </div>
@@ -225,10 +233,18 @@ export function TransExpressLocationPicker({
             )}
             {cityError && <p className="mt-1.5 text-xs text-destructive">{cityError}. Please try selecting the city again.</p>}
           </div>
+          {compact && (
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <span className="truncate text-xs text-muted-foreground">
+                {loading ? 'Downloading cities. Please wait…' : value ? `${value.cityName}, ${value.districtName}` : 'Search and select a courier city'}
+              </span>
+              <button type="button" onClick={resetSelection} disabled={disabled || loading} className="shrink-0 bg-amber-500 px-2.5 py-1 text-[11px] font-bold uppercase text-white hover:bg-amber-600 disabled:opacity-50">Reset</button>
+            </div>
+          )}
         </div>
       )}
 
-      {value && (
+      {value && !compact && (
         <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
           <MapPinIcon className="h-3.5 w-3.5" />
           Saved for shipping: {value.cityName}, {value.districtName}

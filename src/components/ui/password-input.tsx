@@ -22,12 +22,13 @@ export function PasswordInput({ name, id, defaultValue = '', placeholder, classN
         id={id}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className={`block w-full rounded-md bg-white/5 py-1.5 pr-10 text-white ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-indigo-500 ${className}`}
+        className={`block w-full rounded-md border border-input bg-background py-1.5 pr-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring ${className}`}
       />
       <button
         type="button"
         onClick={() => setShowPassword(!showPassword)}
-        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-300"
+        aria-label={showPassword ? 'Hide password' : 'Show password'}
+        className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
       >
         {showPassword ? (
           <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />

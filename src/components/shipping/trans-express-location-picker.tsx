@@ -39,7 +39,6 @@ export function TransExpressLocationPicker({
   const [citySearch, setCitySearch] = useState(value?.cityName || suggestedCity || '');
   const [showCities, setShowCities] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [loadingCities, setLoadingCities] = useState(false);
   const [resolvingCity, setResolvingCity] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [cityError, setCityError] = useState<string | null>(null);
@@ -122,39 +121,6 @@ export function TransExpressLocationPicker({
       .slice(0, 50);
   }, [cities, districtId, citySearch]);
 
-  const selectDistrict = async (nextDistrictId: number | '') => {
-    const firstSelection = districtId === '';
-    setDistrictId(nextDistrictId);
-    setCitySearch(firstSelection ? (suggestedCity || '') : '');
-    setShowCities(false);
-    setCityError(null);
-    onChange(undefined);
-
-    if (!nextDistrictId) return;
-
-    setLoadingCities(true);
-    try {
-      const response = await fetch(`/api/shipping/locations/cities?district_id=${nextDistrictId}`);
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to load cities');
-      const districtCities: City[] = (data.cities || []).map((city: City) => ({
-        ...city,
-        id: Number(city.id),
-        district_id: nextDistrictId,
-      }));
-      setCities((currentCities) => {
-        const cityMap = new Map(currentCities.map((city) => [city.id, city]));
-        districtCities.forEach((city) => cityMap.set(city.id, city));
-        return Array.from(cityMap.values());
-      });
-      setShowCities(true);
-    } catch (error) {
-      setCityError(error instanceof Error ? error.message : 'Failed to load cities');
-    } finally {
-      setLoadingCities(false);
-    }
-  };
-
   const applyCitySelection = (city: City, district: District) => {
     setDistrictId(district.id);
     setCitySearch(city.text);
@@ -209,7 +175,7 @@ export function TransExpressLocationPicker({
           {loadError}. Refresh the page to try again.
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
           <div className="relative trans-express-confirm-city">
             <label htmlFor="shippingCity" className="mb-2 block text-sm font-medium text-muted-foreground">
               City
@@ -227,14 +193,14 @@ export function TransExpressLocationPicker({
                   onChange(undefined);
                 }}
                 onFocus={() => setShowCities(true)}
-                disabled={disabled || loading || loadingCities || resolvingCity}
-                placeholder={loading || loadingCities ? 'Loading cities…' : resolvingCity ? 'Finding district…' : 'Search and select city'}
+                disabled={disabled || loading || resolvingCity}
+                placeholder={loading ? 'Loading cities…' : resolvingCity ? 'Finding district…' : 'Search and select city'}
                 autoComplete="off"
                 className="block w-full rounded-lg border-input bg-background py-2.5 pl-9 text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm disabled:opacity-60"
                 required
               />
             </div>
-            {showCities && !loading && !loadingCities && (
+            {showCities && !loading && (
               <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
                 {filteredCities.length > 0 ? filteredCities.map((city) => (
                   <button
@@ -257,29 +223,7 @@ export function TransExpressLocationPicker({
                 )}
               </div>
             )}
-            {cityError && <p className="mt-1.5 text-xs text-destructive">{cityError}. Please try again or choose the district manually.</p>}
-          </div>
-
-          <div>
-            <label htmlFor="shippingDistrict" className="mb-2 block text-sm font-medium text-muted-foreground">
-              District <span className="text-xs font-normal">(auto-selected)</span>
-            </label>
-            <div className="relative">
-              <MapPinIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <select
-                id="shippingDistrict"
-                value={districtId}
-                onChange={(event) => selectDistrict(event.target.value ? Number(event.target.value) : '')}
-                disabled={disabled || loading}
-                className="block w-full appearance-none rounded-lg border-input bg-background py-2.5 pl-9 text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm disabled:opacity-60"
-                required
-              >
-                <option value="">{loading ? 'Loading districts…' : 'Select a city first'}</option>
-                {districts.map((district) => (
-                  <option key={district.id} value={district.id}>{district.text}</option>
-                ))}
-              </select>
-            </div>
+            {cityError && <p className="mt-1.5 text-xs text-destructive">{cityError}. Please try selecting the city again.</p>}
           </div>
         </div>
       )}

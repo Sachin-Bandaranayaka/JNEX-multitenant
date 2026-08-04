@@ -13,7 +13,7 @@ export function LogoLoader({ fullScreen = false, label = 'Loading', className }:
     <div
       className={cn(
         'flex items-center justify-center',
-        fullScreen && 'min-h-screen w-full bg-[#f8fafc]',
+        fullScreen && 'min-h-screen w-full bg-background',
         className,
       )}
       role="status"

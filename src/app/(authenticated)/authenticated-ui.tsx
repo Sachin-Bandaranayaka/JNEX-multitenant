@@ -54,7 +54,7 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
   const userPermissions = session.user.permissions || [];
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="jnex-workspace flex min-h-screen bg-background text-foreground">
       <Sidebar
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}

@@ -28,12 +28,12 @@ import {
   BellAlertIcon,
 } from '@heroicons/react/24/outline';
 
-// Operational status palette. Colors intentionally fill the entire row/card so
-// operators can identify a lead's state without hunting for a small badge.
+// Operational status palette. Light mode keeps the high-visibility row colors;
+// dark mode uses restrained tinted slate surfaces with stronger edge/badge cues.
 const STATUS_CONFIG = {
   PENDING: {
     label: 'Pending',
-    rowBg: 'bg-[#e5e7eb] dark:bg-slate-700',
+    rowBg: 'bg-[#e5e7eb] dark:bg-slate-800/80 dark:hover:bg-slate-700/90',
     leftBorder: 'border-l-[#6b7280]',
     numBadge: 'bg-[#4b5563] text-white',
     dot: 'bg-[#6b7280]',
@@ -41,7 +41,7 @@ const STATUS_CONFIG = {
   },
   NO_ANSWER: {
     label: 'No Answer',
-    rowBg: 'bg-[#fde047] dark:bg-[#a16207]',
+    rowBg: 'bg-[#fde047] dark:bg-amber-950/25 dark:hover:bg-amber-950/40',
     leftBorder: 'border-l-[#ca8a04]',
     numBadge: 'bg-[#854d0e] text-white',
     dot: 'bg-[#eab308]',
@@ -49,7 +49,7 @@ const STATUS_CONFIG = {
   },
   CONFIRMED: {
     label: 'Ok',
-    rowBg: 'bg-[#4ade80] dark:bg-[#166534]',
+    rowBg: 'bg-[#4ade80] dark:bg-emerald-950/25 dark:hover:bg-emerald-950/40',
     leftBorder: 'border-l-[#15803d]',
     numBadge: 'bg-[#166534] text-white',
     dot: 'bg-[#22c55e]',
@@ -57,7 +57,7 @@ const STATUS_CONFIG = {
   },
   REJECTED: {
     label: 'Rejected',
-    rowBg: 'bg-[#f87171] dark:bg-[#991b1b]',
+    rowBg: 'bg-[#f87171] dark:bg-red-950/25 dark:hover:bg-red-950/40',
     leftBorder: 'border-l-[#b91c1c]',
     numBadge: 'bg-[#991b1b] text-white',
     dot: 'bg-[#ef4444]',
@@ -65,7 +65,7 @@ const STATUS_CONFIG = {
   },
   DELETED: {
     label: 'Deleted',
-    rowBg: 'bg-[#b98b6f] dark:bg-[#713f2a]',
+    rowBg: 'bg-[#b98b6f] dark:bg-orange-950/20 dark:hover:bg-orange-950/35',
     leftBorder: 'border-l-[#78350f]',
     numBadge: 'bg-[#78350f] text-white',
     dot: 'bg-[#92400e]',
@@ -554,7 +554,7 @@ export function LeadsClient({
 
                   return (
                     <tr key={lead.id}
-                      className={`relative ${config?.rowBg ?? 'bg-white dark:bg-slate-900'} border-l-4 ${config?.leftBorder ?? 'border-l-transparent'} ${isSelected ? 'ring-2 ring-inset ring-primary' : ''} hover:brightness-[0.96] dark:hover:brightness-110 transition-[filter]`}>
+                      className={`relative ${config?.rowBg ?? 'bg-white dark:bg-slate-900 dark:hover:bg-slate-800'} border-l-4 ${config?.leftBorder ?? 'border-l-transparent'} ${isSelected ? 'ring-2 ring-inset ring-primary' : ''} hover:brightness-[0.96] dark:hover:brightness-100 transition-[background-color,filter]`}>
                       <td className="relative border-b border-r border-slate-200 px-1 py-2 text-center align-top dark:border-slate-700">
                         {lead.status === 'DELETED' && <span aria-hidden="true" className="pointer-events-none absolute left-0 top-1/2 z-10 h-px w-[calc(100vw-2rem)] -translate-y-1/2 bg-[#3f2417]/80" />}
                         <input type="checkbox" className="h-4 w-4 rounded border-border text-primary" checked={isSelected} onChange={() => toggleSelect(lead.id)} />

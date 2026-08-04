@@ -106,8 +106,8 @@ export function Notifications() {
                         leaveTo="opacity-0 translate-y-1"
                     >
                         <Popover.Panel className="absolute right-0 z-10 mt-2 w-80 transform px-4 sm:px-0">
-                            <div className="overflow-hidden rounded-lg shadow-lg ring-1 ring-black/5">
-                                <div className="bg-background p-4">
+                            <div className="overflow-hidden rounded-lg border border-border bg-popover shadow-lg ring-1 ring-black/5 dark:ring-white/10">
+                                <div className="bg-popover p-4 text-popover-foreground">
                                     <div className="flex items-center justify-between mb-4">
                                         <h3 className="text-sm font-medium text-foreground">Notifications</h3>
                                         <div className="flex items-center gap-2">

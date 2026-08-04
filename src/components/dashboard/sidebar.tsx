@@ -43,8 +43,8 @@ function NavLink({ href, icon, children, isActive, onClick }: {
         <Link href={href} onClick={onClick} className="mx-2 block rounded-md group">
             <div
                 className={`flex items-center gap-3 px-3 py-3 rounded-md font-bold text-[15px] transition-colors ${isActive
-                    ? 'bg-[#dfe4ec] text-[#40516e] shadow-[inset_3px_0_0_#50617e]'
-                    : 'text-[#50617e] hover:bg-[#e5e8ee] hover:text-[#40516e]'
+                    ? 'bg-[#dfe4ec] text-[#40516e] shadow-[inset_3px_0_0_#50617e] dark:bg-slate-700 dark:text-slate-50 dark:shadow-[inset_3px_0_0_#e10600]'
+                    : 'text-[#50617e] hover:bg-[#e5e8ee] hover:text-[#40516e] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
                     }`}
             >
                 <span className="flex-shrink-0">{icon}</span>
@@ -70,16 +70,16 @@ function NavGroup({ icon, label, isExpanded, onToggle, links, pathname, onNaviga
                 onClick={onToggle}
                 aria-expanded={isExpanded}
                 className={`flex items-center gap-3 w-full px-3 py-3 rounded-md font-bold text-[15px] transition-colors ${isExpanded
-                    ? 'bg-[#dfe4ec] text-[#40516e] shadow-[inset_3px_0_0_#50617e]'
-                    : 'text-[#50617e] hover:bg-[#e5e8ee] hover:text-[#40516e]'
+                    ? 'bg-[#dfe4ec] text-[#40516e] shadow-[inset_3px_0_0_#50617e] dark:bg-slate-700 dark:text-slate-50 dark:shadow-[inset_3px_0_0_#e10600]'
+                    : 'text-[#50617e] hover:bg-[#e5e8ee] hover:text-[#40516e] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
                     }`}
             >
                 <span className="flex-shrink-0">{icon}</span>
                 <span className="min-w-0 flex-1 text-left whitespace-nowrap">{label}</span>
-                <ChevronLeftIcon className={`h-4 w-4 flex-shrink-0 text-[#50617e] transition-transform duration-200 ${isExpanded ? '-rotate-90' : ''}`} />
+                <ChevronLeftIcon className={`h-4 w-4 flex-shrink-0 text-[#50617e] transition-transform duration-200 dark:text-slate-400 ${isExpanded ? '-rotate-90' : ''}`} />
             </button>
             {isExpanded && (
-                <div className="my-1 overflow-hidden rounded-md bg-[#e9ecf1] py-1">
+                <div className="my-1 overflow-hidden rounded-md bg-[#e9ecf1] py-1 dark:bg-slate-900/70">
                     {links.map((link) => {
                         const linkActive = pathname === link.href;
                         return (
@@ -88,8 +88,8 @@ function NavGroup({ icon, label, isExpanded, onToggle, links, pathname, onNaviga
                                 href={link.href}
                                 onClick={onNavigate}
                                 className={`block pl-[44px] pr-3 py-2 text-[13px] font-semibold transition-colors ${linkActive
-                                    ? 'bg-[#d9dee7] text-[#40516e]'
-                                    : 'text-[#687791] hover:bg-[#dfe4eb] hover:text-[#40516e]'
+                                    ? 'bg-[#d9dee7] text-[#40516e] dark:bg-slate-700 dark:text-white'
+                                    : 'text-[#687791] hover:bg-[#dfe4eb] hover:text-[#40516e] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
                                     }`}
                             >
                                 <span className="flex items-center justify-between gap-2">
@@ -162,7 +162,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
             )}
 
             <aside
-                className={`fixed lg:sticky top-0 h-screen z-50 flex flex-col bg-[#f1f2f5] border-r border-[#dfe3e9] transition-all duration-300 ease-in-out print:hidden w-[232px] ${isMobile
+                className={`fixed lg:sticky top-0 h-screen z-50 flex flex-col bg-[#f1f2f5] border-r border-[#dfe3e9] dark:bg-[#111a29] dark:border-slate-700 transition-all duration-300 ease-in-out print:hidden w-[232px] ${isMobile
                     ? isOpen ? 'translate-x-0' : '-translate-x-full'
                     : 'translate-x-0'
                     }`}
@@ -177,19 +177,19 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                         )}
                     </div>
                     {isMobile && (
-                        <button onClick={() => setIsOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-slate-500">
+                        <button onClick={() => setIsOpen(false)} aria-label="Close menu" className="p-1.5 rounded-lg hover:bg-gray-100 text-slate-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white">
                             <XMarkIcon className="h-6 w-6" />
                         </button>
                     )}
                 </div>
 
                 {/* Profile block */}
-                <div className="px-5 pb-3.5 border-b border-[#e3e6ea]">
-                    <div className="font-bold text-slate-500 text-[13px] truncate">
+                <div className="px-5 pb-3.5 border-b border-[#e3e6ea] dark:border-slate-700">
+                    <div className="font-bold text-slate-500 dark:text-slate-400 text-[13px] truncate">
                         {tenant.businessName || 'Srilanka'} 🇱🇰
                     </div>
-                    <div className="font-bold text-slate-700 mt-2 text-[15px] truncate">{userName || 'User'}</div>
-                    <div className="text-[#aab2bf] text-[11px] tracking-widest uppercase">{userRole}</div>
+                    <div className="font-bold text-slate-700 dark:text-slate-100 mt-2 text-[15px] truncate">{userName || 'User'}</div>
+                    <div className="text-[#aab2bf] dark:text-slate-500 text-[11px] tracking-widest uppercase">{userRole}</div>
                 </div>
 
                 {/* Nav */}
@@ -298,14 +298,14 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                     {/* Logout */}
                     <button
                         onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-                        className="mx-2 flex w-[calc(100%-1rem)] items-center gap-3 rounded-md px-3 py-3 font-bold text-[15px] text-[#50617e] transition-colors hover:bg-[#fdeceb] hover:text-[#c9453f]"
+                        className="mx-2 flex w-[calc(100%-1rem)] items-center gap-3 rounded-md px-3 py-3 font-bold text-[15px] text-[#50617e] transition-colors hover:bg-[#fdeceb] hover:text-[#c9453f] dark:text-slate-300 dark:hover:bg-red-950/30 dark:hover:text-red-300"
                     >
                         <ArrowRightOnRectangleIcon className="h-5 w-5" />
                         <span>Log out</span>
                     </button>
                 </nav>
 
-                <div className="px-5 py-3 border-t border-[#e3e6ea] text-[11px] text-[#aab2bf]">
+                <div className="px-5 py-3 border-t border-[#e3e6ea] text-[11px] text-[#aab2bf] dark:border-slate-700 dark:text-slate-500">
                     Copyright J-nex IT © {new Date().getFullYear()}
                 </div>
             </aside>

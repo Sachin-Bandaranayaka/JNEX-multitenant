@@ -231,7 +231,7 @@ export function LeadForm({ products, prefilledLead, returnTo = '/leads', hasTran
 
         toast.success('Order confirmed successfully!');
         await onSubmit?.();
-        router.replace('/orders');
+        router.replace('/leads');
         router.refresh();
       } else {
         // Standard Lead creation flow

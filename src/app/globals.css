@@ -43,33 +43,38 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 222 32% 10%;
+    --foreground: 210 25% 96%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 27% 14%;
+    --card-foreground: 210 22% 94%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 218 25% 17%;
+    --popover-foreground: 210 22% 96%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 2 100% 48%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 217 22% 20%;
+    --secondary-foreground: 210 22% 94%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 217 20% 18%;
+    --muted-foreground: 215 16% 68%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 0 35% 20%;
+    --accent-foreground: 0 82% 82%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 74% 48%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 216 18% 27%;
+    --input: 215 18% 31%;
+    --ring: 2 100% 55%;
+
+    --genzo-header: 220 23% 9%;
+    --genzo-amber: 2 100% 48%;
+    --genzo-amber-dark: 0 86% 42%;
+    --genzo-teal: 2 100% 48%;
   }
 }
 
@@ -80,6 +85,17 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  html { color-scheme: light; }
+  html.dark { color-scheme: dark; }
+
+  body,
+  .jnex-workspace,
+  .jnex-workspace main,
+  .jnex-workspace aside,
+  .jnex-workspace header {
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
   }
 }
 
@@ -194,6 +210,14 @@
   background: rgb(31, 41, 55);
 }
 
+.dark .scrollbar-thin {
+  scrollbar-color: rgb(71 85 105) transparent;
+}
+
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgb(71 85 105);
+}
+
 /* Print styles */
 @media print {
   @page {
@@ -265,30 +289,30 @@
    ========================================================= */
 @layer components {
   /* Page title */
-  .genzo-page-title { @apply text-lg font-bold text-slate-600 mb-4; }
+  .genzo-page-title { @apply mb-4 text-lg font-bold text-slate-600 dark:text-slate-200; }
 
   /* Card */
-  .genzo-card { @apply bg-white rounded-md p-5 shadow-sm border border-[#e3e6ea]; }
+  .genzo-card { @apply rounded-md border border-[#e3e6ea] bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-card; }
 
   /* Buttons */
   .genzo-btn { @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors; }
   .genzo-btn-amber { @apply genzo-btn bg-[#e10600] text-white hover:bg-[#b80505]; }
   .genzo-btn-teal  { @apply genzo-btn bg-[#e10600] text-white hover:bg-[#b80505]; }
   .genzo-btn-red   { @apply genzo-btn bg-[#e10600] text-white hover:bg-[#b80505]; }
-  .genzo-btn-gray  { @apply genzo-btn bg-[#eceef1] text-slate-600 hover:bg-[#e1e4e8]; }
-  .genzo-btn-out   { @apply genzo-btn bg-white border border-[#e10600] text-[#b80505] hover:bg-[#fff5f5]; }
+  .genzo-btn-gray  { @apply genzo-btn bg-[#eceef1] text-slate-600 hover:bg-[#e1e4e8] dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600; }
+  .genzo-btn-out   { @apply genzo-btn border border-[#e10600] bg-white text-[#b80505] hover:bg-[#fff5f5] dark:bg-transparent dark:text-red-300 dark:hover:bg-red-950/40; }
 
   /* DataTables-style toolbar + table */
-  .genzo-toolbar { @apply flex flex-wrap items-center justify-between gap-3 mb-3 text-sm text-slate-600; }
-  .genzo-export button { @apply border border-[#ccd2da] bg-white text-slate-600 px-2.5 py-1 rounded text-xs hover:bg-[#f1f3f5] transition-colors; }
+  .genzo-toolbar { @apply mb-3 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600 dark:text-slate-300; }
+  .genzo-export button { @apply rounded border border-[#ccd2da] bg-white px-2.5 py-1 text-xs text-slate-600 transition-colors hover:bg-[#f1f3f5] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700; }
   .genzo-table { @apply w-full border-collapse; }
-  .genzo-table thead th { @apply text-left px-3 py-3 text-slate-600 font-bold text-[13px] border-b-2 border-[#e6e9ed] whitespace-nowrap; }
-  .genzo-table tbody td { @apply px-3 py-3.5 border-b border-[#eef0f3] text-[#5d6573] text-[13px] align-top; }
-  .genzo-table tbody tr:hover { @apply bg-[#fafbfc]; }
-  .genzo-entries { @apply text-[#8a93a2] text-[13px] mb-2.5; }
+  .genzo-table thead th { @apply whitespace-nowrap border-b-2 border-[#e6e9ed] px-3 py-3 text-left text-[13px] font-bold text-slate-600 dark:border-slate-600 dark:text-slate-200; }
+  .genzo-table tbody td { @apply border-b border-[#eef0f3] px-3 py-3.5 align-top text-[13px] text-[#5d6573] dark:border-slate-700 dark:text-slate-300; }
+  .genzo-table tbody tr:hover { @apply bg-[#fafbfc] dark:bg-slate-800/70; }
+  .genzo-entries { @apply mb-2.5 text-[13px] text-[#8a93a2] dark:text-slate-400; }
 
   /* Pagination */
-  .genzo-pager a { @apply px-3 py-1.5 border border-[#e0e4e9] rounded text-slate-600 cursor-pointer text-[13px]; }
+  .genzo-pager a { @apply cursor-pointer rounded border border-[#e0e4e9] px-3 py-1.5 text-[13px] text-slate-600 dark:border-slate-600 dark:text-slate-300; }
   .genzo-pager a.cur { @apply bg-[#e10600] text-white border-[#e10600]; }
 
   /* Row action icons */
@@ -302,28 +326,28 @@
   .genzo-tag-red    { @apply bg-[#fee2e2] text-[#b80505]; }
   .genzo-tag-orange { @apply bg-[#fff5f5] text-[#b80505]; }
   .genzo-tag-blue   { @apply bg-[#fff5f5] text-[#b80505]; }
-  .genzo-tag-gray   { @apply bg-[#eceef1] text-[#6b7483]; }
+  .genzo-tag-gray   { @apply bg-[#eceef1] text-[#6b7483] dark:bg-slate-700 dark:text-slate-200; }
 
   /* Dashboard stat cards */
   .genzo-stat { @apply flex-1 min-w-[155px] rounded-md px-4 py-4 text-white; }
   .genzo-stat .lbl { @apply text-[13px] font-semibold mb-2; }
   .genzo-stat .big { @apply text-xl font-bold; }
   .genzo-stat .com { @apply text-[11px] mt-2 flex justify-between opacity-95; }
-  .genzo-stat-blue   { @apply bg-[#fff5f5] text-slate-800 border border-[#fecaca]; }
-  .genzo-stat-gray   { @apply bg-white text-slate-800 border border-[#fecaca]; }
-  .genzo-stat-orange { @apply bg-[#fee2e2] text-slate-800 border border-[#fecaca]; }
+  .genzo-stat-blue   { @apply border border-[#fecaca] bg-[#fff5f5] text-slate-800 dark:border-red-900/70 dark:bg-red-950/30 dark:text-slate-100; }
+  .genzo-stat-gray   { @apply border border-[#fecaca] bg-white text-slate-800 dark:border-slate-700 dark:bg-card dark:text-slate-100; }
+  .genzo-stat-orange { @apply border border-[#fecaca] bg-[#fee2e2] text-slate-800 dark:border-red-900/70 dark:bg-red-950/50 dark:text-slate-100; }
   .genzo-stat-red    { @apply bg-[#e10600] text-white border border-[#e10600]; }
   .genzo-stat-green  { @apply bg-[#b80505] text-white border border-[#b80505]; }
 
   /* Product card (Buy Products) */
-  .genzo-pcard { @apply border border-[#e7eaee] rounded-md overflow-hidden bg-white flex flex-col; }
-  .genzo-pcard .img { @apply h-[150px] bg-[#f3f5f7] flex items-center justify-center; }
+  .genzo-pcard { @apply flex flex-col overflow-hidden rounded-md border border-[#e7eaee] bg-white dark:border-slate-700 dark:bg-card; }
+  .genzo-pcard .img { @apply flex h-[150px] items-center justify-center bg-[#f3f5f7] dark:bg-slate-800; }
   .genzo-pcard .buy { @apply mt-auto bg-[#e10600] text-white text-center py-3 font-bold cursor-pointer hover:bg-[#b80505] transition-colors; }
 
   /* Form rows */
   .genzo-frow { @apply grid grid-cols-[140px_1fr] items-center gap-3 mb-4; }
-  .genzo-frow label { @apply font-semibold text-slate-600; }
-  .genzo-input { @apply w-full border border-[#d4d9e0] rounded-md px-3 py-2 text-[13px] text-slate-600 focus:outline-none focus:border-[#e10600] focus:ring-2 focus:ring-[#fee2e2]; }
+  .genzo-frow label { @apply font-semibold text-slate-600 dark:text-slate-300; }
+  .genzo-input { @apply w-full rounded-md border border-[#d4d9e0] bg-background px-3 py-2 text-[13px] text-slate-600 focus:border-[#e10600] focus:outline-none focus:ring-2 focus:ring-[#fee2e2] dark:border-slate-600 dark:text-slate-100 dark:focus:ring-red-950; }
 }
 
 /* =========================================================
@@ -414,4 +438,90 @@ table:not(.no-genzo-override) tbody td {
 }
 table:not(.no-genzo-override) tbody tr:hover {
   background-color: #fafbfc !important;
+}
+
+/* Dark-mode bridge for older authenticated screens that still use light slate utilities. */
+.dark .jnex-workspace .bg-white:not([class*="dark:bg-"]) { background-color: hsl(var(--card)); }
+.dark .jnex-workspace .bg-slate-50:not([class*="dark:bg-"]),
+.dark .jnex-workspace .bg-gray-50:not([class*="dark:bg-"]) { background-color: hsl(var(--muted)); }
+.dark .jnex-workspace .bg-slate-100:not([class*="dark:bg-"]),
+.dark .jnex-workspace .bg-gray-100:not([class*="dark:bg-"]) { background-color: hsl(var(--secondary)); }
+.dark .jnex-workspace .bg-teal-50 { background-color: rgb(19 78 74 / 0.32); }
+.dark .jnex-workspace .bg-red-50 { background-color: rgb(127 29 29 / 0.3); }
+.dark .jnex-workspace .bg-amber-50 { background-color: rgb(120 53 15 / 0.3); }
+
+.dark .jnex-workspace .text-slate-900:not([class*="dark:text-"]),
+.dark .jnex-workspace .text-slate-800:not([class*="dark:text-"]),
+.dark .jnex-workspace .text-gray-900:not([class*="dark:text-"]),
+.dark .jnex-workspace .text-gray-800:not([class*="dark:text-"]) { color: hsl(var(--foreground)); }
+.dark .jnex-workspace .text-slate-700:not([class*="dark:text-"]),
+.dark .jnex-workspace .text-slate-600:not([class*="dark:text-"]),
+.dark .jnex-workspace .text-gray-700:not([class*="dark:text-"]),
+.dark .jnex-workspace .text-gray-600:not([class*="dark:text-"]) { color: rgb(203 213 225); }
+.dark .jnex-workspace .text-slate-500:not([class*="dark:text-"]),
+.dark .jnex-workspace .text-gray-500:not([class*="dark:text-"]) { color: hsl(var(--muted-foreground)); }
+.dark .jnex-workspace .text-teal-700,
+.dark .jnex-workspace .text-teal-800 { color: rgb(94 234 212); }
+
+.dark .jnex-workspace .border-slate-100:not([class*="dark:border-"]),
+.dark .jnex-workspace .border-slate-200:not([class*="dark:border-"]),
+.dark .jnex-workspace .border-slate-300:not([class*="dark:border-"]),
+.dark .jnex-workspace .border-gray-100:not([class*="dark:border-"]),
+.dark .jnex-workspace .border-gray-200:not([class*="dark:border-"]),
+.dark .jnex-workspace .border-gray-300:not([class*="dark:border-"]) { border-color: hsl(var(--border)); }
+.dark .jnex-workspace .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark .jnex-workspace .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+.dark .jnex-workspace .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: hsl(var(--border)); }
+
+.dark .jnex-workspace main input[type="text"],
+.dark .jnex-workspace main input[type="number"],
+.dark .jnex-workspace main input[type="email"],
+.dark .jnex-workspace main input[type="password"],
+.dark .jnex-workspace main input[type="tel"],
+.dark .jnex-workspace main input:not([type]),
+.dark .jnex-workspace main select,
+.dark .jnex-workspace main textarea {
+  border-color: hsl(var(--input)) !important;
+  background-color: hsl(var(--popover)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .jnex-workspace main input::placeholder,
+.dark .jnex-workspace main textarea::placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+  opacity: 1;
+}
+
+.dark table:not(.no-genzo-override) thead th {
+  border-bottom-color: hsl(var(--border)) !important;
+  color: rgb(226 232 240) !important;
+}
+.dark table:not(.no-genzo-override) tbody td {
+  border-bottom-color: hsl(var(--border)) !important;
+  color: rgb(203 213 225) !important;
+}
+.dark table:not(.no-genzo-override) tbody tr:hover {
+  background-color: rgb(51 65 85 / 0.55) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body,
+  .jnex-workspace,
+  .jnex-workspace main,
+  .jnex-workspace aside,
+  .jnex-workspace header {
+    transition: none;
+  }
+}
+
+@media print {
+  html { color-scheme: light !important; }
+  .dark .jnex-workspace,
+  .dark .jnex-workspace main,
+  .dark .jnex-workspace .bg-white,
+  .dark .jnex-workspace .bg-slate-50,
+  .dark .jnex-workspace .bg-slate-100 {
+    background-color: #fff !important;
+    color: #000 !important;
+  }
 }

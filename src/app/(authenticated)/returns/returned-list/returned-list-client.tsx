@@ -79,7 +79,7 @@ export function ReturnedListClient({ orders }: { orders: ReturnedOrder[] }) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b-2 border-[#e6e9ed] bg-white">
+              <tr className="border-b-2 border-[#e6e9ed] bg-white dark:border-border dark:bg-card">
                 <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px]">#</th>
                 <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px]">Order ID</th>
                 <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px]">Customer</th>

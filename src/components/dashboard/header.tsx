@@ -7,6 +7,7 @@ import { signOut } from 'next-auth/react';
 import { Notifications } from './notifications';
 import { Tenant } from '@prisma/client';
 import { toast } from 'sonner';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; userName?: string | null; onMenuClick?: () => void }) {
     const router = useRouter();
@@ -117,7 +118,7 @@ export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; user
                 </form>
 
                 {showSuggestions && (
-                    <div className="absolute left-0 mt-2 w-full max-h-96 overflow-y-auto rounded-xl bg-white shadow-2xl ring-1 ring-black/5 focus:outline-none z-50 p-2 divide-y divide-slate-100 border border-slate-100">
+                    <div className="absolute left-0 z-50 mt-2 max-h-96 w-full divide-y divide-border overflow-y-auto rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl ring-1 ring-black/5 focus:outline-none dark:ring-white/10">
                         {loadingSuggestions ? (
                             <div className="flex items-center justify-center py-6 text-xs text-slate-500 gap-2">
                                 <svg className="animate-spin h-4 w-4 text-[#e10600]" fill="none" viewBox="0 0 24 24">
@@ -132,15 +133,15 @@ export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; user
                             </div>
                         ) : (
                             suggestions.map((customer, idx) => (
-                                <div key={idx} className="p-2 space-y-1 text-slate-800">
-                                    <div className="font-semibold text-xs text-[#b80505] flex justify-between">
+                                <div key={idx} className="space-y-1 p-2 text-foreground">
+                                    <div className="flex justify-between text-xs font-semibold text-primary">
                                         <span>{customer.customerName}</span>
-                                        <span className="text-slate-400 font-normal">{customer.customerPhone}</span>
+                                        <span className="font-normal text-muted-foreground">{customer.customerPhone}</span>
                                     </div>
-                                    <div className="text-[10px] text-slate-500 truncate" title={customer.customerAddress}>
+                                    <div className="truncate text-[10px] text-muted-foreground" title={customer.customerAddress}>
                                         {customer.customerAddress}
                                     </div>
-                                    <div className="space-y-1 mt-1 pl-2 border-l-2 border-slate-100">
+                                    <div className="mt-1 space-y-1 border-l-2 border-border pl-2">
                                         {customer.orders.map((order: any) => (
                                             <button
                                                 key={order.id}
@@ -149,17 +150,17 @@ export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; user
                                                     setQ('');
                                                     router.push(`/orders/${order.id}`);
                                                 }}
-                                                className="flex items-center justify-between w-full text-left text-xs p-1.5 rounded hover:bg-slate-50 transition-colors"
+                                                className="flex w-full items-center justify-between rounded p-1.5 text-left text-xs transition-colors hover:bg-accent"
                                             >
-                                                <span className="font-medium text-slate-700">
+                                                <span className="font-medium text-foreground">
                                                     #{order.id.slice(0, 8)} - {order.product?.name || 'Product'}
                                                 </span>
                                                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
                                                     order.status === 'CONFIRMED'
-                                                        ? 'bg-slate-100 text-slate-800'
+                                                        ? 'bg-secondary text-secondary-foreground'
                                                         : order.status === 'PENDING'
-                                                        ? 'bg-red-50 text-[#b80505]'
-                                                        : 'bg-slate-100 text-slate-700'
+                                                        ? 'bg-accent text-accent-foreground'
+                                                        : 'bg-secondary text-secondary-foreground'
                                                 }`}>
                                                     {order.status}
                                                 </span>
@@ -190,15 +191,15 @@ export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; user
                     </svg>
                 </button>
                 {showDropdown && (
-                    <div className="absolute right-0 z-50 mt-2 w-48 rounded-md bg-white py-1 shadow-lg ring-1 ring-black/5 focus:outline-none">
+                    <div className="absolute right-0 z-50 mt-2 w-48 rounded-md border border-border bg-popover py-1 text-popover-foreground shadow-lg ring-1 ring-black/5 focus:outline-none dark:ring-white/10">
                         {couriers.map((c) => (
                             <button
                                 key={c.id}
                                 onClick={() => handleSelectCourier(c.id)}
                                 className={`flex w-full items-center px-4 py-2 text-sm transition-colors text-left ${
                                     defaultCourier === c.id
-                                        ? 'bg-[#fff5f5] text-[#b80505] font-semibold'
-                                        : 'text-slate-600 hover:bg-[#fff5f5] hover:text-slate-900'
+                                        ? 'bg-accent text-accent-foreground font-semibold'
+                                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                                 }`}
                             >
                                 {c.name}
@@ -217,6 +218,7 @@ export function Header({ tenant, userName, onMenuClick }: { tenant: Tenant; user
             </div>
 
             <Notifications />
+            <ThemeToggle />
             <span className="hidden text-lg sm:inline">🇱🇰</span>
 
             <button

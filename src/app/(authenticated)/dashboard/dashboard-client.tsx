@@ -56,10 +56,10 @@ export function DashboardClient({ initialData, userName }: { initialData: Dashbo
   ];
   const orderCards: Array<{ label: string; bucket: keyof OrderSummary; style: string }> = [
     { label: 'Total Orders', bucket: 'total', style: 'bg-[#e10600] text-white border-[#e10600]' },
-    { label: 'Pending Orders', bucket: 'pending', style: 'bg-white text-slate-800 border-[#fecaca] border-l-[#e10600]' },
-    { label: 'Shipped Orders', bucket: 'shipped', style: 'bg-[#fff5f5] text-slate-800 border-[#fecaca] border-l-[#e10600]' },
+    { label: 'Pending Orders', bucket: 'pending', style: 'bg-white text-slate-800 border-[#fecaca] border-l-[#e10600] dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 dark:border-l-red-500' },
+    { label: 'Shipped Orders', bucket: 'shipped', style: 'bg-[#fff5f5] text-slate-800 border-[#fecaca] border-l-[#e10600] dark:bg-[#202735] dark:text-slate-100 dark:border-slate-600 dark:border-l-red-500' },
     { label: 'Returned', bucket: 'returned', style: 'bg-[#b80505] text-white border-[#b80505]' },
-    { label: 'Delivered', bucket: 'delivered', style: 'bg-[#fee2e2] text-slate-900 border-[#fecaca] border-l-[#b80505]' },
+    { label: 'Delivered', bucket: 'delivered', style: 'bg-[#fee2e2] text-slate-900 border-[#fecaca] border-l-[#b80505] dark:bg-red-950/35 dark:text-slate-100 dark:border-red-900/70 dark:border-l-red-500' },
   ];
 
   return <main className="space-y-6 pb-8">

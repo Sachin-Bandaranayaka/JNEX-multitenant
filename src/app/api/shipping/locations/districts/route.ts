@@ -4,6 +4,7 @@ import { TransExpressLocations } from '@/lib/shipping/trans-express-locations';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getCachedTransExpressLocations } from '@/lib/shipping/trans-express-location-cache';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -48,8 +49,13 @@ export async function GET(request: NextRequest) {
             // If province_id is provided, get districts for that province
             districts = await locationsAPI.getDistrictsByProvinceId(Number(provinceId));
         } else {
-            // Otherwise, get all districts
-            districts = await locationsAPI.getDistricts();
+            // The complete list changes rarely; do not call the courier again
+            // for every lead confirmation handled by this server process.
+            districts = await getCachedTransExpressLocations(
+                tenantId,
+                'districts',
+                () => locationsAPI.getDistricts(),
+            );
         }
 
         // Return the districts

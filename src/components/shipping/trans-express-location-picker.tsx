@@ -14,6 +14,49 @@ interface City {
   district_id?: number;
 }
 
+interface CachedLocations {
+  cachedAt: number;
+  districts: District[];
+  cities: City[];
+}
+
+const LOCATION_STORAGE_KEY = 'jnex_trans_express_locations_v1';
+const LOCATION_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function readCachedLocations(): CachedLocations | null {
+  try {
+    const raw = window.localStorage.getItem(LOCATION_STORAGE_KEY);
+    if (!raw) return null;
+
+    const cached = JSON.parse(raw) as Partial<CachedLocations>;
+    if (
+      typeof cached.cachedAt !== 'number'
+      || Date.now() - cached.cachedAt >= LOCATION_CACHE_TTL_MS
+      || !Array.isArray(cached.districts)
+      || !Array.isArray(cached.cities)
+    ) {
+      window.localStorage.removeItem(LOCATION_STORAGE_KEY);
+      return null;
+    }
+
+    return cached as CachedLocations;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedLocations(districts: District[], cities: City[]) {
+  try {
+    window.localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify({
+      cachedAt: Date.now(),
+      districts,
+      cities,
+    } satisfies CachedLocations));
+  } catch {
+    // The picker still works when storage is unavailable or full.
+  }
+}
+
 export interface TransExpressLocationValue {
   provider: 'TRANS_EXPRESS';
   districtId: number;
@@ -52,27 +95,40 @@ export function TransExpressLocationPicker({
       setLoading(true);
       setLoadError(null);
       try {
-        const [districtResponse, cityResponse] = await Promise.all([
-          fetch('/api/shipping/locations/districts'),
-          fetch('/api/shipping/locations/cities'),
-        ]);
-        const [districtData, cityData] = await Promise.all([
-          districtResponse.json(),
-          cityResponse.json(),
-        ]);
-        if (!districtResponse.ok) throw new Error(districtData.error || 'Failed to load courier districts');
-        if (!cityResponse.ok) throw new Error(cityData.error || 'Failed to load courier cities');
-        if (cancelled) return;
+        const cached = readCachedLocations();
+        let rawDistricts: District[];
+        let rawCities: City[];
 
-        const loadedDistricts: District[] = (districtData.districts || []).map((district: District) => ({
+        if (cached) {
+          rawDistricts = cached.districts;
+          rawCities = cached.cities;
+        } else {
+          const [districtResponse, cityResponse] = await Promise.all([
+            fetch('/api/shipping/locations/districts'),
+            fetch('/api/shipping/locations/cities'),
+          ]);
+          const [districtData, cityData] = await Promise.all([
+            districtResponse.json(),
+            cityResponse.json(),
+          ]);
+          if (!districtResponse.ok) throw new Error(districtData.error || 'Failed to load courier districts');
+          if (!cityResponse.ok) throw new Error(cityData.error || 'Failed to load courier cities');
+          rawDistricts = districtData.districts || [];
+          rawCities = cityData.cities || [];
+        }
+
+        const loadedDistricts: District[] = rawDistricts.map((district: District) => ({
           ...district,
           id: Number(district.id),
         }));
-        const loadedCities: City[] = (cityData.cities || []).map((city: City) => ({
+        const loadedCities: City[] = rawCities.map((city: City) => ({
           ...city,
           id: Number(city.id),
           district_id: city.district_id ? Number(city.district_id) : undefined,
         }));
+        if (!cached) writeCachedLocations(loadedDistricts, loadedCities);
+        if (cancelled) return;
+
         setDistricts(loadedDistricts);
         setCities(loadedCities);
 

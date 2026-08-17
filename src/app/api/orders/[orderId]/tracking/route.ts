@@ -6,9 +6,45 @@ import { FardaExpressService } from '@/lib/shipping/farda-express';
 import { TransExpressProvider } from '@/lib/shipping/trans-express';
 import { RoyalExpressProvider } from '@/lib/shipping/royal-express';
 import { ShipmentStatus } from '@/lib/shipping/types';
+import { applyCourierStatus, type CourierStatusOrder } from '@/lib/courier-status-sync';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
+
+type ScopedPrisma = ReturnType<typeof getScopedPrismaClient>;
+
+/**
+ * Records what the courier reported. Kept separate from the status change:
+ * a tracking ping is always worth logging, even when it does not (or may not)
+ * move the order to a new state.
+ */
+async function recordTrackingUpdate(
+    prisma: ScopedPrisma,
+    order: CourierStatusOrder,
+    shipmentStatus: ShipmentStatus,
+    description?: string,
+) {
+    await prisma.trackingUpdate.create({
+        data: {
+            orderId: order.id,
+            tenantId: order.tenantId,
+            status: shipmentStatus,
+            timestamp: new Date(),
+            trackingNumber: order.trackingNumber,
+            isDelivered: shipmentStatus === ShipmentStatus.DELIVERED,
+            isException: shipmentStatus === ShipmentStatus.EXCEPTION,
+            ...(description ? { description } : {}),
+        },
+    });
+}
+
+/** Re-reads the order after a transition so the response reflects the new state. */
+async function reloadOrder(prisma: ScopedPrisma, orderId: string) {
+    return prisma.order.findFirst({
+        where: { id: orderId },
+        include: { trackingUpdates: { orderBy: { timestamp: 'desc' } } },
+    });
+}
 
 export async function GET(
     request: Request,
@@ -32,6 +68,7 @@ export async function GET(
             select: {
                 id: true,
                 status: true,
+                userId: true,
                 shippingProvider: true,
                 trackingNumber: true,
                 customerName: true,
@@ -82,40 +119,10 @@ export async function GET(
             const fardaService = new FardaExpressService(fardaClientId, fardaApiKey);
             const shipmentStatus = await fardaService.trackShipment(order.trackingNumber);
 
-            // Update order status based on tracking info
-            const updatedOrder = await prisma.order.update({
-                where: { id: order.id },
-                data: {
-                    status: shipmentStatus === ShipmentStatus.DELIVERED ? 'DELIVERED' : 'SHIPPED',
-                    deliveredAt: shipmentStatus === ShipmentStatus.DELIVERED ? new Date() : null,
-                    trackingUpdates: {
-                        create: {
-                            status: shipmentStatus,
-                            timestamp: new Date(),
-                            tenantId: order.tenantId,
-                        },
-                    },
-                },
-                include: {
-                    trackingUpdates: {
-                        orderBy: {
-                            timestamp: 'desc',
-                        },
-                    },
-                },
-            });
+            await recordTrackingUpdate(prisma, order, shipmentStatus);
+            await applyCourierStatus(order, shipmentStatus, 'Farda Express tracking', session.user.id);
 
-            // Send notification if status has changed
-            if (shipmentStatus !== order.status) {
-                // TODO: Implement notification service
-                // await sendTrackingUpdate({
-                //   phone: order.customerPhone,
-                //   email: order.customerEmail,
-                //   status: shipmentStatus,
-                // });
-            }
-
-            return NextResponse.json(updatedOrder);
+            return NextResponse.json(await reloadOrder(prisma, order.id));
         } else if (order.shippingProvider === 'TRANS_EXPRESS') {
             try {
                 
@@ -137,31 +144,11 @@ export async function GET(
     const resolvedParams = await params;const shipmentStatus = await transExpressService.trackShipment(order.trackingNumber);
                     console.log('Trans Express tracking status received:', shipmentStatus);
 
-                    // Update order status based on tracking info
-                    const updatedOrder = await prisma.order.update({
-                        where: { id: order.id },
-                        data: {
-                            status: shipmentStatus === ShipmentStatus.DELIVERED ? 'DELIVERED' : 'SHIPPED',
-                            deliveredAt: shipmentStatus === ShipmentStatus.DELIVERED ? new Date() : null,
-                            trackingUpdates: {
-                                create: {
-                                    status: shipmentStatus,
-                                    timestamp: new Date(),
-                                    tenantId: order.tenantId,
-                                },
-                            },
-                        },
-                        include: {
-                            trackingUpdates: {
-                                orderBy: {
-                                    timestamp: 'desc',
-                                },
-                            },
-                        },
-                    });
+                    await recordTrackingUpdate(prisma, order, shipmentStatus);
+                    await applyCourierStatus(order, shipmentStatus, 'Trans Express tracking', session.user.id);
 
-                    console.log('Order updated with tracking info:', updatedOrder.id);
-                    return NextResponse.json(updatedOrder);
+                    console.log('Order updated with tracking info:', order.id);
+                    return NextResponse.json(await reloadOrder(prisma, order.id));
                 } catch (trackingError) {
                     console.error('Error during tracking operation:', trackingError);
 
@@ -232,21 +219,8 @@ export async function GET(
                 const shipmentStatus = await royalExpressService.trackShipment(order.trackingNumber);
                 console.log('Royal Express basic status:', shipmentStatus);
 
-                // Update order status based on tracking info
-                await prisma.order.update({
-                    where: { id: order.id },
-                    data: {
-                        status: shipmentStatus === ShipmentStatus.DELIVERED ? 'DELIVERED' : 'SHIPPED',
-                        deliveredAt: shipmentStatus === ShipmentStatus.DELIVERED ? new Date() : null,
-                        trackingUpdates: {
-                            create: {
-                                status: shipmentStatus,
-                                timestamp: new Date(),
-                                tenantId: order.tenantId,
-                            },
-                        },
-                    },
-                });
+                await recordTrackingUpdate(prisma, order, shipmentStatus);
+                await applyCourierStatus(order, shipmentStatus, 'Royal Express tracking', session.user.id);
 
                 console.log('Order updated with tracking info, returning raw tracking data');
                 // Return the raw tracking data that the frontend component expects

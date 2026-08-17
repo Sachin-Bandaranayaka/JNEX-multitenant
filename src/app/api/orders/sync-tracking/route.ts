@@ -7,21 +7,9 @@ import { NextResponse } from 'next/server';
 import { getScopedPrismaClient, prisma as unscopedPrisma } from '@/lib/prisma';
 import { OrderStatus, ShippingProvider } from '@prisma/client';
 import { RoyalExpressProvider } from '@/lib/shipping/royal-express';
-import { ShipmentStatus } from '@/lib/shipping/types';
-import { createNotification } from '@/lib/notifications';
+import { applyCourierStatus } from '@/lib/courier-status-sync';
 
 export const dynamic = 'force-dynamic';
-
-// Map ShipmentStatus to OrderStatus
-const statusMap: Record<ShipmentStatus, OrderStatus> = {
-    [ShipmentStatus.PENDING]: OrderStatus.SHIPPED,
-    [ShipmentStatus.IN_TRANSIT]: OrderStatus.SHIPPED,
-    [ShipmentStatus.OUT_FOR_DELIVERY]: OrderStatus.SHIPPED,
-    [ShipmentStatus.DELIVERED]: OrderStatus.DELIVERED,
-    [ShipmentStatus.RETURNED]: OrderStatus.RETURNED,
-    [ShipmentStatus.EXCEPTION]: OrderStatus.SHIPPED,
-    [ShipmentStatus.RESCHEDULED]: OrderStatus.RESCHEDULED,
-};
 
 // Helper function to add delay between API calls
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -49,7 +37,7 @@ export async function POST(request: Request) {
         });
 
         if (!tenant?.royalExpressApiKey) {
-            return NextResponse.json({ 
+            return NextResponse.json({
                 error: 'Royal Express API key not configured',
                 message: 'Please configure your Royal Express API key in settings'
             }, { status: 400 });
@@ -96,92 +84,32 @@ export async function POST(request: Request) {
             try {
                 const trackingResult = await royalExpressService.trackShipmentEnhanced(order.trackingNumber!);
                 const shipmentStatus = trackingResult.basicStatus;
-                const newStatus = statusMap[shipmentStatus];
 
-                // Skip if status hasn't changed
-                if (newStatus === order.status) {
+                // The state machine owns stock restoration, status history,
+                // notifications and platform billing — this route only reports
+                // what the courier said.
+                const applied = await applyCourierStatus(
+                    { ...order, tenantId },
+                    shipmentStatus,
+                    'Royal Express manual sync',
+                    session.user.id,
+                );
+
+                if (!applied.changed) {
                     updates.push({
                         orderId: order.id,
                         success: true,
-                        message: 'No status change',
+                        message: applied.skipped,
                         currentStatus: order.status,
                     });
                     continue;
-                }
-
-                // Handle returns with stock restoration
-                if (newStatus === OrderStatus.RETURNED || newStatus === OrderStatus.DELIVERED) {
-                    const product = await prisma.product.findUnique({
-                        where: { id: order.productId },
-                    });
-
-                    if (product && newStatus === OrderStatus.RETURNED) {
-                        // Restore stock for returned orders
-                        await unscopedPrisma.$transaction([
-                            unscopedPrisma.order.update({
-                                where: { id: order.id },
-                                data: {
-                                    status: newStatus,
-                                    deliveredAt: null,
-                                },
-                            }),
-                            unscopedPrisma.product.update({
-                                where: { id: order.productId },
-                                data: { stock: { increment: order.quantity } },
-                            }),
-                            unscopedPrisma.stockAdjustment.create({
-                                data: {
-                                    productId: order.productId,
-                                    quantity: order.quantity,
-                                    reason: `Order Returned (Manual Sync: ${order.trackingNumber})`,
-                                    previousStock: product.stock,
-                                    newStock: product.stock + order.quantity,
-                                    userId: order.userId,
-                                    tenantId: tenantId,
-                                },
-                            }),
-                        ]);
-
-                        await createNotification(
-                            tenantId,
-                            'Order Returned',
-                            `Order #${order.id} has been returned. Stock restored.`,
-                            'RETURN',
-                            order.id
-                        );
-                    } else {
-                        // Update to delivered
-                        await prisma.order.update({
-                            where: { id: order.id },
-                            data: {
-                                status: newStatus,
-                                deliveredAt: newStatus === OrderStatus.DELIVERED ? new Date() : null,
-                            },
-                        });
-
-                        if (newStatus === OrderStatus.DELIVERED) {
-                            await createNotification(
-                                tenantId,
-                                'Order Delivered',
-                                `Order #${order.id} has been delivered.`,
-                                'DELIVERY',
-                                order.id
-                            );
-                        }
-                    }
-                } else {
-                    // Regular status update
-                    await prisma.order.update({
-                        where: { id: order.id },
-                        data: { status: newStatus },
-                    });
                 }
 
                 updates.push({
                     orderId: order.id,
                     success: true,
                     previousStatus: order.status,
-                    newStatus: newStatus,
+                    newStatus: applied.newStatus,
                     trackingStatus: shipmentStatus,
                 });
             } catch (error) {
@@ -206,7 +134,7 @@ export async function POST(request: Request) {
         });
     } catch (error) {
         console.error('Sync tracking error:', error);
-        return NextResponse.json({ 
+        return NextResponse.json({
             error: 'Failed to sync orders',
             details: error instanceof Error ? error.message : 'Unknown error'
         }, { status: 500 });

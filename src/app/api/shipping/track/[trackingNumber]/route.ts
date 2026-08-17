@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import { ShippingProvider } from '@prisma/client';
+import { applyCourierStatus } from '@/lib/courier-status-sync';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -90,13 +91,9 @@ export async function GET(
     // Track the shipment
     const status = await provider.trackShipment(resolvedParams.trackingNumber);
 
-    // Update order status if needed
-    if (status === 'DELIVERED' && order.status !== 'DELIVERED') {
-      await scopedPrisma.order.update({
-        where: { id: order.id },
-        data: { status: 'DELIVERED' },
-      });
-    }
+    // The state machine owns the status change, so a delivery found here also
+    // gets its status history, notification and platform fee.
+    await applyCourierStatus(order, status, 'Tracking lookup', session.user.id);
 
     return NextResponse.json({ status });
   } catch (error) {

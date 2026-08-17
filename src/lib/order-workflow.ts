@@ -1,5 +1,6 @@
 import { OrderStatus, ShippingProvider } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { accrueDeliveryCharge, reverseDeliveryCharge } from '@/lib/billing/charges';
 
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   PENDING: [OrderStatus.CONFIRMED, OrderStatus.SHIPPED, OrderStatus.CANCELLED],
@@ -92,6 +93,24 @@ export async function transitionOrder(input: TransitionOrderInput) {
         description: input.description ?? (input.source ? `Updated via ${input.source}` : 'Status updated'),
       },
     });
+
+    // Platform billing rides on the same transaction as the status change, so
+    // a delivery is never recorded without its fee and a fee never exists for
+    // an order that did not deliver. Accrual is idempotent on orderId.
+    if (input.to === OrderStatus.DELIVERED) {
+      await accrueDeliveryCharge(tx, {
+        tenantId: input.tenantId,
+        orderId: order.id,
+        orderTotal: order.total,
+        deliveredAt: at,
+      });
+    } else if (input.to === OrderStatus.RETURNED && order.status === OrderStatus.DELIVERED) {
+      await reverseDeliveryCharge(tx, {
+        orderId: order.id,
+        reason: input.description ?? `Returned after delivery${input.source ? ` (${input.source})` : ''}`,
+        at,
+      });
+    }
 
     if (input.to === OrderStatus.DELIVERED || input.to === OrderStatus.RETURNED) {
       await tx.notification.create({

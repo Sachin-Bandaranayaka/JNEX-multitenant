@@ -100,6 +100,12 @@ model Tenant {
   // Store relations
   storePurchases StorePurchase[]
   printBatches   InvoicePrintBatch[]
+
+  // Platform billing relations
+  feeRates        TenantFeeRate[]
+  deliveryCharges DeliveryCharge[]
+  invoices        TenantInvoice[]
+  invoicePayments TenantInvoicePayment[]
 }
 
 model User {
@@ -123,6 +129,9 @@ model User {
   // Store relations
   cart           Cart?
   storePurchases StorePurchase[]
+
+  // Platform billing relations
+  submittedInvoicePayments TenantInvoicePayment[] @relation("InvoicePaymentSubmitter")
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
@@ -249,6 +258,7 @@ model Order {
   trackingFailureCount     Int                         @default(0)
   trackingLastError        String?
   printBatchItems          InvoicePrintBatchItem[]
+  deliveryCharge           DeliveryCharge?
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
@@ -539,4 +549,201 @@ model StorePurchaseItem {
 
   @@index([purchaseId])
   @@index([storeProductId])
+}
+
+// ============================================
+// PLATFORM BILLING MODELS (Super Admin Managed)
+//
+// The platform charges each tenant a fee per DELIVERED order. The fee is not
+// fixed: it varies per tenant and changes over time. Three rules keep that safe:
+//
+//   1. Rates are effective-dated and never edited in place — changing a rate
+//      closes the current TenantFeeRate row and opens a new one, so historic
+//      charges always point at the rate that actually applied.
+//   2. DeliveryCharge is an append-only ledger with one row per order
+//      (@@unique on orderId), so retried crons and re-uploaded courier files
+//      can never double-bill.
+//   3. A tenant's balance is always derived by summing the ledger — it is
+//      never stored as a mutable counter.
+// ============================================
+
+enum FeeModel {
+  FLAT_PER_ORDER
+  PERCENT_OF_ORDER
+  TIERED_BY_VOLUME
+}
+
+enum ChargeStatus {
+  ACCRUED // billable, not yet on an invoice
+  INVOICED // locked onto an issued invoice
+  PAID // invoice settled
+  REVERSED // order was returned after delivery
+  WAIVED // manually forgiven by a super admin
+}
+
+enum TenantInvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  VOID
+}
+
+enum InvoicePaymentStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+/// An effective-dated fee rate for one tenant. Never updated in place:
+/// superseding a rate sets `effectiveTo` and inserts a new row.
+model TenantFeeRate {
+  id       String @id @default(uuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  feeModel FeeModel @default(FLAT_PER_ORDER)
+
+  /// FLAT_PER_ORDER: the fee charged per delivered order.
+  flatAmount  Decimal? @db.Decimal(12, 2)
+  /// PERCENT_OF_ORDER: fraction of the order total, e.g. 0.0250 = 2.5%.
+  percentRate Decimal? @db.Decimal(9, 6)
+  /// TIERED_BY_VOLUME: [{ "upTo": 500, "amount": 50 }, { "upTo": null, "amount": 40 }]
+  /// where `upTo` is the tenant's delivered-order count within the billing month.
+  tiers       Json?
+
+  /// Floor and ceiling applied after the model is evaluated.
+  minFee   Decimal? @db.Decimal(12, 2)
+  maxFee   Decimal? @db.Decimal(12, 2)
+  currency String   @default("LKR")
+
+  effectiveFrom DateTime
+  /// null means "still in force". Only one open row per tenant at a time.
+  effectiveTo   DateTime?
+  note          String?
+  createdByUserId String?
+  createdAt     DateTime  @default(now())
+
+  charges DeliveryCharge[]
+
+  @@index([tenantId, effectiveFrom])
+  @@index([tenantId, effectiveTo])
+}
+
+/// One immutable ledger row per delivered order. Written inside the same
+/// transaction that marks the order DELIVERED.
+model DeliveryCharge {
+  id       String @id @default(uuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  /// The idempotency key for the whole billing system.
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  rateId String
+  rate   TenantFeeRate @relation(fields: [rateId], references: [id])
+
+  /// Snapshots taken at accrual time so later edits can never rewrite history.
+  feeModel    FeeModel
+  orderTotal  Decimal @db.Decimal(12, 2)
+  amount      Decimal @db.Decimal(12, 2)
+  currency    String  @default("LKR")
+
+  status      ChargeStatus @default(ACCRUED)
+  deliveredAt DateTime
+  /// Billing month in the platform timezone, e.g. "2026-08".
+  periodKey   String
+  /// 1-based position of this charge within the tenant's billing month, used
+  /// to evaluate volume tiers.
+  periodSequence Int
+
+  invoiceId String?
+  invoice   TenantInvoice? @relation("InvoiceCharges", fields: [invoiceId], references: [id])
+
+  /// When a charge is reversed *after* it was already invoiced, the money is
+  /// given back as a negative adjustment on a later invoice rather than by
+  /// rewriting the issued one. This points at the invoice that carried the
+  /// credit; null while the credit is still outstanding.
+  creditInvoiceId String?
+  creditInvoice   TenantInvoice? @relation("InvoiceCredits", fields: [creditInvoiceId], references: [id])
+
+  reversedAt     DateTime?
+  reversalReason String?
+  waivedReason   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId, periodKey, status])
+  @@index([tenantId, deliveredAt])
+  @@index([invoiceId])
+  @@index([creditInvoiceId])
+  @@index([status])
+}
+
+model TenantInvoice {
+  id       String @id @default(uuid())
+  number   Int    @default(autoincrement())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  periodKey   String
+  periodStart DateTime
+  periodEnd   DateTime
+
+  status TenantInvoiceStatus @default(DRAFT)
+
+  /// Totals are snapshotted at issue time; they do not recompute from the
+  /// ledger afterwards.
+  chargeCount Int     @default(0)
+  subtotal    Decimal @db.Decimal(14, 2)
+  adjustments Decimal @default(0) @db.Decimal(14, 2)
+  total       Decimal @db.Decimal(14, 2)
+  currency    String  @default("LKR")
+
+  issuedAt DateTime?
+  dueAt    DateTime?
+  paidAt   DateTime?
+  voidedAt DateTime?
+  notes    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  charges  DeliveryCharge[]       @relation("InvoiceCharges")
+  credits  DeliveryCharge[]       @relation("InvoiceCredits")
+  payments TenantInvoicePayment[]
+
+  @@unique([tenantId, periodKey])
+  @@index([tenantId, status])
+  @@index([status])
+}
+
+/// Bank-transfer settlement, mirroring the StorePurchase flow: the tenant
+/// submits transfer details, a super admin confirms or rejects.
+model TenantInvoicePayment {
+  id        String        @id @default(uuid())
+  invoiceId String
+  invoice   TenantInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  tenantId  String
+  tenant    Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  submittedByUserId String
+  submittedBy       User   @relation("InvoicePaymentSubmitter", fields: [submittedByUserId], references: [id])
+
+  bankReceiptNumber String
+  whatsappNumber    String
+  transferTime      DateTime
+  amount            Decimal  @db.Decimal(14, 2)
+
+  status          InvoicePaymentStatus @default(PENDING)
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  rejectionReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([tenantId, status])
+  @@index([status])
 }

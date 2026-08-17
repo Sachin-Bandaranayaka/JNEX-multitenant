@@ -2,26 +2,15 @@ import { OrderStatus, ShippingProvider } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { FardaExpressService } from '@/lib/shipping/farda-express';
-import { TransExpressProvider } from '@/lib/shipping/trans-express';
 import { RoyalExpressProvider } from '@/lib/shipping/royal-express';
 import { ShipmentStatus } from '@/lib/shipping/types';
 import { createNotification } from '@/lib/notifications';
+import { applyCourierStatus } from '@/lib/courier-status-sync';
 
 // Force dynamic rendering - disable all caching
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
-
-// Map ShipmentStatus to OrderStatus
-const statusMap: Record<ShipmentStatus, OrderStatus> = {
-    [ShipmentStatus.PENDING]: OrderStatus.SHIPPED,
-    [ShipmentStatus.IN_TRANSIT]: OrderStatus.SHIPPED,
-    [ShipmentStatus.OUT_FOR_DELIVERY]: OrderStatus.SHIPPED,
-    [ShipmentStatus.DELIVERED]: OrderStatus.DELIVERED,
-    [ShipmentStatus.RETURNED]: OrderStatus.RETURNED,
-    [ShipmentStatus.EXCEPTION]: OrderStatus.SHIPPED,
-    [ShipmentStatus.RESCHEDULED]: OrderStatus.RESCHEDULED
-};
 
 // This endpoint will be called by a cron job every hour
 export async function GET(request: Request) {
@@ -86,7 +75,7 @@ export async function GET(request: Request) {
           const batch = orders.slice(start, start + concurrency);
           const batchResults = await Promise.all(batch.map(async (order, offset) => {
             console.log(`Processing order ${start + offset + 1}/${orders.length}: ${order.id}`);
-            
+
             const result = await (async () => {
                 try {
                     if (order.shippingProvider === ShippingProvider.FARDA_EXPRESS) {
@@ -104,88 +93,29 @@ export async function GET(request: Request) {
                         const fardaService = new FardaExpressService(fardaClientId, fardaApiKey);
                         const shipmentStatus = await fardaService.trackShipment(order.trackingNumber!);
 
-                        const newStatus = statusMap[shipmentStatus];
-                        const orderUpdateData = {
-                            status: newStatus,
-                            deliveredAt: shipmentStatus === ShipmentStatus.DELIVERED ? new Date() : null,
-                            trackingUpdates: {
-                                create: {
-                                    status: shipmentStatus,
-                                    timestamp: new Date(),
-                                    tenantId: order.tenantId,
-                                },
+                        // Record what the courier said, regardless of whether it
+                        // moves the order to a new lifecycle state.
+                        await prisma.trackingUpdate.create({
+                            data: {
+                                orderId: order.id,
+                                tenantId: order.tenantId,
+                                status: shipmentStatus,
+                                timestamp: new Date(),
+                                provider: ShippingProvider.FARDA_EXPRESS,
+                                trackingNumber: order.trackingNumber,
+                                isDelivered: shipmentStatus === ShipmentStatus.DELIVERED,
+                                isException: shipmentStatus === ShipmentStatus.EXCEPTION,
                             },
-                        };
+                        });
 
-                        // If the shipment was returned, restock the product and
-                        // record the adjustment — mirroring the Royal Express
-                        // path. Without this, inventory silently drifts on every
-                        // returned Farda Express order.
-                        if (newStatus === OrderStatus.RETURNED && order.status !== OrderStatus.RETURNED) {
-                            const product = await prisma.product.findUnique({
-                                where: { id: order.productId },
-                            });
-
-                            if (product) {
-                                await prisma.$transaction([
-                                    prisma.order.update({
-                                        where: { id: order.id },
-                                        data: orderUpdateData,
-                                    }),
-                                    prisma.product.update({
-                                        where: { id: order.productId },
-                                        data: { stock: { increment: order.quantity } },
-                                    }),
-                                    prisma.stockAdjustment.create({
-                                        data: {
-                                            productId: order.productId,
-                                            quantity: order.quantity,
-                                            reason: `Order Returned (Auto-detected via Farda Express: ${order.trackingNumber})`,
-                                            previousStock: product.stock,
-                                            newStock: product.stock + order.quantity,
-                                            userId: order.userId,
-                                            tenantId: order.tenantId,
-                                        },
-                                    }),
-                                ]);
-                            } else {
-                                // Product not found, just update the order status.
-                                await prisma.order.update({
-                                    where: { id: order.id },
-                                    data: orderUpdateData,
-                                });
-                            }
-                        } else {
-                            // Normal update without stock adjustment.
-                            await prisma.order.update({
-                                where: { id: order.id },
-                                data: orderUpdateData,
-                            });
-                        }
-
-                        // Create notification for delivery
-                        if (shipmentStatus === ShipmentStatus.DELIVERED) {
-                            await createNotification(
-                                order.tenantId,
-                                'Order Delivered',
-                                `Order #${order.id} has been delivered via Farda Express.`,
-                                'DELIVERY',
-                                order.id
-                            );
-                        } else if (shipmentStatus === ShipmentStatus.RETURNED) {
-                            await createNotification(
-                                order.tenantId,
-                                'Order Returned',
-                                `Order #${order.id} has been returned via Farda Express.`,
-                                'RETURN',
-                                order.id
-                            );
-                        }
+                        const applied = await applyCourierStatus(order, shipmentStatus, 'Farda Express tracking');
 
                         return {
                             orderId: order.id,
                             success: true,
                             newStatus: shipmentStatus,
+                            statusChanged: applied.changed,
+                            ...(applied.skipped ? { skippedReason: applied.skipped } : {}),
                         };
                     } else if (order.shippingProvider === ShippingProvider.TRANS_EXPRESS) {
                         // NOTE: Trans Express automated tracking is intentionally disabled.
@@ -234,169 +164,100 @@ export async function GET(request: Request) {
                             // Use enhanced tracking to get comprehensive order information
                             const enhancedTracking = await royalExpressService.trackShipmentEnhanced(order.trackingNumber!);
                             const shipmentStatus = enhancedTracking.basicStatus;
+                            const latest = enhancedTracking.enhancedStatus?.statusHistory?.[0];
 
-                            // Prepare database update with enhanced tracking data
-                            const updateData: any = {
-                                status: statusMap[shipmentStatus],
-                                deliveredAt: shipmentStatus === ShipmentStatus.DELIVERED ? new Date() : null,
-                                trackingUpdates: {
-                                    create: {
-                                        status: shipmentStatus,
-                                        timestamp: new Date(),
-                                        tenantId: order.tenantId,
-                                        description: enhancedTracking.enhancedStatus?.statusHistory?.[0]?.description || 'Status updated via cron job',
-                                        location: enhancedTracking.enhancedStatus?.statusHistory?.[0]?.location,
-                                    },
+                            await prisma.trackingUpdate.create({
+                                data: {
+                                    orderId: order.id,
+                                    tenantId: order.tenantId,
+                                    status: shipmentStatus,
+                                    timestamp: new Date(),
+                                    description: latest?.description || 'Status updated via cron job',
+                                    location: latest?.location,
+                                    provider: ShippingProvider.ROYAL_EXPRESS,
+                                    trackingNumber: order.trackingNumber,
+                                    isDelivered: shipmentStatus === ShipmentStatus.DELIVERED,
+                                    isException: shipmentStatus === ShipmentStatus.EXCEPTION,
                                 },
-                            };
+                            });
 
-                            // Add enhanced status history if available
-                            if (enhancedTracking.enhancedStatus?.statusHistory) {
-                                updateData.statusHistory = {
-                                    createMany: {
-                                        data: enhancedTracking.enhancedStatus.statusHistory.map((historyItem) => ({
-                                            status: historyItem.status,
-                                            timestamp: new Date(historyItem.timestamp),
-                                            description: historyItem.description,
-                                            location: historyItem.location,
-                                            tenantId: order.tenantId,
-                                        })),
-                                        skipDuplicates: true,
-                                    },
-                                };
+                            // Courier-reported history is informational; the
+                            // authoritative current-status row is written by
+                            // transitionOrder below.
+                            if (enhancedTracking.enhancedStatus?.statusHistory?.length) {
+                                await prisma.orderStatusHistory.createMany({
+                                    data: enhancedTracking.enhancedStatus.statusHistory.map((historyItem) => ({
+                                        orderId: order.id,
+                                        tenantId: order.tenantId,
+                                        status: historyItem.status,
+                                        statusCode: historyItem.status,
+                                        timestamp: new Date(historyItem.timestamp),
+                                        description: historyItem.description,
+                                        location: historyItem.location,
+                                        isCurrentStatus: false,
+                                    })),
+                                    skipDuplicates: true,
+                                });
                             }
 
-                            // Add financial information if available
                             if (enhancedTracking.financialInfo) {
-                                updateData.financialInfo = {
-                                    upsert: {
-                                        create: {
-                                            totalAmount: enhancedTracking.financialInfo.totalAmount,
-                                            shippingCost: enhancedTracking.financialInfo.shippingCost,
-                                            taxAmount: enhancedTracking.financialInfo.taxAmount,
-                                            discountAmount: enhancedTracking.financialInfo.discountAmount,
-                                            paymentStatus: enhancedTracking.financialInfo.paymentStatus,
-                                            paymentMethod: enhancedTracking.financialInfo.paymentMethod,
-                                            currency: enhancedTracking.financialInfo.currency,
-                                            tenantId: order.tenantId,
-                                        },
-                                        update: {
-                                            totalAmount: enhancedTracking.financialInfo.totalAmount,
-                                            shippingCost: enhancedTracking.financialInfo.shippingCost,
-                                            taxAmount: enhancedTracking.financialInfo.taxAmount,
-                                            discountAmount: enhancedTracking.financialInfo.discountAmount,
-                                            paymentStatus: enhancedTracking.financialInfo.paymentStatus,
-                                            paymentMethod: enhancedTracking.financialInfo.paymentMethod,
-                                            currency: enhancedTracking.financialInfo.currency,
-                                            updatedAt: new Date(),
-                                        },
+                                const financial = enhancedTracking.financialInfo;
+                                await prisma.orderFinancialInfo.upsert({
+                                    where: { orderId: order.id },
+                                    create: {
+                                        orderId: order.id,
+                                        tenantId: order.tenantId,
+                                        totalAmount: financial.totalAmount,
+                                        shippingCost: financial.shippingCost,
+                                        taxAmount: financial.taxAmount,
+                                        discountAmount: financial.discountAmount,
+                                        paymentStatus: financial.paymentStatus,
+                                        paymentMethod: financial.paymentMethod,
+                                        currency: financial.currency,
                                     },
-                                };
-                            }
-
-                            // Add Royal Express tracking details if available
-                            if (enhancedTracking.trackingInfo?.data) {
-                                updateData.royalExpressTracking = {
-                                    createMany: {
-                                        data: enhancedTracking.trackingInfo.data.map((trackingItem) => ({
-                                            trackingNumber: trackingItem.tracking_number,
-                                            currentLocation: trackingItem.location,
-                                            statusHistory: JSON.stringify([{
-                                                status: trackingItem.status,
-                                                timestamp: trackingItem.timestamp,
-                                                description: trackingItem.description,
-                                                location: trackingItem.location
-                                            }]),
-                                            tenantId: order.tenantId,
-                                        })),
-                                        skipDuplicates: true,
-                                    },
-                                };
-                            }
-
-                            // Update order with enhanced tracking data
-                            const newStatus = statusMap[shipmentStatus];
-
-                            // Check if this is a return that needs stock adjustment
-                            if (newStatus === OrderStatus.RETURNED && order.status !== OrderStatus.RETURNED) {
-                                // Fetch current product stock for accurate adjustment record
-                                const product = await prisma.product.findUnique({
-                                    where: { id: order.productId }
-                                });
-
-                                if (product) {
-                                    // Use transaction to ensure data consistency
-                                    await prisma.$transaction([
-                                        // 1. Update Order
-                                        prisma.order.update({
-                                            where: { id: order.id },
-                                            data: {
-                                                ...updateData,
-                                                status: newStatus,
-                                            },
-                                        }),
-                                        // 2. Update Product Stock
-                                        prisma.product.update({
-                                            where: { id: order.productId },
-                                            data: { stock: { increment: order.quantity } }
-                                        }),
-                                        // 3. Create Stock Adjustment Record
-                                        prisma.stockAdjustment.create({
-                                            data: {
-                                                productId: order.productId,
-                                                quantity: order.quantity,
-                                                reason: `Order Returned (Auto-detected via Royal Express: ${order.trackingNumber})`,
-                                                previousStock: product.stock,
-                                                newStock: product.stock + order.quantity,
-                                                userId: order.userId,
-                                                tenantId: order.tenantId
-                                            }
-                                        })
-                                    ]);
-                                } else {
-                                    // Product not found, just update order
-                                    await prisma.order.update({
-                                        where: { id: order.id },
-                                        data: {
-                                            ...updateData,
-                                            status: newStatus,
-                                        },
-                                    });
-                                }
-                            } else {
-                                // Normal update without stock adjustment
-                                await prisma.order.update({
-                                    where: { id: order.id },
-                                    data: {
-                                        ...updateData,
-                                        status: newStatus,
+                                    update: {
+                                        totalAmount: financial.totalAmount,
+                                        shippingCost: financial.shippingCost,
+                                        taxAmount: financial.taxAmount,
+                                        discountAmount: financial.discountAmount,
+                                        paymentStatus: financial.paymentStatus,
+                                        paymentMethod: financial.paymentMethod,
+                                        currency: financial.currency,
                                     },
                                 });
                             }
 
-                            // Create notification for delivery
-                            if (shipmentStatus === ShipmentStatus.DELIVERED) {
-                                await createNotification(
-                                    order.tenantId,
-                                    'Order Delivered',
-                                    `Order #${order.id} has been delivered via Royal Express.`,
-                                    'DELIVERY',
-                                    order.id
-                                );
-                            } else if (shipmentStatus === ShipmentStatus.RETURNED) {
-                                await createNotification(
-                                    order.tenantId,
-                                    'Order Returned',
-                                    `Order #${order.id} has been returned via Royal Express.`,
-                                    'RETURN',
-                                    order.id
-                                );
-                            } else if (shipmentStatus === ShipmentStatus.RESCHEDULED) {
+                            if (enhancedTracking.enhancedStatus) {
+                                const enhanced = enhancedTracking.enhancedStatus;
+                                const detail = {
+                                    trackingNumber: enhanced.trackingNumber || order.trackingNumber!,
+                                    currentStatus: String(enhanced.currentStatus),
+                                    currentStatusCode: String(enhanced.currentStatus),
+                                    estimatedDelivery: enhanced.estimatedDelivery ? new Date(enhanced.estimatedDelivery) : null,
+                                    actualDelivery: shipmentStatus === ShipmentStatus.DELIVERED ? new Date() : null,
+                                    lastLocationUpdate: latest?.location ?? null,
+                                    lastLocationTimestamp: latest?.timestamp ? new Date(latest.timestamp) : null,
+                                    totalStatusUpdates: enhanced.statusHistory?.length ?? 0,
+                                    isDelivered: shipmentStatus === ShipmentStatus.DELIVERED,
+                                    isException: shipmentStatus === ShipmentStatus.EXCEPTION,
+                                };
+                                await prisma.royalExpressTrackingDetail.upsert({
+                                    where: { orderId: order.id },
+                                    create: { orderId: order.id, tenantId: order.tenantId, ...detail },
+                                    update: detail,
+                                });
+                            }
+
+                            const applied = await applyCourierStatus(order, shipmentStatus, 'Royal Express tracking');
+
+                            if (shipmentStatus === ShipmentStatus.RESCHEDULED && applied.changed) {
+                                // transitionOrder notifies on delivery and return;
+                                // reschedules get their own message here.
                                 await createNotification(
                                     order.tenantId,
                                     'Order Rescheduled',
                                     `Order #${order.id} has been rescheduled.`,
-                                    'DELIVERY', // Using DELIVERY type for now, or could add RESCHEDULE type
+                                    'DELIVERY',
                                     order.id
                                 );
                             }
@@ -405,6 +266,8 @@ export async function GET(request: Request) {
                                 orderId: order.id,
                                 success: true,
                                 newStatus: shipmentStatus,
+                                statusChanged: applied.changed,
+                                ...(applied.skipped ? { skippedReason: applied.skipped } : {}),
                                 enhancedData: {
                                     statusHistory: enhancedTracking.enhancedStatus?.statusHistory?.length || 0,
                                     hasFinancialInfo: !!enhancedTracking.financialInfo,
@@ -422,26 +285,26 @@ export async function GET(request: Request) {
                                     const royalExpressService = new RoyalExpressProvider(royalApiKey);
                                     const basicStatus = await royalExpressService.trackShipment(order.trackingNumber!);
 
-                                    await prisma.order.update({
-                                        where: { id: order.id },
+                                    await prisma.trackingUpdate.create({
                                         data: {
-                                            status: statusMap[basicStatus],
-                                            deliveredAt: basicStatus === ShipmentStatus.DELIVERED ? new Date() : null,
-                                            trackingUpdates: {
-                                                create: {
-                                                    status: basicStatus,
-                                                    timestamp: new Date(),
-                                                    tenantId: order.tenantId,
-                                                    description: 'Basic tracking update (enhanced tracking failed)',
-                                                },
-                                            },
+                                            orderId: order.id,
+                                            tenantId: order.tenantId,
+                                            status: basicStatus,
+                                            timestamp: new Date(),
+                                            description: 'Basic tracking update (enhanced tracking failed)',
+                                            provider: ShippingProvider.ROYAL_EXPRESS,
+                                            trackingNumber: order.trackingNumber,
+                                            isDelivered: basicStatus === ShipmentStatus.DELIVERED,
                                         },
                                     });
+
+                                    const applied = await applyCourierStatus(order, basicStatus, 'Royal Express tracking');
 
                                     return {
                                         orderId: order.id,
                                         success: true,
                                         newStatus: basicStatus,
+                                        statusChanged: applied.changed,
                                         fallbackUsed: true,
                                     };
                                 }
@@ -472,7 +335,7 @@ export async function GET(request: Request) {
                     };
                 }
             })();
-            
+
             await prisma.order.update({
               where: { id: order.id },
               data: result.success

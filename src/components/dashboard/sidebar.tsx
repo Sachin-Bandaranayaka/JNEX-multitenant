@@ -19,6 +19,7 @@ import {
     ChevronLeftIcon,
     ArrowUturnLeftIcon,
     UserGroupIcon,
+    BanknotesIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -288,6 +289,11 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                     {has('MANAGE_USERS') && (
                         <NavLink href="/users" icon={<UserIcon className="h-5 w-5" />}
                             isActive={pathname.startsWith('/users')} onClick={closeMobileSidebar}>Staff</NavLink>
+                    )}
+
+                    {userRole === 'ADMIN' && (
+                        <NavLink href="/billing" icon={<BanknotesIcon className="h-5 w-5" />}
+                            isActive={pathname.startsWith('/billing')} onClick={closeMobileSidebar}>Billing</NavLink>
                     )}
 
                     {has('MANAGE_SETTINGS') && (

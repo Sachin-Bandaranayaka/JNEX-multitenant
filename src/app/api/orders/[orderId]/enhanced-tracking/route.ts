@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { RoyalExpressProvider } from '@/lib/shipping/royal-express';
 import { ShipmentStatus } from '@/lib/shipping/types';
+import { applyCourierStatus } from '@/lib/courier-status-sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,10 +74,9 @@ export async function POST(
             hasFinancialInfo: !!enhancedTracking.financialInfo,
         });
 
-        // Prepare database update with enhanced tracking data
+        // The lifecycle state is not set here — `applyCourierStatus` below owns
+        // it. This route only attaches the tracking detail it fetched.
         const updateData: any = {
-            status: enhancedTracking.basicStatus === ShipmentStatus.DELIVERED ? 'DELIVERED' : 'SHIPPED',
-            deliveredAt: enhancedTracking.basicStatus === ShipmentStatus.DELIVERED ? new Date() : null,
             trackingUpdates: {
                 create: {
                     status: enhancedTracking.basicStatus,
@@ -169,6 +169,13 @@ export async function POST(
                 },
             });
         }
+
+        await applyCourierStatus(
+            order,
+            enhancedTracking.basicStatus,
+            'Royal Express enhanced tracking',
+            session.user.id,
+        );
 
         // Update order with basic tracking data
         const updatedOrder = await prisma.order.update({

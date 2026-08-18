@@ -143,7 +143,7 @@ function ReturnProcessContent() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="jnex-themed container mx-auto py-6">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
@@ -153,7 +153,7 @@ function ReturnProcessContent() {
 
   if (!orderDetails) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="jnex-themed container mx-auto py-6">
         <Card className="w-full max-w-2xl mx-auto">
           <CardContent className="pt-6">
             <div className="text-center">
@@ -170,7 +170,7 @@ function ReturnProcessContent() {
 
   if (!canReturn(orderDetails.status)) {
     return (
-      <div className="container mx-auto py-6">
+      <div className="jnex-themed container mx-auto py-6">
         <Card className="w-full max-w-2xl mx-auto">
           <CardContent className="pt-6">
             <div className="text-center">
@@ -189,7 +189,7 @@ function ReturnProcessContent() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="jnex-themed container mx-auto py-6 space-y-6">
       <div className="flex items-center gap-4">
         <Button
           variant="outline"
@@ -345,7 +345,7 @@ function ReturnProcessContent() {
 export default function ReturnProcessPage() {
   return (
     <Suspense fallback={
-      <div className="container mx-auto py-6">
+      <div className="jnex-themed container mx-auto py-6">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>

@@ -348,7 +348,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                                     setEntriesPerPage(Number(e.target.value));
                                     setCurrentPage(1);
                                 }}
-                                className="border border-[#ccd2da] bg-white text-slate-600 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-primary cursor-pointer"
+                                className="border border-[#ccd2da] dark:border-slate-600 bg-white text-slate-600 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-primary cursor-pointer"
                             >
                                 <option value={10}>10</option>
                                 <option value={25}>25</option>
@@ -368,7 +368,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                                     setCurrentPage(1);
                                     setSelectedIds([]);
                                 }}
-                                className="border border-[#ccd2da] bg-white text-slate-600 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-primary cursor-pointer"
+                                className="border border-[#ccd2da] dark:border-slate-600 bg-white text-slate-600 rounded px-2.5 py-1 text-xs focus:outline-none focus:border-primary cursor-pointer"
                             >
                                 {DATE_FILTERS.map((f) => (
                                     <option key={f.key} value={f.key}>{f.label}</option>
@@ -388,7 +388,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                                     setSearchTerm(e.target.value);
                                     setCurrentPage(1);
                                 }}
-                                className="border border-[#ccd2da] bg-white text-slate-600 rounded px-3 py-1 text-xs focus:outline-none focus:border-primary w-48"
+                                className="border border-[#ccd2da] dark:border-slate-600 bg-white text-slate-600 rounded px-3 py-1 text-xs focus:outline-none focus:border-primary w-48"
                                 placeholder="Search Shipped List..."
                             />
                         </div>
@@ -484,7 +484,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                                 {paginatedOrders.map((order) => (
                                     <tr
                                         key={order.id}
-                                        className={`hover:bg-slate-100/50 transition-colors ${selectedIds.includes(order.id) ? 'bg-primary/5' : 'odd:bg-[#f9fafb] even:bg-white'}`}
+                                        className={`hover:bg-slate-100/50 dark:hover:bg-slate-800/60 transition-colors ${selectedIds.includes(order.id) ? 'bg-primary/5' : 'odd:bg-[#f9fafb] even:bg-white dark:odd:bg-slate-900/40 dark:even:bg-transparent'}`}
                                     >
                                         <td className="px-3 py-2.5 border-r border-b border-slate-200 text-center align-middle">
                                             <input
@@ -549,7 +549,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                                 <button
                                     disabled={activePage === 1}
                                     onClick={() => setCurrentPage(activePage - 1)}
-                                    className="px-3 py-1.5 border border-[#ccd2da] rounded text-[13px] text-slate-600 bg-white hover:bg-[#f1f3f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                    className="px-3 py-1.5 border border-[#ccd2da] rounded text-[13px] text-slate-600 bg-white hover:bg-[#f1f3f5] dark:border-slate-600 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                 >
                                     Previous
                                 </button>
@@ -560,7 +560,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                                         className={`px-3 py-1.5 border rounded text-[13px] font-semibold transition-colors cursor-pointer ${
                                             activePage === page
                                                 ? 'bg-[#e89c31] text-white border-[#e89c31]'
-                                                : 'border-[#ccd2da] bg-white text-slate-600 hover:bg-[#f1f3f5]'
+                                                : 'border-[#ccd2da] bg-white text-slate-600 hover:bg-[#f1f3f5] dark:border-slate-600 dark:hover:bg-slate-800'
                                         }`}
                                     >
                                         {page}
@@ -569,7 +569,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                                 <button
                                     disabled={activePage === totalPages}
                                     onClick={() => setCurrentPage(activePage + 1)}
-                                    className="px-3 py-1.5 border border-[#ccd2da] rounded text-[13px] text-slate-600 bg-white hover:bg-[#f1f3f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                    className="px-3 py-1.5 border border-[#ccd2da] rounded text-[13px] text-slate-600 bg-white hover:bg-[#f1f3f5] dark:border-slate-600 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                 >
                                     Next
                                 </button>

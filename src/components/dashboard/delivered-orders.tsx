@@ -103,7 +103,7 @@ export function DeliveredOrders() {
                 {data.orders.map((order, index) => (
                     <div
                         key={order.id}
-                        className="group grid grid-cols-[1fr_auto] items-center gap-3 px-2 py-3 hover:bg-slate-50"
+                        className="group grid grid-cols-[1fr_auto] items-center gap-3 px-2 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60"
                     >
                         <div className="flex items-center gap-4 overflow-hidden">
                             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-emerald-50 text-emerald-600">

@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { ChargeStatus, TenantInvoiceStatus } from '@prisma/client';
+import { ChargeStatus, OrderStatus, TenantInvoiceStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { periodKeyFor, formatPeriod } from '@/lib/billing/period';
 import { describeRate } from '@/lib/billing/rates';
@@ -18,7 +18,7 @@ function money(amount: string | number, currency = 'LKR') {
 export default async function SuperAdminBillingPage() {
   const periodKey = periodKeyFor(new Date());
 
-  const [tenants, accruedByTenant, outstandingByTenant, pendingPayments] = await Promise.all([
+  const [tenants, accruedByTenant, outstandingByTenant, pendingPayments, unbilledByTenant, allTenants] = await Promise.all([
     prisma.tenant.findMany({
       where: { isActive: true },
       select: {
@@ -54,6 +54,19 @@ export default async function SuperAdminBillingPage() {
       },
       orderBy: { createdAt: 'asc' },
     }),
+    // Delivered orders that produced no charge at all. This is the number that
+    // actually costs money: a tenant can deliver for weeks with no rate in
+    // force and nothing else on this page would say so. Fees for a month the
+    // tenant was never told about cannot fairly be reclaimed later, so this
+    // needs to be caught in days, not at quarter close.
+    prisma.order.groupBy({
+      by: ['tenantId'],
+      where: { status: OrderStatus.DELIVERED, deliveryCharge: null },
+      _count: true,
+      _min: { deliveredAt: true },
+      _max: { deliveredAt: true },
+    }),
+    prisma.tenant.findMany({ select: { id: true, name: true, businessName: true } }),
   ]);
 
   const accrued = new Map(accruedByTenant.map((row) => [row.tenantId, row]));
@@ -63,6 +76,10 @@ export default async function SuperAdminBillingPage() {
   const periodOrders = accruedByTenant.reduce((sum, row) => sum + row._count, 0);
   const outstandingTotal = outstandingByTenant.reduce((sum, row) => sum + Number(row._sum.total ?? 0), 0);
   const unpriced = tenants.filter((tenant) => tenant.feeRates.length === 0).length;
+
+  const tenantNames = new Map(allTenants.map((tenant) => [tenant.id, tenant.businessName || tenant.name]));
+  const unbilled = [...unbilledByTenant].sort((a, b) => b._count - a._count);
+  const unbilledTotal = unbilled.reduce((sum, row) => sum + row._count, 0);
 
   return (
     <div className="space-y-8">
@@ -88,12 +105,63 @@ export default async function SuperAdminBillingPage() {
           <div className="mt-2 text-3xl font-semibold text-amber-400">{money(outstandingTotal)}</div>
         </div>
         <div className="rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10">
-          <div className="text-sm font-medium text-gray-400">Tenants without a rate</div>
-          <div className={`mt-2 text-3xl font-semibold ${unpriced > 0 ? 'text-red-400' : 'text-green-400'}`}>
-            {unpriced}
+          <div className="text-sm font-medium text-gray-400">Unbilled deliveries</div>
+          <div className={`mt-2 text-3xl font-semibold ${unbilledTotal > 0 ? 'text-red-400' : 'text-green-400'}`}>
+            {unbilledTotal.toLocaleString()}
+          </div>
+          <div className="mt-1 text-sm text-gray-500">
+            {unpriced} tenant{unpriced === 1 ? '' : 's'} without a rate
           </div>
         </div>
       </div>
+
+      {unbilled.length > 0 && (
+        <section className="space-y-3 rounded-lg border border-red-500/30 bg-red-950/20 p-5">
+          <div>
+            <h2 className="text-lg font-semibold text-red-300">
+              {unbilledTotal.toLocaleString()} delivered order{unbilledTotal === 1 ? '' : 's'} produced no charge
+            </h2>
+            <p className="mt-1 text-sm text-gray-300">
+              These deliveries had no fee rate in force at the time they were delivered, so nothing was billed.
+              Setting a rate now only affects future deliveries — a rate cannot be applied backwards, and invoicing
+              a tenant for months they were never quoted is not a conversation worth having. Fix the rate, then
+              decide deliberately whether to backfill.
+            </p>
+          </div>
+          <div className="overflow-x-auto rounded-lg ring-1 ring-white/10">
+            <table className="min-w-full divide-y divide-white/10">
+              <thead className="bg-gray-900/60">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Tenant</th>
+                  <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Unbilled</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">First</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Most recent</th>
+                  <th className="px-4 py-2" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 bg-gray-900/40">
+                {unbilled.map((row) => (
+                  <tr key={row.tenantId}>
+                    <td className="px-4 py-2 text-sm text-white">{tenantNames.get(row.tenantId) ?? row.tenantId}</td>
+                    <td className="px-4 py-2 text-right text-sm tabular-nums text-red-300">{row._count.toLocaleString()}</td>
+                    <td className="px-4 py-2 text-sm text-gray-400">
+                      {row._min.deliveredAt ? row._min.deliveredAt.toLocaleDateString('en-LK') : '—'}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-gray-400">
+                      {row._max.deliveredAt ? row._max.deliveredAt.toLocaleDateString('en-LK') : '—'}
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <Link href={`/superadmin/billing/${row.tenantId}`} className="text-sm text-indigo-400 hover:text-indigo-300">
+                        Set rate →
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {pendingPayments.length > 0 && (
         <section className="space-y-4">

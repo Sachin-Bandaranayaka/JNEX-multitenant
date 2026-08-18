@@ -317,15 +317,15 @@
 
   /* Row action icons */
   .genzo-act { @apply inline-flex w-[30px] h-[30px] items-center justify-center rounded cursor-pointer mr-1 border border-transparent; }
-  .genzo-act-edit { @apply text-[#b80505] hover:bg-[#fff5f5]; }
-  .genzo-act-del  { @apply text-[#e10600] hover:bg-[#fee2e2]; }
+  .genzo-act-edit { @apply text-[#b80505] hover:bg-[#fff5f5] dark:text-red-300 dark:hover:bg-red-950/50; }
+  .genzo-act-del  { @apply text-[#e10600] hover:bg-[#fee2e2] dark:text-red-400 dark:hover:bg-red-950/60; }
 
   /* Status tags */
   .genzo-tag { @apply inline-block rounded px-2.5 py-0.5 text-[11px] font-bold; }
-  .genzo-tag-green  { @apply bg-[#e3f3e3] text-[#3c8c3c]; }
-  .genzo-tag-red    { @apply bg-[#fee2e2] text-[#b80505]; }
-  .genzo-tag-orange { @apply bg-[#fff5f5] text-[#b80505]; }
-  .genzo-tag-blue   { @apply bg-[#fff5f5] text-[#b80505]; }
+  .genzo-tag-green  { @apply bg-[#e3f3e3] text-[#3c8c3c] dark:bg-emerald-950/60 dark:text-emerald-300; }
+  .genzo-tag-red    { @apply bg-[#fee2e2] text-[#b80505] dark:bg-red-950/60 dark:text-red-300; }
+  .genzo-tag-orange { @apply bg-[#fff5f5] text-[#b80505] dark:bg-red-950/45 dark:text-red-200; }
+  .genzo-tag-blue   { @apply bg-[#fff5f5] text-[#b80505] dark:bg-red-950/45 dark:text-red-200; }
   .genzo-tag-gray   { @apply bg-[#eceef1] text-[#6b7483] dark:bg-slate-700 dark:text-slate-200; }
 
   /* Dashboard stat cards */
@@ -440,54 +440,55 @@ table:not(.no-genzo-override) tbody tr:hover {
   background-color: #fafbfc !important;
 }
 
+/* The whole dark-mode bridge is screen-only: on paper the page is always
+   white, and letting these light-on-dark colours through is what printed
+   pale grey text from a dark-mode session. */
+@media screen {
 /* Dark-mode bridge for older authenticated screens that still use light slate utilities. */
-.dark .jnex-workspace .bg-white:not([class*="dark:bg-"]) { background-color: hsl(var(--card)); }
-.dark .jnex-workspace .bg-slate-50:not([class*="dark:bg-"]),
-.dark .jnex-workspace .bg-gray-50:not([class*="dark:bg-"]) { background-color: hsl(var(--muted)); }
-.dark .jnex-workspace .bg-slate-100:not([class*="dark:bg-"]),
-.dark .jnex-workspace .bg-gray-100:not([class*="dark:bg-"]) { background-color: hsl(var(--secondary)); }
-.dark .jnex-workspace .bg-teal-50 { background-color: rgb(19 78 74 / 0.32); }
-.dark .jnex-workspace .bg-red-50 { background-color: rgb(127 29 29 / 0.3); }
-.dark .jnex-workspace .bg-amber-50 { background-color: rgb(120 53 15 / 0.3); }
+.dark :is(.jnex-workspace, .jnex-themed) .bg-white:not([class*="dark:bg-"]) { background-color: hsl(var(--card)); }
+.dark :is(.jnex-workspace, .jnex-themed) .bg-slate-50:not([class*="dark:bg-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .bg-gray-50:not([class*="dark:bg-"]) { background-color: hsl(var(--muted)); }
+.dark :is(.jnex-workspace, .jnex-themed) .bg-slate-100:not([class*="dark:bg-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .bg-gray-100:not([class*="dark:bg-"]) { background-color: hsl(var(--secondary)); }
 
-.dark .jnex-workspace .text-slate-900:not([class*="dark:text-"]),
-.dark .jnex-workspace .text-slate-800:not([class*="dark:text-"]),
-.dark .jnex-workspace .text-gray-900:not([class*="dark:text-"]),
-.dark .jnex-workspace .text-gray-800:not([class*="dark:text-"]) { color: hsl(var(--foreground)); }
-.dark .jnex-workspace .text-slate-700:not([class*="dark:text-"]),
-.dark .jnex-workspace .text-slate-600:not([class*="dark:text-"]),
-.dark .jnex-workspace .text-gray-700:not([class*="dark:text-"]),
-.dark .jnex-workspace .text-gray-600:not([class*="dark:text-"]) { color: rgb(203 213 225); }
-.dark .jnex-workspace .text-slate-500:not([class*="dark:text-"]),
-.dark .jnex-workspace .text-gray-500:not([class*="dark:text-"]) { color: hsl(var(--muted-foreground)); }
-.dark .jnex-workspace .text-teal-700,
-.dark .jnex-workspace .text-teal-800 { color: rgb(94 234 212); }
+.dark :is(.jnex-workspace, .jnex-themed) .text-slate-900:not([class*="dark:text-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .text-slate-800:not([class*="dark:text-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .text-gray-900:not([class*="dark:text-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .text-gray-800:not([class*="dark:text-"]) { color: hsl(var(--foreground)); }
+.dark :is(.jnex-workspace, .jnex-themed) .text-slate-700:not([class*="dark:text-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .text-slate-600:not([class*="dark:text-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .text-gray-700:not([class*="dark:text-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .text-gray-600:not([class*="dark:text-"]) { color: rgb(203 213 225); }
+.dark :is(.jnex-workspace, .jnex-themed) .text-slate-500:not([class*="dark:text-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .text-gray-500:not([class*="dark:text-"]) { color: hsl(var(--muted-foreground)); }
+.dark :is(.jnex-workspace, .jnex-themed) .text-teal-700,
+.dark :is(.jnex-workspace, .jnex-themed) .text-teal-800 { color: rgb(94 234 212); }
 
-.dark .jnex-workspace .border-slate-100:not([class*="dark:border-"]),
-.dark .jnex-workspace .border-slate-200:not([class*="dark:border-"]),
-.dark .jnex-workspace .border-slate-300:not([class*="dark:border-"]),
-.dark .jnex-workspace .border-gray-100:not([class*="dark:border-"]),
-.dark .jnex-workspace .border-gray-200:not([class*="dark:border-"]),
-.dark .jnex-workspace .border-gray-300:not([class*="dark:border-"]) { border-color: hsl(var(--border)); }
-.dark .jnex-workspace .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
-.dark .jnex-workspace .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
-.dark .jnex-workspace .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: hsl(var(--border)); }
+.dark :is(.jnex-workspace, .jnex-themed) .border-slate-100:not([class*="dark:border-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .border-slate-200:not([class*="dark:border-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .border-slate-300:not([class*="dark:border-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .border-gray-100:not([class*="dark:border-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .border-gray-200:not([class*="dark:border-"]),
+.dark :is(.jnex-workspace, .jnex-themed) .border-gray-300:not([class*="dark:border-"]) { border-color: hsl(var(--border)); }
+.dark :is(.jnex-workspace, .jnex-themed) .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark :is(.jnex-workspace, .jnex-themed) .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+.dark :is(.jnex-workspace, .jnex-themed) .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: hsl(var(--border)); }
 
-.dark .jnex-workspace main input[type="text"],
-.dark .jnex-workspace main input[type="number"],
-.dark .jnex-workspace main input[type="email"],
-.dark .jnex-workspace main input[type="password"],
-.dark .jnex-workspace main input[type="tel"],
-.dark .jnex-workspace main input:not([type]),
-.dark .jnex-workspace main select,
-.dark .jnex-workspace main textarea {
+.dark :is(.jnex-workspace main, .jnex-themed) input[type="text"],
+.dark :is(.jnex-workspace main, .jnex-themed) input[type="number"],
+.dark :is(.jnex-workspace main, .jnex-themed) input[type="email"],
+.dark :is(.jnex-workspace main, .jnex-themed) input[type="password"],
+.dark :is(.jnex-workspace main, .jnex-themed) input[type="tel"],
+.dark :is(.jnex-workspace main, .jnex-themed) input:not([type]),
+.dark :is(.jnex-workspace main, .jnex-themed) select,
+.dark :is(.jnex-workspace main, .jnex-themed) textarea {
   border-color: hsl(var(--input)) !important;
   background-color: hsl(var(--popover)) !important;
   color: hsl(var(--foreground)) !important;
 }
 
-.dark .jnex-workspace main input::placeholder,
-.dark .jnex-workspace main textarea::placeholder {
+.dark :is(.jnex-workspace main, .jnex-themed) input::placeholder,
+.dark :is(.jnex-workspace main, .jnex-themed) textarea::placeholder {
   color: hsl(var(--muted-foreground)) !important;
   opacity: 1;
 }
@@ -504,6 +505,79 @@ table:not(.no-genzo-override) tbody tr:hover {
   background-color: rgb(51 65 85 / 0.55) !important;
 }
 
+/* Tinted callouts, badges and chips: the light utilities below have no dark
+   counterpart in most screens, so map each family's soft surface, ink and
+   border together. Doing only one of the three is what leaves dark-on-dark
+   text. Anything that already declares its own dark: variant is left alone. */
+
+.dark :is(.jnex-workspace, .jnex-themed) :is(.bg-red-50, .bg-red-100):not([class*="dark:bg-"]) { background-color: rgb(127 29 29 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.text-red-600, .text-red-700, .text-red-800, .text-red-900):not([class*="dark:text-"]) { color: rgb(252 165 165); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.border-red-100, .border-red-200, .border-red-300):not([class*="dark:border-"]) { border-color: rgb(153 27 27 / 0.55); }
+
+.dark :is(.jnex-workspace, .jnex-themed) :is(.bg-orange-50, .bg-orange-100):not([class*="dark:bg-"]) { background-color: rgb(124 45 18 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.text-orange-600, .text-orange-700, .text-orange-800, .text-orange-900):not([class*="dark:text-"]) { color: rgb(253 186 116); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.border-orange-100, .border-orange-200, .border-orange-300):not([class*="dark:border-"]) { border-color: rgb(154 52 18 / 0.55); }
+
+.dark :is(.jnex-workspace, .jnex-themed) :is(.bg-amber-50, .bg-amber-100, .bg-yellow-50, .bg-yellow-100):not([class*="dark:bg-"]) { background-color: rgb(120 53 15 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.text-amber-600, .text-amber-700, .text-amber-800, .text-amber-900, .text-yellow-600, .text-yellow-700, .text-yellow-800, .text-yellow-900):not([class*="dark:text-"]) { color: rgb(252 211 77); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.border-amber-100, .border-amber-200, .border-amber-300, .border-yellow-100, .border-yellow-200, .border-yellow-300):not([class*="dark:border-"]) { border-color: rgb(146 64 14 / 0.55); }
+
+.dark :is(.jnex-workspace, .jnex-themed) :is(.bg-green-50, .bg-green-100, .bg-emerald-50, .bg-emerald-100):not([class*="dark:bg-"]) { background-color: rgb(6 78 59 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.text-green-600, .text-green-700, .text-green-800, .text-green-900, .text-emerald-600, .text-emerald-700, .text-emerald-800, .text-emerald-900):not([class*="dark:text-"]) { color: rgb(110 231 183); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.border-green-100, .border-green-200, .border-green-300, .border-emerald-100, .border-emerald-200, .border-emerald-300):not([class*="dark:border-"]) { border-color: rgb(6 95 70 / 0.55); }
+
+.dark :is(.jnex-workspace, .jnex-themed) :is(.bg-teal-50, .bg-teal-100, .bg-cyan-50, .bg-cyan-100):not([class*="dark:bg-"]) { background-color: rgb(19 78 74 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.text-teal-600, .text-teal-700, .text-teal-800, .text-teal-900, .text-cyan-600, .text-cyan-700, .text-cyan-800, .text-cyan-900):not([class*="dark:text-"]) { color: rgb(94 234 212); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.border-teal-100, .border-teal-200, .border-teal-300, .border-cyan-100, .border-cyan-200, .border-cyan-300):not([class*="dark:border-"]) { border-color: rgb(17 94 89 / 0.55); }
+
+.dark :is(.jnex-workspace, .jnex-themed) :is(.bg-blue-50, .bg-blue-100, .bg-sky-50, .bg-sky-100):not([class*="dark:bg-"]) { background-color: rgb(30 58 138 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.text-blue-600, .text-blue-700, .text-blue-800, .text-blue-900, .text-sky-600, .text-sky-700, .text-sky-800, .text-sky-900):not([class*="dark:text-"]) { color: rgb(147 197 253); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.border-blue-100, .border-blue-200, .border-blue-300, .border-sky-100, .border-sky-200, .border-sky-300):not([class*="dark:border-"]) { border-color: rgb(30 64 175 / 0.55); }
+
+.dark :is(.jnex-workspace, .jnex-themed) :is(.bg-indigo-50, .bg-indigo-100, .bg-violet-50, .bg-violet-100, .bg-purple-50, .bg-purple-100):not([class*="dark:bg-"]) { background-color: rgb(49 46 129 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.text-indigo-600, .text-indigo-700, .text-indigo-800, .text-indigo-900, .text-violet-600, .text-violet-700, .text-violet-800, .text-violet-900, .text-purple-600, .text-purple-700, .text-purple-800, .text-purple-900):not([class*="dark:text-"]) { color: rgb(196 181 253); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.border-indigo-100, .border-indigo-200, .border-indigo-300, .border-violet-100, .border-violet-200, .border-violet-300, .border-purple-100, .border-purple-200, .border-purple-300):not([class*="dark:border-"]) { border-color: rgb(67 56 202 / 0.55); }
+
+.dark :is(.jnex-workspace, .jnex-themed) :is(.bg-pink-50, .bg-pink-100, .bg-rose-50, .bg-rose-100):not([class*="dark:bg-"]) { background-color: rgb(131 24 67 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.text-pink-600, .text-pink-700, .text-pink-800, .text-pink-900, .text-rose-600, .text-rose-700, .text-rose-800, .text-rose-900):not([class*="dark:text-"]) { color: rgb(249 168 212); }
+.dark :is(.jnex-workspace, .jnex-themed) :is(.border-pink-100, .border-pink-200, .border-pink-300, .border-rose-100, .border-rose-200, .border-rose-300):not([class*="dark:border-"]) { border-color: rgb(157 23 77 / 0.55); }
+
+
+/* Hover states are their own utilities (hover:bg-red-50), so the class
+   selectors above never see them — without this a hover would flash a light
+   panel under text the bridge has already lightened. */
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-slate-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-slate-100"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-gray-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-gray-100"]:not([class*="dark:hover:bg-"]):hover { background-color: hsl(var(--secondary)); }
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-red-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-red-100"]:not([class*="dark:hover:bg-"]):hover { background-color: rgb(127 29 29 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-orange-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-orange-100"]:not([class*="dark:hover:bg-"]):hover { background-color: rgb(124 45 18 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-amber-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-amber-100"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-yellow-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-yellow-100"]:not([class*="dark:hover:bg-"]):hover { background-color: rgb(120 53 15 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-green-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-green-100"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-emerald-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-emerald-100"]:not([class*="dark:hover:bg-"]):hover { background-color: rgb(6 78 59 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-teal-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-teal-100"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-cyan-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-cyan-100"]:not([class*="dark:hover:bg-"]):hover { background-color: rgb(19 78 74 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-blue-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-blue-100"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-sky-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-sky-100"]:not([class*="dark:hover:bg-"]):hover { background-color: rgb(30 58 138 / 0.35); }
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-indigo-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-indigo-100"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-violet-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-violet-100"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-purple-50"]:not([class*="dark:hover:bg-"]):hover,
+.dark :is(.jnex-workspace, .jnex-themed) [class*="hover:bg-purple-100"]:not([class*="dark:hover:bg-"]):hover { background-color: rgb(49 46 129 / 0.35); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   body,
   .jnex-workspace,
@@ -517,11 +591,56 @@ table:not(.no-genzo-override) tbody tr:hover {
 @media print {
   html { color-scheme: light !important; }
   .dark .jnex-workspace,
-  .dark .jnex-workspace main,
-  .dark .jnex-workspace .bg-white,
-  .dark .jnex-workspace .bg-slate-50,
-  .dark .jnex-workspace .bg-slate-100 {
+  .dark :is(.jnex-workspace, .jnex-themed) main,
+  .dark :is(.jnex-workspace, .jnex-themed) .bg-white,
+  .dark :is(.jnex-workspace, .jnex-themed) .bg-slate-50,
+  .dark :is(.jnex-workspace, .jnex-themed) .bg-slate-100 {
     background-color: #fff !important;
     color: #000 !important;
   }
 }
+
+/* =========================================================
+   THEME EXCEPTIONS
+   ========================================================= */
+
+/* Invoice/receipt previews are paper: they stay white with dark ink in every
+   theme, so the dark-mode bridge above must not repaint them. */
+.jnex-print-surface {
+  background-color: #fff !important;
+  color: #000 !important;
+  color-scheme: light;
+}
+.dark .jnex-print-surface .bg-white { background-color: #fff !important; }
+.dark .jnex-print-surface .bg-gray-50,
+.dark .jnex-print-surface .bg-slate-50 { background-color: #f8fafc !important; }
+.dark .jnex-print-surface .bg-gray-100,
+.dark .jnex-print-surface .bg-slate-100 { background-color: #f1f5f9 !important; }
+.dark .jnex-print-surface :is(.text-black, .text-gray-900, .text-slate-900, .text-gray-800, .text-slate-800) { color: #111827 !important; }
+.dark .jnex-print-surface :is(.text-gray-700, .text-slate-700, .text-gray-600, .text-slate-600) { color: #374151 !important; }
+.dark .jnex-print-surface :is(.text-gray-500, .text-slate-500, .text-gray-400, .text-slate-400) { color: #6b7280 !important; }
+.dark .jnex-print-surface :is(.border-gray-200, .border-slate-200, .border-gray-300, .border-slate-300) { border-color: #e5e7eb !important; }
+.dark .jnex-print-surface table:not(.no-genzo-override) thead th {
+  color: #374151 !important;
+  border-bottom-color: #e5e7eb !important;
+}
+.dark .jnex-print-surface table:not(.no-genzo-override) tbody td {
+  color: #374151 !important;
+  border-bottom-color: #eef0f3 !important;
+}
+.dark .jnex-print-surface table:not(.no-genzo-override) tbody tr:hover { background-color: transparent !important; }
+
+/* The super-admin console always renders on a dark shell, so the light default
+   table/input styling must not apply there — not even while the app is light. */
+.superadmin-shell table:not(.no-genzo-override) thead th {
+  color: rgb(226 232 240) !important;
+  border-bottom-color: rgb(51 65 85) !important;
+}
+.superadmin-shell table:not(.no-genzo-override) tbody td {
+  color: rgb(203 213 225) !important;
+  border-bottom-color: rgb(51 65 85) !important;
+}
+.superadmin-shell table:not(.no-genzo-override) tbody tr:hover { background-color: rgb(51 65 85 / 0.5) !important; }
+.superadmin-shell input:not([type="checkbox"]):not([type="radio"]),
+.superadmin-shell select,
+.superadmin-shell textarea { border-color: rgb(71 85 105) !important; }

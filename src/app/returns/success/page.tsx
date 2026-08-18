@@ -9,7 +9,7 @@ export default function ReturnSuccessPage() {
   const router = useRouter();
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="jnex-themed container mx-auto py-6">
       <Card className="w-full max-w-2xl mx-auto">
         <CardContent className="pt-6">
           <div className="text-center space-y-6">

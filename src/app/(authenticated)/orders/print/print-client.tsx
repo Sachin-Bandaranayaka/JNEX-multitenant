@@ -383,7 +383,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
       )}
 
       {/* --- Fixed 2x4 grid: exactly 8 invoices per A4 sheet --- */}
-      <div className="print-only bg-white text-black">
+      <div className="jnex-print-surface print-only bg-white text-black">
         {chunk(ordersToPrint, 8).map((pageOrders, pageIndex) => {
           const totalRows = Math.ceil(pageOrders.length / 2);
           return (

@@ -41,7 +41,7 @@ export function HalfPageInvoice({ data, config, showCutLines = false }: HalfPage
 
   return (
     <div
-      className="bg-white text-black print:shadow-none"
+      className="jnex-print-surface bg-white text-black print:shadow-none"
       style={{
         width: `${config.dimensions.width}mm`,
         height: `${config.dimensions.height}mm`,

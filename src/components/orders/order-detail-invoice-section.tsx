@@ -87,7 +87,7 @@ export function OrderDetailInvoiceSection({
           <div className="absolute -inset-0.5 bg-gradient-to-b from-black/5 to-black/10 rounded-lg blur opacity-50 transition duration-500 group-hover:opacity-75" />
 
           {/* The Invoice Paper */}
-          <div className="relative bg-white text-black rounded-sm shadow-xl ring-1 ring-black/5 max-w-[210mm] w-full mx-auto transition-transform duration-500 ease-out group-hover:scale-[1.005]">
+          <div className="jnex-print-surface relative bg-white text-black rounded-sm shadow-xl ring-1 ring-black/5 max-w-[210mm] w-full mx-auto transition-transform duration-500 ease-out group-hover:scale-[1.005]">
             <div className="p-1">
               <Invoice
                 businessName={tenant.businessName}

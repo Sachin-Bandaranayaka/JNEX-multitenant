@@ -743,7 +743,7 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
                     return (
                       <tr
                         key={order.id}
-                        className="odd:bg-[#f9fafb] even:bg-white hover:brightness-[0.98] transition-all"
+                        className="odd:bg-[#f9fafb] even:bg-white hover:brightness-[0.98] transition-all dark:odd:bg-slate-900/40 dark:even:bg-transparent dark:hover:brightness-100"
                       >
                         <td className="px-2 py-2.5 border-r border-b border-slate-200 align-middle">
                           <input

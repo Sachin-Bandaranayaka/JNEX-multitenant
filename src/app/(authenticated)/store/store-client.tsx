@@ -152,7 +152,7 @@ export function StoreClient({ initialProducts, initialCartCount }: StoreClientPr
               key={t.key}
               onClick={() => setStockFilter(t.key as typeof stockFilter)}
               className={`border border-[#e89c31] px-6 py-2 rounded-md font-semibold text-sm transition-colors ${
-                stockFilter === t.key ? 'bg-[#e89c31] text-white' : 'bg-white text-slate-600 hover:bg-[#fbeeda]'
+                stockFilter === t.key ? 'bg-[#e89c31] text-white' : 'bg-white text-slate-600 hover:bg-[#fbeeda] dark:hover:bg-amber-950/50 dark:hover:text-amber-200'
               }`}
             >
               {t.label}
@@ -163,7 +163,7 @@ export function StoreClient({ initialProducts, initialCartCount }: StoreClientPr
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-md bg-[#fbeeda] text-[#d4860f]">
+            <div className="p-2.5 rounded-md bg-[#fbeeda] text-[#d4860f] dark:bg-amber-950/50 dark:text-amber-300">
               <ShoppingBagIcon className="h-7 w-7" />
             </div>
             <div>

@@ -37,7 +37,7 @@ export function QuarterPageInvoice({ data, config, showCutLines = false }: Quart
 
   return (
     <div
-      className="bg-white text-black print:shadow-none"
+      className="jnex-print-surface bg-white text-black print:shadow-none"
       style={{
         width: `${config.dimensions.width}mm`,
         height: `${config.dimensions.height}mm`,

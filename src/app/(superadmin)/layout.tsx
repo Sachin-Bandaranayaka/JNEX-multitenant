@@ -22,7 +22,7 @@ export default function SuperAdminLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="flex min-h-screen bg-gray-900 text-white">
+        <div className="superadmin-shell flex min-h-screen bg-gray-900 text-white">
             {/* Sidebar */}
             <aside className="sticky top-0 h-screen w-64 flex flex-col bg-gray-900/80 backdrop-blur-sm ring-1 ring-white/10">
                 <div className="p-6 flex items-center gap-3">

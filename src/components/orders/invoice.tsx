@@ -60,7 +60,7 @@ export function Invoice({
     const subtotal = total + discount;
 
     const commonInvoice = (
-        <div className={`w-full bg-white text-black ${isMultiPrint ? 'p-1' : 'px-2 p-4'} rounded relative`}>
+        <div className={`jnex-print-surface w-full bg-white text-black ${isMultiPrint ? 'p-1' : 'px-2 p-4'} rounded relative`}>
             <div className={`flex justify-between ${isMultiPrint ? 'mb-1' : 'mb-2'}`}>
                 <div className="text-left">
                     <h1 className={`${isMultiPrint ? 'text-[7pt]' : 'text-[9pt]'} font-bold leading-tight`}>{businessName || 'Your Company Name'}</h1>
@@ -165,7 +165,7 @@ export function Invoice({
     }
 
     return (
-        <div className="max-w-[80mm] mx-auto p-2 bg-white text-black">
+        <div className="jnex-print-surface max-w-[80mm] mx-auto p-2 bg-white text-black">
             {commonInvoice}
             {showPrintControls && !isMultiPrint && (
                 <div className="mt-4 print:hidden">

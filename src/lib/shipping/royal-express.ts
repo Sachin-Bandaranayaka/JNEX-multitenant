@@ -495,7 +495,14 @@ The state name must match exactly, including capitalization.`);
             'Confirmed': ShipmentStatus.PENDING,
         };
 
-        return statusMap[statusName] || ShipmentStatus.EXCEPTION;
+        // Curfox is not consistent about casing or padding ("Returned",
+        // "returned ", "RETURNED" have all been observed). An unmatched status
+        // falls through to EXCEPTION, which maps to SHIPPED — so a casing
+        // difference on a return would silently skip stock restoration and the
+        // platform fee reversal. Match case-insensitively on a trimmed key.
+        const normalized = String(statusName ?? '').trim().toLowerCase();
+        const match = Object.keys(statusMap).find((key) => key.toLowerCase() === normalized);
+        return match ? statusMap[match] : ShipmentStatus.EXCEPTION;
     }
 
     getTrackingUrl(trackingNumber: string): string {

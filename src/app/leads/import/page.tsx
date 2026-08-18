@@ -173,7 +173,7 @@ function CSVUpload({
       <div className="flex flex-col items-center justify-center w-full">
         <label
           htmlFor="dropzone-file"
-          className="flex flex-col items-center justify-center w-full h-64 border-2 border-[#ccd2da] border-dashed rounded-md cursor-pointer bg-[#f9fafb] hover:bg-[#f1f3f5] transition-colors"
+          className="flex flex-col items-center justify-center w-full h-64 border-2 border-[#ccd2da] border-dashed rounded-md cursor-pointer bg-[#f9fafb] hover:bg-[#f1f3f5] transition-colors dark:border-slate-600 dark:bg-slate-800/40 dark:hover:bg-slate-800/70"
         >
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
             <svg className="w-8 h-8 mb-4 text-slate-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
@@ -373,7 +373,7 @@ function LeadPreview({
         </div>
       </div>
 
-      <div className="bg-[#fcfdfe] p-3 rounded-md border border-blue-100 flex items-start gap-2.5 text-xs text-blue-700 bg-blue-50/50">
+      <div className="bg-[#fcfdfe] p-3 rounded-md border border-blue-100 flex items-start gap-2.5 text-xs text-blue-700 bg-blue-50/50 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200">
         <InformationCircleIcon className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
         <div>
           <span className="font-semibold">Workflow Guidance:</span> Double-click on any cell to modify. Fill in the missing required fields (marked *). Correct invalid product codes to let the system verify stock status. Checked rows will be imported to the lead list.
@@ -626,7 +626,7 @@ export default function ImportLeadsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 bg-background">
+    <div className="jnex-themed max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 bg-background">
       <div className="px-4 py-6 sm:px-0">
         <div className="border-b border-[#e3e6ea] pb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
@@ -643,7 +643,7 @@ export default function ImportLeadsPage() {
           <a
             href="/templates/lead-import-template.csv"
             download
-            className="inline-flex items-center gap-2 rounded-md border border-[#ccd2da] bg-white text-slate-600 px-4 py-2 text-xs font-semibold hover:bg-[#f1f3f5] transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 rounded-md border border-[#ccd2da] bg-white text-slate-600 px-4 py-2 text-xs font-semibold hover:bg-[#f1f3f5] transition-colors shadow-sm dark:border-slate-600 dark:hover:bg-slate-800"
           >
             Download CSV Template
           </a>

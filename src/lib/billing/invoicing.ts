@@ -183,11 +183,22 @@ export async function confirmInvoicePayment(paymentId: string, reviewerId: strin
   return prisma.$transaction(async (tx) => {
     const payment = await tx.tenantInvoicePayment.findUnique({
       where: { id: paymentId },
-      include: { invoice: { select: { id: true, status: true } } },
+      include: { invoice: { select: { id: true, tenantId: true, status: true, total: true } } },
     });
     if (!payment) throw new Error('Payment not found');
     if (payment.status !== InvoicePaymentStatus.PENDING) {
       throw new Error(`This payment was already ${payment.status.toLowerCase()}`);
+    }
+    if (payment.invoice.status !== TenantInvoiceStatus.ISSUED) {
+      throw new Error(`This invoice is ${payment.invoice.status.toLowerCase()} and cannot be paid.`);
+    }
+    if (payment.tenantId !== payment.invoice.tenantId) {
+      throw new Error('The payment tenant does not match the invoice tenant.');
+    }
+    if (!payment.amount.equals(payment.invoice.total)) {
+      throw new Error(
+        `The submitted amount (${payment.amount.toFixed(2)}) does not match the invoice total (${payment.invoice.total.toFixed(2)}).`,
+      );
     }
 
     const paidAt = new Date();
@@ -197,16 +208,14 @@ export async function confirmInvoicePayment(paymentId: string, reviewerId: strin
       data: { status: InvoicePaymentStatus.CONFIRMED, reviewedAt: paidAt, reviewedBy: reviewerId },
     });
 
-    if (payment.invoice.status !== TenantInvoiceStatus.VOID) {
-      await tx.tenantInvoice.update({
-        where: { id: payment.invoiceId },
-        data: { status: TenantInvoiceStatus.PAID, paidAt },
-      });
-      await tx.deliveryCharge.updateMany({
-        where: { invoiceId: payment.invoiceId, status: ChargeStatus.INVOICED },
-        data: { status: ChargeStatus.PAID },
-      });
-    }
+    await tx.tenantInvoice.update({
+      where: { id: payment.invoiceId },
+      data: { status: TenantInvoiceStatus.PAID, paidAt },
+    });
+    await tx.deliveryCharge.updateMany({
+      where: { invoiceId: payment.invoiceId, status: ChargeStatus.INVOICED },
+      data: { status: ChargeStatus.PAID },
+    });
 
     return { invoiceId: payment.invoiceId };
   });

@@ -6,6 +6,7 @@ import { hash } from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { requireSuperAdmin } from '@/lib/superadmin-auth';
 
 const CreateTenantSchema = z.object({
   tenantName: z.string().min(3, 'Tenant name must be at least 3 characters.'),
@@ -16,6 +17,7 @@ const CreateTenantSchema = z.object({
 });
 
 export async function createTenant(prevState: any, formData: FormData) {
+  const { actor } = await requireSuperAdmin();
   const validatedFields = CreateTenantSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) {
@@ -44,7 +46,7 @@ export async function createTenant(prevState: any, formData: FormData) {
         },
       });
 
-      await tx.user.create({
+      const admin = await tx.user.create({
         data: {
           name: adminName,
           email: adminEmail,
@@ -53,6 +55,7 @@ export async function createTenant(prevState: any, formData: FormData) {
           tenantId: newTenant.id,
         },
       });
+      await tx.auditEvent.create({ data: { actorId: actor.id, tenantId: newTenant.id, action: 'TENANT_CREATED', entityType: 'Tenant', entityId: newTenant.id, metadata: { tenantName, adminUserId: admin.id } } });
     });
 
   } catch (error) {

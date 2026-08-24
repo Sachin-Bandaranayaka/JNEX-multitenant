@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user) {
+    if (!session?.user?.tenantId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
@@ -22,11 +22,11 @@ export async function GET(request: Request) {
     let contentType: string;
 
     if (format === 'csv') {
-      buffer = await exportProductsToCSV();
+      buffer = await exportProductsToCSV(session.user.tenantId);
       filename = 'products.csv';
       contentType = 'text/csv';
     } else {
-      buffer = await exportProductsToExcel();
+      buffer = await exportProductsToExcel(session.user.tenantId);
       filename = 'products.xlsx';
       contentType =
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';

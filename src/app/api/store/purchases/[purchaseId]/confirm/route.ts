@@ -44,45 +44,48 @@ export async function POST(
     }
 
     if (action === 'reject') {
-      // Reject purchase
-      const updatedPurchase = await prisma.storePurchase.update({
-        where: { id: purchaseId },
+      const rejected = await prisma.storePurchase.updateMany({
+        where: { id: purchaseId, status: 'PENDING' },
         data: {
           status: 'REJECTED',
           rejectionReason: rejectionReason || 'Payment not verified',
         },
       });
-
+      if (rejected.count !== 1) {
+        return NextResponse.json({ error: 'Purchase already processed' }, { status: 409 });
+      }
+      const updatedPurchase = await prisma.storePurchase.findUniqueOrThrow({ where: { id: purchaseId } });
       return NextResponse.json(updatedPurchase);
     }
 
     // Confirm purchase - validate stock and add to tenant's products
     await prisma.$transaction(async (tx) => {
-      // Validate stock availability
-      for (const item of purchase.items) {
-        if (item.storeProduct.stock < item.quantity) {
-          throw new Error(`Insufficient stock for ${item.storeProduct.name}`);
-        }
-      }
+      // Serialize confirmations for one tenant so two purchases cannot both
+      // decide that the same tenant product needs to be created.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'store-purchase:' + purchase.tenantId}))`;
 
-      // Update purchase status
-      await tx.storePurchase.update({
-        where: { id: purchaseId },
+      // Claim the pending purchase inside this transaction. The earlier read
+      // is only for display/data loading and must not be used as the lock.
+      const confirmation = await tx.storePurchase.updateMany({
+        where: { id: purchaseId, status: 'PENDING' },
         data: {
           status: 'CONFIRMED',
           confirmedAt: new Date(),
           confirmedBy: session.user.id,
         },
       });
+      if (confirmation.count !== 1) throw new Error('Purchase already processed');
 
-      // Deduct stock from store products
+      // Claim store stock atomically. A read-then-decrement sequence can let
+      // two confirmations both pass validation and drive stock below zero.
       for (const item of purchase.items) {
-        await tx.storeProduct.update({
-          where: { id: item.storeProductId },
-          data: {
-            stock: { decrement: item.quantity },
-          },
+        const claimed = await tx.storeProduct.updateMany({
+          where: { id: item.storeProductId, stock: { gte: item.quantity } },
+          data: { stock: { decrement: item.quantity } },
         });
+        if (claimed.count !== 1) {
+          throw new Error(`Insufficient stock for ${item.storeProduct.name}`);
+        }
       }
 
       // Add stock to tenant's products (create if doesn't exist)
@@ -99,13 +102,13 @@ export async function POST(
 
         if (existingProduct) {
           // Update existing product stock
-          const previousStock = existingProduct.stock;
-          const newStock = previousStock + item.quantity;
-
-          await tx.product.update({
+          const updatedProduct = await tx.product.update({
             where: { id: existingProduct.id },
-            data: { stock: newStock },
+            data: { stock: { increment: item.quantity } },
+            select: { stock: true },
           });
+          const newStock = updatedProduct.stock;
+          const previousStock = newStock - item.quantity;
 
           // Create stock adjustment record
           await tx.stockAdjustment.create({

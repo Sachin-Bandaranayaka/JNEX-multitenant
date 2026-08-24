@@ -6,7 +6,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { parse } from 'papaparse';
 import { z } from 'zod';
-import { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,50 +80,29 @@ export async function POST(request: Request) {
         if (existingProduct) {
           // 4. SECURE THE UPDATE: This transaction will update or reactivate products belonging to the current tenant
           await prisma.$transaction(async (tx) => {
-            const updatedProduct = await tx.product.update({
+            await tx.product.update({
               where: { id: existingProduct.id }, // Update by the globally unique ID
               data: {
                 name: validatedData.name,
                 description: validatedData.description,
                 price: validatedData.price,
-                stock: validatedData.stock,
                 lowStockAlert: validatedData.lowStockAlert,
                 isActive: true, // Reactivate if it was soft-deleted
               },
             });
 
-            if (existingProduct.stock !== validatedData.stock) {
-              const adjustmentReason = !existingProduct.isActive ? 'CSV import reactivation' : 'CSV import update';
-              await tx.stockAdjustment.create({
-                data: {
-                  quantity: validatedData.stock - existingProduct.stock,
-                  reason: adjustmentReason,
-                  previousStock: existingProduct.stock,
-                  newStock: validatedData.stock,
-                  tenant: {
-                    connect: { id: session.user.tenantId },
-                  },
-                  product: {
-                    connect: { id: updatedProduct.id },
-                  },
-                  adjustedBy: {
-                    connect: { id: session.user.id },
-                  },
-                },
-              });
-            }
           });
           results.updated++;
         } else {
           // 5. SECURE THE CREATE: This transaction automatically assigns the new product to the current tenant
           await prisma.$transaction(async (tx) => {
-            const newProduct = await tx.product.create({
+            await tx.product.create({
               data: {
                 code: validatedData.code,
                 name: validatedData.name,
                 description: validatedData.description,
                 price: validatedData.price,
-                stock: validatedData.stock,
+                stock: 0,
                 lowStockAlert: validatedData.lowStockAlert,
                 tenant: {
                   connect: { id: session.user.tenantId },
@@ -132,25 +110,6 @@ export async function POST(request: Request) {
               },
             });
 
-            if (validatedData.stock > 0) {
-              await tx.stockAdjustment.create({
-                data: {
-                  quantity: validatedData.stock,
-                  reason: 'CSV import creation',
-                  previousStock: 0,
-                  newStock: validatedData.stock,
-                  tenant: {
-                    connect: { id: session.user.tenantId },
-                  },
-                  product: {
-                    connect: { id: newProduct.id },
-                  },
-                  adjustedBy: {
-                    connect: { id: session.user.id },
-                  },
-                },
-              });
-            }
           });
           results.created++;
         }
@@ -163,7 +122,10 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json(results);
+    return NextResponse.json({
+      ...results,
+      notice: 'Product details were imported. CSV stock values were ignored because stock is controlled by the platform owner.',
+    });
   } catch (error) {
     console.error('Error importing products:', error);
     return NextResponse.json({ error: 'Failed to import products' }, { status: 500 });

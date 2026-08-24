@@ -126,11 +126,10 @@ export function PayInvoiceForm({
           id={`amount-${invoiceId}`}
           type="number"
           step="0.01"
-          min="0"
+          readOnly
           required
           value={form.amount}
-          onChange={update('amount')}
-          className={inputClass}
+          className={`${inputClass} bg-muted`}
         />
       </div>
 

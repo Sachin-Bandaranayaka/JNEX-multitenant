@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { getScopedPrismaClient } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -18,14 +18,22 @@ export async function POST(
         if (!session?.user) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
+        if (!session.user.tenantId) {
+            return new NextResponse('Unauthorized', { status: 401 });
+        }
+
+        const prisma = getScopedPrismaClient(session.user.tenantId);
 
         switch (resolvedParams.operation) {
             case 'update-stock':
-                return handleStockUpdate(session.user.id, session.user.tenantId);
+                return NextResponse.json(
+                    { error: 'Stock is controlled by the platform owner.' },
+                    { status: 403 },
+                );
             case 'export-csv':
-                return handleExportCsv();
+                return handleExportCsv(prisma);
             case 'check-low-stock':
-                return handleLowStockCheck();
+                return handleLowStockCheck(prisma);
             default:
                 return NextResponse.json(
                     { error: 'Invalid operation' },
@@ -41,63 +49,7 @@ export async function POST(
     }
 }
 
-async function handleStockUpdate(userId: string, tenantId: string) {
-    try {
-        // Get all products with their current stock and low stock alert levels
-        const products = await prisma.product.findMany({
-            select: {
-                id: true,
-                code: true,
-                name: true,
-                stock: true,
-                lowStockAlert: true,
-            },
-        });
-
-        // Simulate stock update (in real app, this would sync with external inventory system)
-        const updates = await Promise.all(
-            products.map(async (product) => {
-                // Random stock adjustment between -5 and +10
-                const adjustment = Math.floor(Math.random() * 16) - 5;
-                const newStock = Math.max(0, product.stock + adjustment);
-
-                return prisma.product.update({
-                    where: { id: product.id },
-                    data: {
-                        stock: newStock,
-                        stockAdjustments: {
-                                    create: {
-                                        quantity: adjustment,
-                                        reason: 'Bulk stock update',
-                                        previousStock: product.stock,
-                                        newStock: newStock,
-                                        tenant: {
-                                            connect: { id: tenantId },
-                                        },
-                                        adjustedBy: {
-                                            connect: { id: userId },
-                                        },
-                                    },
-                                },
-                    },
-                });
-            })
-        );
-
-        return NextResponse.json({
-            message: 'Stock levels updated successfully',
-            updatedProducts: updates.length,
-        });
-    } catch (error) {
-        console.error('Error updating stock levels:', error);
-        return NextResponse.json(
-            { error: 'Failed to update stock levels' },
-            { status: 500 }
-        );
-    }
-}
-
-async function handleExportCsv() {
+async function handleExportCsv(prisma: ReturnType<typeof getScopedPrismaClient>) {
     try {
         const products = await prisma.product.findMany({
             include: {
@@ -146,7 +98,7 @@ async function handleExportCsv() {
     }
 }
 
-async function handleLowStockCheck() {
+async function handleLowStockCheck(prisma: ReturnType<typeof getScopedPrismaClient>) {
     try {
         const lowStockProducts = await prisma.product.findMany({
             where: {

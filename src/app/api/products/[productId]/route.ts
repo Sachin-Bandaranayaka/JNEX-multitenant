@@ -80,12 +80,14 @@ export async function PUT(
 
     // --- PERMISSION CHECKS ---
     const hasProductEditPermission = session.user.role === 'ADMIN' || session.user.permissions?.includes('EDIT_PRODUCTS');
-    const hasStockEditPermission = session.user.role === 'ADMIN' || session.user.permissions?.includes('EDIT_STOCK');
     const stockIsChanging = currentProduct.stock !== validatedData.stock;
     const detailsAreChanging = currentProduct.name !== validatedData.name || currentProduct.price !== validatedData.price;
 
-    if (stockIsChanging && !hasStockEditPermission) {
-        return new NextResponse('Forbidden: You do not have permission to edit stock levels.', { status: 403 });
+    if (stockIsChanging) {
+        return NextResponse.json(
+          { error: 'Stock is controlled by the platform owner and cannot be changed from product editing.' },
+          { status: 403 },
+        );
     }
     if (detailsAreChanging && !hasProductEditPermission) {
         return new NextResponse('Forbidden: You do not have permission to edit product details.', { status: 403 });
@@ -95,22 +97,13 @@ export async function PUT(
     const product = await prisma.$transaction(async (tx) => {
       const updatedProduct = await tx.product.update({
         where: { id: resolvedParams.productId },
-        data: validatedData,
+        data: {
+          name: validatedData.name,
+          description: validatedData.description,
+          price: validatedData.price,
+          lowStockAlert: validatedData.lowStockAlert,
+        },
       });
-
-      if (stockIsChanging) {
-        await tx.stockAdjustment.create({
-          data: {
-            tenant: { connect: { id: session.user.tenantId } },
-            product: { connect: { id: updatedProduct.id } },
-            adjustedBy: { connect: { id: session.user.id } },
-            quantity: validatedData.stock - currentProduct.stock,
-            reason: 'Manual stock update',
-            previousStock: currentProduct.stock,
-            newStock: validatedData.stock,
-          },
-        });
-      }
       return updatedProduct;
     });
 

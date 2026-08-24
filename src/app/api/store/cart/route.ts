@@ -33,6 +33,10 @@ export async function GET() {
       },
     });
 
+    if (!cart && session.user.impersonation) {
+      return NextResponse.json({ id: null, userId: session.user.id, items: [], totalItems: 0, totalAmount: 0, readOnly: true });
+    }
+
     // Create cart if it doesn't exist
     if (!cart) {
       cart = await prisma.cart.create({

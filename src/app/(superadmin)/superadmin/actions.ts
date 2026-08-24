@@ -2,8 +2,10 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { requireSuperAdmin } from '@/lib/superadmin-auth';
 
 export async function toggleTenantStatus(formData: FormData) {
+  const { actor } = await requireSuperAdmin();
   const tenantId = formData.get('tenantId') as string;
   const isActive = formData.get('isActive') === 'true';
 
@@ -12,7 +14,7 @@ export async function toggleTenantStatus(formData: FormData) {
   }
 
   try {
-    await prisma.tenant.update({
+    const tenant = await prisma.tenant.update({
       where: {
         id: tenantId,
       },
@@ -20,50 +22,26 @@ export async function toggleTenantStatus(formData: FormData) {
         isActive: !isActive,
       },
     });
+    await prisma.auditEvent.create({ data: { actorId: actor.id, tenantId, action: 'TENANT_STATUS_CHANGED', entityType: 'Tenant', entityId: tenantId, metadata: { tenantName: tenant.name, from: isActive ? 'ACTIVE' : 'INACTIVE', to: isActive ? 'INACTIVE' : 'ACTIVE' } } });
   } catch (error) {
     console.error("Error updating tenant status:", error);
   }
 
   revalidatePath('/superadmin/users');
+  revalidatePath(`/superadmin/tenants/${tenantId}`);
+  revalidatePath('/superadmin');
 }
 
 // --- UPDATED DELETE TENANT ACTION ---
 export async function deleteTenant(formData: FormData) {
+  await requireSuperAdmin();
   const tenantId = formData.get('tenantId') as string;
 
   if (!tenantId) {
     throw new Error('Tenant ID is required.');
   }
 
-  try {
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { name: true },
-    });
-
-    if (tenant?.name === 'Master Tenant' || tenant?.name === 'J-nex Holdings Master') {
-      console.error("ACTION BLOCKED: Attempted to delete the master tenant.");
-      return;
-    }
-
-    // --- FIX: Use a transaction to delete all dependent data first ---
-    // This ensures data integrity and prevents foreign key constraint errors.
-    await prisma.$transaction([
-      // Delete all data that depends on the tenant in the correct order
-      prisma.stockAdjustment.deleteMany({ where: { tenantId } }),
-      prisma.order.deleteMany({ where: { tenantId } }),
-      prisma.lead.deleteMany({ where: { tenantId } }),
-      prisma.product.deleteMany({ where: { tenantId } }),
-      prisma.user.deleteMany({ where: { tenantId } }),
-      
-      // Finally, delete the tenant itself
-      prisma.tenant.delete({ where: { id: tenantId } }),
-    ]);
-
-  } catch (error) {
-    console.error("Error deleting tenant:", error);
-    throw new Error('Failed to delete tenant.');
-  }
-
-  revalidatePath('/superadmin/users');
+  throw new Error(
+    'Permanent tenant deletion is disabled. Deactivate the tenant to preserve financial and security records.',
+  );
 }

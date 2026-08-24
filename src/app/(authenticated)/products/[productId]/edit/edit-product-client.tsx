@@ -64,7 +64,7 @@ export function EditProductClient({
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Edit Product</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Update product details and manage stock</p>
+          <p className="mt-2 text-sm text-muted-foreground">Update product details and review stock history</p>
         </div>
         <motion.button
           onClick={() => router.back()}

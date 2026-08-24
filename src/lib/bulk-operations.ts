@@ -76,7 +76,6 @@ export async function importProductsFromExcel(
           name: validatedData.name,
           description: validatedData.description,
           price: validatedData.price,
-          stock: validatedData.stock,
           lowStockAlert: validatedData.lowStockAlert,
         };
 
@@ -91,7 +90,7 @@ export async function importProductsFromExcel(
           name: validatedData.name,
           description: validatedData.description,
           price: validatedData.price,
-          stock: validatedData.stock,
+          stock: 0,
           lowStockAlert: validatedData.lowStockAlert,
           tenant: {
             connect: { id: tenantId },
@@ -156,7 +155,6 @@ export async function importProductsFromCSV(
           name: validatedData.name,
           description: validatedData.description,
           price: validatedData.price,
-          stock: validatedData.stock,
           lowStockAlert: validatedData.lowStockAlert,
         };
 
@@ -170,7 +168,7 @@ export async function importProductsFromCSV(
           name: validatedData.name,
           description: validatedData.description,
           price: validatedData.price,
-          stock: validatedData.stock,
+          stock: 0,
           lowStockAlert: validatedData.lowStockAlert,
           tenant: {
             connect: { id: tenantId },
@@ -203,8 +201,9 @@ export async function importProductsFromCSV(
   return result;
 }
 
-export async function exportProductsToExcel(): Promise<NodeBuffer> {
+export async function exportProductsToExcel(tenantId: string): Promise<NodeBuffer> {
   const products = await prisma.product.findMany({
+    where: { tenantId },
     orderBy: { code: 'asc' },
   });
 
@@ -243,8 +242,9 @@ export async function exportProductsToExcel(): Promise<NodeBuffer> {
   return buffer as unknown as NodeBuffer;
 }
 
-export async function exportProductsToCSV(): Promise<string> {
+export async function exportProductsToCSV(tenantId: string): Promise<string> {
   const products = await prisma.product.findMany({
+    where: { tenantId },
     orderBy: { code: 'asc' },
   });
 

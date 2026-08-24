@@ -2,10 +2,9 @@
 
 'use server';
 
-import { getServerSession } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { authOptions } from '@/lib/auth';
+import { requireSuperAdmin } from '@/lib/superadmin-auth';
 import { supersedeRate } from '@/lib/billing/rates';
 import {
   closeBillingPeriod,
@@ -14,15 +13,6 @@ import {
   waiveCharge,
 } from '@/lib/billing/invoicing';
 import type { FeeTier } from '@/lib/billing/compute-fee';
-
-/** Every action re-checks the role; middleware is a convenience, not the gate. */
-async function requireSuperAdmin() {
-  const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'SUPER_ADMIN') {
-    throw new Error('Super admin access required.');
-  }
-  return session.user;
-}
 
 const optionalNumber = z.preprocess(
   (value) => (value === '' || value == null ? undefined : Number(value)),
@@ -67,7 +57,7 @@ function parseTierField(raw: string | undefined): FeeTier[] {
 }
 
 export async function setTenantRate(formData: FormData): Promise<void> {
-  const user = await requireSuperAdmin();
+  const { actor: user } = await requireSuperAdmin();
 
   const parsed = rateSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) {
@@ -113,7 +103,7 @@ export async function closePeriodForTenant(formData: FormData): Promise<void> {
 }
 
 export async function confirmPayment(formData: FormData): Promise<void> {
-  const user = await requireSuperAdmin();
+  const { actor: user } = await requireSuperAdmin();
 
   const paymentId = String(formData.get('paymentId') || '');
   if (!paymentId) throw new Error('Payment is required.');
@@ -124,7 +114,7 @@ export async function confirmPayment(formData: FormData): Promise<void> {
 }
 
 export async function rejectPayment(formData: FormData): Promise<void> {
-  const user = await requireSuperAdmin();
+  const { actor: user } = await requireSuperAdmin();
 
   const paymentId = String(formData.get('paymentId') || '');
   const reason = String(formData.get('reason') || '').trim();

@@ -13,6 +13,17 @@ declare module "next-auth" {
       role: Role
       tenantId: string
       permissions: string[] // <-- ADD THIS LINE
+      originalRole: Role
+      actor: { id: string; name?: string | null; email: string }
+      impersonation?: {
+        sessionId: string
+        tenantId: string
+        tenantName: string
+        reason: string
+        mode: 'READ_ONLY'
+        startedAt: string
+        expiresAt: string
+      }
     }
   }
 
@@ -32,5 +43,14 @@ declare module "next-auth/jwt" {
     role: Role
     tenantId: string
     permissions: string[] // <-- ADD THIS LINE
+    actorId: string
+    actorRole: Role
+    actorTenantId: string
+    actorPermissions: string[]
+    actorName?: string | null
+    actorEmail: string
+    impersonationSessionId?: string
+    impersonationExpiresAt?: string
+    impersonationTenantName?: string
   }
 }

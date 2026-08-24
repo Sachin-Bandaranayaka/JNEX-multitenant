@@ -40,7 +40,7 @@ export async function POST(request: Request) {
   // another tenant's invoice by guessing an id.
   const invoice = await prisma.tenantInvoice.findFirst({
     where: { id: data.invoiceId, tenantId: session.user.tenantId },
-    select: { id: true, status: true },
+    select: { id: true, status: true, total: true },
   });
   if (!invoice) {
     return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
@@ -48,6 +48,14 @@ export async function POST(request: Request) {
   if (invoice.status !== TenantInvoiceStatus.ISSUED) {
     return NextResponse.json(
       { error: `This invoice is ${invoice.status.toLowerCase()} and is not awaiting payment.` },
+      { status: 400 },
+    );
+  }
+
+  const submittedAmount = new Prisma.Decimal(data.amount.toFixed(2));
+  if (!submittedAmount.equals(invoice.total)) {
+    return NextResponse.json(
+      { error: `The transfer amount must exactly match the invoice total of ${invoice.total.toFixed(2)}.` },
       { status: 400 },
     );
   }
@@ -71,7 +79,7 @@ export async function POST(request: Request) {
       bankReceiptNumber: data.bankReceiptNumber,
       whatsappNumber: data.whatsappNumber,
       transferTime: new Date(data.transferTime),
-      amount: new Prisma.Decimal(data.amount.toFixed(2)),
+      amount: submittedAmount,
     },
   });
 

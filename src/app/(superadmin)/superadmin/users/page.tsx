@@ -1,105 +1,23 @@
 export const dynamic = 'force-dynamic';
-
-import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
-import { toggleTenantStatus, deleteTenant } from '../actions';
+import { prisma } from '@/lib/prisma';
+import { MagnifyingGlassIcon, ArrowRightIcon, PlusIcon } from '@heroicons/react/24/outline';
 
-// This is a Server Component, so it can be async and fetch data directly.
-export default async function SuperAdminUsersPage() {
+export default async function TenantsPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
+  const params = await searchParams;
+  const q = params.q?.trim() || '';
+  const status = params.status || 'all';
   const tenants = await prisma.tenant.findMany({
-    orderBy: {
-      createdAt: 'desc',
-    },
-    include: {
-      referredBy: {
-        select: {
-          name: true,
-        },
-      },
-    },
+    where: { ...(q ? { OR: [{ name: { contains: q, mode: 'insensitive' } }, { users: { some: { email: { contains: q, mode: 'insensitive' } } } }] } : {}), ...(status === 'active' ? { isActive: true } : status === 'inactive' ? { isActive: false } : {}) },
+    orderBy: { updatedAt: 'desc' },
+    select: { id: true, name: true, businessName: true, isActive: true, updatedAt: true, users: { where: { role: 'ADMIN' }, orderBy: { createdAt: 'asc' }, take: 1, select: { email: true } }, orders: { orderBy: { updatedAt: 'desc' }, take: 1, select: { updatedAt: true } }, _count: { select: { users: true, products: true, orders: true, leads: true } } },
   });
-
-  return (
-    <div className="space-y-6">
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <h1 className="text-2xl font-bold leading-6 text-white">
-            Tenant Management
-          </h1>
-          <p className="mt-2 text-sm text-gray-300">
-            A list of all tenant accounts in your system.
-          </p>
-        </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <Link
-            href="/superadmin/create"
-            className="block rounded-md bg-indigo-500 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-400"
-          >
-            Create Tenant
-          </Link>
-        </div>
-      </div>
-
-      <div className="flow-root">
-        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-white/10 rounded-lg">
-              <table className="min-w-full divide-y divide-gray-700">
-                <thead className="bg-gray-800">
-                  <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-white sm:pl-6">Name</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-white">Status</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-white">Referred By</th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-white">Date Created</th>
-                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-800">
-                  {tenants.map((tenant) => (
-                    <tr key={tenant.id}>
-                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-white sm:pl-6">{tenant.name}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-400">
-                        {tenant.isActive ? (
-                          <span className="inline-flex items-center rounded-md bg-green-900/50 px-2 py-1 text-xs font-medium text-green-300 ring-1 ring-inset ring-green-500/50">Active</span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-md bg-red-900/50 px-2 py-1 text-xs font-medium text-red-300 ring-1 ring-inset ring-red-500/50">Inactive</span>
-                        )}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-400">{tenant.referredBy?.name ?? 'Direct'}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-400">
-                        {/* FIX: Use a consistent date format (YYYY-MM-DD) to prevent hydration errors. */}
-                        {new Date(tenant.createdAt).toISOString().split('T')[0]}
-                      </td>
-                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        {(tenant.name !== 'Master Tenant' && tenant.name !== 'J-nex Holdings Master') && (
-                          <div className="flex items-center justify-end gap-x-4">
-                            <Link href={`/superadmin/tenants/${tenant.id}/edit`} className="text-indigo-400 hover:text-indigo-300">Edit</Link>
-                            <form action={toggleTenantStatus}>
-                              <input type="hidden" name="tenantId" value={tenant.id} />
-                              <input type="hidden" name="isActive" value={String(tenant.isActive)} />
-                              <button type="submit" className={tenant.isActive ? "text-yellow-400 hover:text-yellow-300" : "text-green-400 hover:text-green-300"}>
-                                {tenant.isActive ? 'Deactivate' : 'Activate'}
-                              </button>
-                            </form>
-                            <form action={deleteTenant}>
-                              <input type="hidden" name="tenantId" value={tenant.id} />
-                              <button type="submit" className="text-red-500 hover:text-red-400">
-                                Delete
-                              </button>
-                            </form>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
+  return <div className="space-y-6"><div className="flex flex-col justify-between gap-4 border-b border-slate-300 pb-6 sm:flex-row sm:items-end"><div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#e10600]">Tenant directory</p><h1 className="mt-1 text-2xl font-bold">Find and inspect any business</h1><p className="mt-2 text-sm text-slate-600">Operational visibility without using or resetting tenant passwords.</p></div><Link href="/superadmin/create" className="inline-flex items-center justify-center gap-2 rounded-md bg-[#e10600] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#ba0500]"><PlusIcon className="h-4 w-4" />Create tenant</Link></div>
+    <form className="grid gap-3 rounded-md border border-slate-300 bg-white p-4 shadow-sm sm:grid-cols-[1fr_180px_auto]"><label className="relative"><span className="sr-only">Search tenants</span><MagnifyingGlassIcon className="absolute left-3 top-3 h-4 w-4 text-slate-400" /><input name="q" defaultValue={q} placeholder="Search tenant or admin email" className="w-full rounded-md border-slate-300 py-2 pl-9 text-sm focus:border-red-500 focus:ring-red-500" /></label><select name="status" defaultValue={status} aria-label="Tenant status" className="rounded-md border-slate-300 text-sm focus:border-red-500 focus:ring-red-500"><option value="all">All statuses</option><option value="active">Active only</option><option value="inactive">Inactive only</option></select><button className="rounded-md bg-slate-900 px-5 py-2 text-sm font-bold text-white hover:bg-slate-700">Apply</button></form>
+    <div className="overflow-hidden rounded-md border border-slate-300 bg-white shadow-sm">
+      <div className="divide-y divide-slate-200 lg:hidden">{tenants.map((tenant) => { const activity = tenant.orders[0]?.updatedAt || tenant.updatedAt; return <article key={tenant.id} className="p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words font-bold text-slate-900">{tenant.businessName || tenant.name}</h2>{tenant.businessName && <p className="mt-0.5 text-xs text-slate-500">{tenant.name}</p>}</div><span className={`shrink-0 rounded px-2 py-1 text-[11px] font-bold ${tenant.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{tenant.isActive ? 'Active' : 'Inactive'}</span></div><p className="mt-3 break-all text-xs text-slate-600"><span className="font-bold text-slate-500">Admin:</span> {tenant.users[0]?.email || 'No active admin'}</p><dl className="mt-4 grid grid-cols-4 divide-x divide-slate-200 rounded-md bg-slate-50 py-2 text-center"><div><dt className="text-[10px] font-bold uppercase text-slate-500">Staff</dt><dd className="mt-1 text-sm font-bold tabular-nums">{tenant._count.users}</dd></div><div><dt className="text-[10px] font-bold uppercase text-slate-500">Stock</dt><dd className="mt-1 text-sm font-bold tabular-nums">{tenant._count.products}</dd></div><div><dt className="text-[10px] font-bold uppercase text-slate-500">Orders</dt><dd className="mt-1 text-sm font-bold tabular-nums">{tenant._count.orders}</dd></div><div><dt className="text-[10px] font-bold uppercase text-slate-500">Leads</dt><dd className="mt-1 text-sm font-bold tabular-nums">{tenant._count.leads}</dd></div></dl><div className="mt-4 flex items-center justify-between gap-3"><p className="text-[11px] text-slate-500">Last activity {activity.toISOString().slice(0, 10)}</p><Link href={`/superadmin/tenants/${tenant.id}`} className="inline-flex min-h-10 items-center gap-1.5 rounded-md bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500">Inspect <ArrowRightIcon className="h-4 w-4" /></Link></div></article>; })}</div>
+      <div className="hidden overflow-x-auto lg:block"><table className="min-w-full divide-y divide-slate-200"><thead className="bg-slate-50"><tr>{['Tenant', 'Status', 'Primary admin', 'Staff', 'Products', 'Orders', 'Leads', 'Last activity', ''].map((h) => <th key={h} className="whitespace-nowrap px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">{h}</th>)}</tr></thead><tbody className="divide-y divide-slate-200">{tenants.map((tenant) => { const activity = tenant.orders[0]?.updatedAt || tenant.updatedAt; return <tr key={tenant.id} className="hover:bg-slate-50"><td className="px-4 py-4"><p className="font-bold text-slate-900">{tenant.businessName || tenant.name}</p>{tenant.businessName && <p className="text-xs text-slate-500">{tenant.name}</p>}</td><td className="px-4 py-4"><span className={`rounded px-2 py-1 text-[11px] font-bold ${tenant.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{tenant.isActive ? 'Active' : 'Inactive'}</span></td><td className="px-4 py-4 text-sm text-slate-600">{tenant.users[0]?.email || 'No active admin'}</td>{[tenant._count.users, tenant._count.products, tenant._count.orders, tenant._count.leads].map((count, i) => <td key={i} className="px-4 py-4 text-sm font-semibold tabular-nums text-slate-700">{count}</td>)}<td className="whitespace-nowrap px-4 py-4 text-xs text-slate-500">{activity.toISOString().slice(0, 10)}</td><td className="px-4 py-4 text-right"><Link href={`/superadmin/tenants/${tenant.id}`} className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-2 text-xs font-bold text-slate-800 hover:border-slate-500 hover:bg-white">Inspect <ArrowRightIcon className="h-3.5 w-3.5" /></Link></td></tr>; })}</tbody></table></div>
+      {!tenants.length && <div className="px-5 py-16 text-center"><p className="font-bold">No tenants found</p><p className="mt-1 text-sm text-slate-500">Try a different name, email, or status filter.</p></div>}
     </div>
-  );
+  </div>;
 }

@@ -12,7 +12,7 @@ export default async function InventoryPage() {
   }
 
   // This permission check correctly secures the page
-  if (session.user.role !== 'ADMIN' && !session.user.permissions?.includes('VIEW_INVENTORY')) {
+  if (session.user.role !== 'ADMIN' && !session.user.permissions?.includes('VIEW_PRODUCTS')) {
     return redirect('/unauthorized');
   }
 

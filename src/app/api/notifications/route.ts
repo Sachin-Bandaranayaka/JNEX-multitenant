@@ -12,6 +12,11 @@ export async function GET(request: Request) {
         if (!session?.user?.tenantId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
+        if (session.user.impersonation) {
+            // Reading notifications in the tenant header can lead to read-state
+            // changes in clients. Return a neutral list in custody mode.
+            return NextResponse.json([]);
+        }
 
         const notifications = await prisma.notification.findMany({
             where: {

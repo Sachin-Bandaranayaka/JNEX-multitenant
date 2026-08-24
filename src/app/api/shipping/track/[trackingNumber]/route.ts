@@ -23,6 +23,9 @@ export async function GET(
     if (!session?.user?.tenantId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
+    if (session.user.impersonation) {
+      return NextResponse.json({ error: 'Live tracking refresh is unavailable during read-only access.' }, { status: 403 });
+    }
 
     const resolvedParams = await params;
 

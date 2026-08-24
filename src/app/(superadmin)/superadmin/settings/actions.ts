@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { hash, compare } from 'bcryptjs';
 import { Role } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
+import { requireSuperAdmin } from '@/lib/superadmin-auth';
 
 // --- Action to create a new super admin ---
 const CreateAdminSchema = z.object({
@@ -18,6 +19,7 @@ const CreateAdminSchema = z.object({
 
 // The signature is changed to the standard for useActionState
 export async function createNewSuperAdmin(prevState: any, formData: FormData) {
+  const { actor } = await requireSuperAdmin();
   const validatedFields = CreateAdminSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) {
@@ -34,9 +36,10 @@ export async function createNewSuperAdmin(prevState: any, formData: FormData) {
 
     const hashedPassword = await hash(password, 12);
 
-    await prisma.user.create({
+    const created = await prisma.user.create({
       data: { name, email, password: hashedPassword, role: Role.SUPER_ADMIN, tenantId }
     });
+    await prisma.auditEvent.create({ data: { actorId: actor.id, tenantId, action: 'SUPER_ADMIN_CREATED', entityType: 'User', entityId: created.id, metadata: { name, email } } });
 
     revalidatePath('/superadmin/settings');
     return { status: 'success', message: `Admin '${name}' created successfully!` };
@@ -54,26 +57,25 @@ const UpdatePasswordSchema = z.object({
 
 // The signature is changed to the standard for useActionState
 export async function updateSuperAdminPassword(prevState: any, formData: FormData) {
+  const { actor } = await requireSuperAdmin();
   const validatedFields = UpdatePasswordSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) {
     return { status: 'error', errors: validatedFields.error.flatten().fieldErrors };
   }
 
-  const { userId, currentPassword, newPassword } = validatedFields.data;
+  const { currentPassword, newPassword } = validatedFields.data;
 
   try {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) { return { status: 'error', message: "User not found." }; }
-
-    const passwordsMatch = await compare(currentPassword, user.password);
+    const passwordsMatch = await compare(currentPassword, actor.password);
     if (!passwordsMatch) { return { status: 'error', message: "Incorrect current password." }; }
 
     const hashedNewPassword = await hash(newPassword, 12);
     await prisma.user.update({
-      where: { id: userId },
+      where: { id: actor.id },
       data: { password: hashedNewPassword },
     });
+    await prisma.auditEvent.create({ data: { actorId: actor.id, tenantId: actor.tenantId, action: 'SUPER_ADMIN_PASSWORD_CHANGED', entityType: 'User', entityId: actor.id } });
     
     return { status: 'success', message: 'Password updated successfully!' };
   } catch (error) {

@@ -43,6 +43,9 @@ export async function supersedeRate(input: NewRateInput) {
   const effectiveFrom = input.effectiveFrom ?? new Date();
 
   return prisma.$transaction(async (tx) => {
+    // Prevent concurrent admin submissions from both creating an open rate.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'billing-rate:' + input.tenantId}))`;
+
     const open = await tx.tenantFeeRate.findFirst({
       where: { tenantId: input.tenantId, effectiveTo: null },
       orderBy: { effectiveFrom: 'desc' },

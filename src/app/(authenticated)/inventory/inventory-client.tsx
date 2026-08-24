@@ -42,7 +42,7 @@ export function InventoryClient({ initialProducts, user }: { initialProducts: Pr
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const router = useRouter();
 
-    const canEditStock = user.role === 'ADMIN' || user.permissions?.includes('EDIT_STOCK_LEVELS');
+    const canEditStock = false;
 
     useEffect(() => {
         if (selectedProduct) {

@@ -55,7 +55,6 @@ export function BulkOperations() {
           className="block w-64 rounded-md border-gray-600 bg-gray-700 text-gray-100 ring-1 ring-white/10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
         >
           <option key="empty" value="">Select an operation</option>
-          <option key="update-stock" value="update-stock">Update Stock Levels</option>
           <option key="export-csv" value="export-csv">Export to CSV</option>
           <option key="check-low-stock" value="check-low-stock">Check Low Stock</option>
         </select>
@@ -90,7 +89,6 @@ export function BulkOperations() {
       <div className="mt-4 text-sm text-gray-400">
         <h3 className="font-medium text-gray-300">Available Operations:</h3>
         <ul className="mt-2 list-disc pl-5 space-y-1">
-          <li>Update Stock Levels: Sync product stock levels with external inventory system</li>
           <li>Export to CSV: Download product catalog as CSV file</li>
           <li>Check Low Stock: Generate report of products with low stock levels</li>
         </ul>

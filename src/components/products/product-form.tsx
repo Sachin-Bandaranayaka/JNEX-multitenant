@@ -49,7 +49,7 @@ export function ProductForm({ product, onSubmit, onCancel, user }: ProductFormPr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canEditStock = user.role === 'ADMIN' || (user.permissions && user.permissions.includes('EDIT_STOCK_LEVELS'));
+  const canEditStock = false;
 
   const {
     register,
@@ -78,9 +78,7 @@ export function ProductForm({ product, onSubmit, onCancel, user }: ProductFormPr
     setIsSubmitting(true);
     setError(null);
     try {
-      if (!canEditStock && product) {
-        data.stock = product.stock;
-      }
+      data.stock = product?.stock ?? 0;
       await onSubmit(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while saving the product');
@@ -142,12 +140,10 @@ export function ProductForm({ product, onSubmit, onCancel, user }: ProductFormPr
             type="number"
             id="stock"
             {...register('stock', { valueAsNumber: true })}
-            disabled={!canEditStock && !!product}
-            className="w-full h-12 px-4 rounded-full border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            readOnly
+            className="w-full h-12 px-4 rounded-full border border-input bg-muted text-muted-foreground cursor-not-allowed"
           />
-          {!canEditStock && !!product && (
-            <p className="mt-1 text-sm text-yellow-500 px-2">You don't have permission to change the stock of existing products.</p>
-          )}
+          <p className="mt-1 text-sm text-yellow-500 px-2">Stock is controlled by the platform owner.</p>
           {errors.stock && (
             <p className="mt-1 text-sm text-destructive px-2">{errors.stock.message}</p>
           )}

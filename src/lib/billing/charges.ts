@@ -80,6 +80,11 @@ export async function accrueDeliveryCharge(tx: Tx, input: AccrueInput): Promise<
 
   const periodKey = periodKeyFor(input.deliveredAt);
 
+  // PostgreSQL's default isolation level allows two simultaneous deliveries
+  // to observe the same prior count. Serialize this tenant/month while the
+  // enclosing order transaction computes and inserts the sequence number.
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'billing-accrual:' + input.tenantId + ':' + periodKey}))`;
+
   // Volume tiers are evaluated against the tenant's delivery count for the
   // month. Rows are never deleted, so counting them keeps the sequence stable:
   // a later reversal credits the fee but does not renumber everything after it.

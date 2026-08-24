@@ -16,17 +16,21 @@ export async function GET() {
       return NextResponse.json({ active: false });
     }
 
-    const user = await prisma.user.findUnique({
+    const actorId = session.user.actor?.id || session.user.id;
+    const [actor, effectiveUser] = await Promise.all([
+      prisma.user.findUnique({ where: { id: actorId }, select: { role: true, isActive: true } }),
+      prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
+        isActive: true,
         tenant: {
           select: { isActive: true }
         }
       },
-    });
+    })]);
 
     // If the user doesn't exist or their tenant is inactive, session is invalid
-    if (!user || !user.tenant.isActive) {
+    if (!actor || actor.role !== session.user.originalRole || !actor.isActive || !effectiveUser?.isActive || !effectiveUser.tenant.isActive) {
       return NextResponse.json({ active: false });
     }
 

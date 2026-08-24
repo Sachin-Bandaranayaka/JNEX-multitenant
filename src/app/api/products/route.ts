@@ -70,6 +70,12 @@ export async function POST(request: Request) {
         const prisma = getScopedPrismaClient(session.user.tenantId);
         const data = await request.json();
         const validatedData = productSchema.parse(data);
+        if (validatedData.stock !== 0) {
+            return NextResponse.json(
+                { error: 'Products must be created with zero stock. Stock is controlled by the platform owner.' },
+                { status: 403 },
+            );
+        }
         // Check for any existing product with the same code (active or inactive)
         const existingProduct = await prisma.product.findFirst({
             where: { 
@@ -92,7 +98,6 @@ export async function POST(request: Request) {
                         name: validatedData.name,
                         description: validatedData.description,
                         price: validatedData.price,
-                        stock: validatedData.stock,
                         lowStockAlert: validatedData.lowStockAlert,
                         isActive: true,
                     },
@@ -105,30 +110,10 @@ export async function POST(request: Request) {
                         name: validatedData.name,
                         description: validatedData.description,
                         price: validatedData.price,
-                        stock: validatedData.stock,
+                        stock: 0,
                         lowStockAlert: validatedData.lowStockAlert,
                         tenant: {
                             connect: { id: session.user.tenantId },
-                        },
-                    },
-                });
-            }
-            if (validatedData.stock > 0) {
-                const stockReason = existingProduct && !existingProduct.isActive ? 'Product reactivated' : 'Initial stock';
-                await tx.stockAdjustment.create({
-                    data: {
-                        quantity: validatedData.stock,
-                        reason: stockReason,
-                        previousStock: 0,
-                        newStock: validatedData.stock,
-                        tenant: {
-                            connect: { id: session.user.tenantId },
-                        },
-                        product: {
-                            connect: { id: newProduct.id },
-                        },
-                        adjustedBy: {
-                            connect: { id: session.user.id },
                         },
                     },
                 });

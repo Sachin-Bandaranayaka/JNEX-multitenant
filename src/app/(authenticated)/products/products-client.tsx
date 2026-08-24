@@ -96,7 +96,7 @@ export function ProductsClient({ initialProducts, user }: { initialProducts: Pro
         <div>
           <h1 className="text-2xl font-bold text-foreground">Products</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage your products, inventory, and pricing
+            Manage product details and pricing; inventory movements are controlled by the platform owner
           </p>
         </div>
 

@@ -7,6 +7,7 @@ import { Tenant } from '@prisma/client';
 import { Header } from '@/components/dashboard/header';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { LogoLoader } from '@/components/ui/logo-loader';
+import { ImpersonationBanner } from '@/components/superadmin/impersonation-banner';
 
 export default function AuthenticatedUI({ children, tenant }: { children: React.ReactNode; tenant: Tenant; }) {
   useSessionStatus();
@@ -52,6 +53,7 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
 
   const userRole = session.user.role;
   const userPermissions = session.user.permissions || [];
+  const impersonation = session.user.impersonation;
 
   return (
     <div className="jnex-workspace flex min-h-screen bg-background text-foreground">
@@ -66,10 +68,12 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
       />
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        {impersonation && <ImpersonationBanner access={impersonation} actorName={session.user.actor?.name || session.user.actor?.email || 'Super Admin'} />}
         <Header
           tenant={tenant}
           userName={session.user.name}
           onMenuClick={() => setIsSidebarOpen(true)}
+          readOnly={Boolean(impersonation)}
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background/50 p-4 sm:p-6">
           {children}

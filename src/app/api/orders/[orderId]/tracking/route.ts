@@ -57,6 +57,9 @@ export async function GET(
         if (!session?.user?.tenantId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
+        if (session.user.impersonation) {
+            return NextResponse.json({ error: 'Live tracking refresh is unavailable during read-only access.' }, { status: 403 });
+        }
 
         // Tenant-scoped client: prevents triggering carrier API calls (and
         // consuming carrier API quota/keys) against another tenant's order.

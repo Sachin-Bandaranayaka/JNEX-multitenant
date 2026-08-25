@@ -14,6 +14,37 @@ const permissionMap: Record<string, string> = {
   '/reports': 'VIEW_REPORTS',
 };
 
+// API counterpart of `permissionMap`. Client-side fetches never hit the page
+// paths above, so team-member API calls have to be matched on their own
+// prefixes; without this every /api/* request from a TEAM_MEMBER is denied.
+// This is the same coarse "can you see this area" gate the pages use --
+// finer-grained rules (EDIT_ORDERS, DELETE_PRODUCTS, ...) stay in the route
+// handlers, which read them off the session.
+const apiPermissionMap: Record<string, string> = {
+  '/api/dashboard': 'VIEW_DASHBOARD',
+  '/api/orders': 'VIEW_ORDERS',
+  '/api/invoice': 'VIEW_ORDERS',
+  '/api/invoices': 'VIEW_ORDERS',
+  '/api/returns': 'VIEW_ORDERS',
+  '/api/leads': 'VIEW_LEADS',
+  '/api/lead-reminders': 'VIEW_LEADS',
+  '/api/products': 'VIEW_PRODUCTS',
+  '/api/inventory': 'VIEW_PRODUCTS',
+  '/api/shipping': 'VIEW_SHIPPING',
+  // Only endpoint here is the default-courier picker in the dashboard header.
+  '/api/settings': 'VIEW_SHIPPING',
+  '/api/reports': 'VIEW_REPORTS',
+};
+
+// Shared dashboard chrome that every authenticated tenant user loads: the
+// header search box and the notification bell. Both are tenant-scoped in their
+// handlers, so they need no feature permission.
+const sharedTenantApis = new Set(['/api/search', '/api/notifications']);
+
+function matchesPathPrefix(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
 const orderedRoutes = [
     '/dashboard',
     '/orders',
@@ -46,6 +77,12 @@ export async function middleware(request: NextRequest) {
   if (isPublicAsset(pathname) || publicApi) {
     return NextResponse.next();
   }
+
+  // API routes must never be answered with an HTML redirect: the browser
+  // follows it transparently and `response.json()` then chokes on the page
+  // markup ("Unexpected token '<'"). Every guard below answers API requests
+  // with JSON instead.
+  const isApiRoute = pathname.startsWith('/api/');
 
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
   const userRole = token?.role as Role;
@@ -124,14 +161,22 @@ export async function middleware(request: NextRequest) {
 
   // Super Admin Access
   if (originalRole === 'SUPER_ADMIN') {
+    // Super Admin API calls (store management, impersonation, uploads) are
+    // authorised inside the route handlers, so they pass straight through.
+    if (isApiRoute) {
+      return NextResponse.next();
+    }
     if (!pathname.startsWith('/superadmin')) {
       return NextResponse.redirect(new URL('/superadmin', request.url));
     }
     return NextResponse.next();
   }
-  
+
   // Prevent non-superadmins from accessing superadmin area
-  if (pathname.startsWith('/superadmin')) {
+  if (pathname.startsWith('/superadmin') || pathname.startsWith('/api/superadmin/')) {
+      if (isApiRoute) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
       return NextResponse.redirect(new URL('/unauthorized', request.url));
   }
 
@@ -142,8 +187,19 @@ export async function middleware(request: NextRequest) {
 
   // Team Member Permission Check
   if (userRole === 'TEAM_MEMBER') {
-    const requiredPermissionKey = Object.keys(permissionMap).find(path => pathname.startsWith(path));
-    
+    if (isApiRoute) {
+      if (sharedTenantApis.has(pathname)) {
+        return NextResponse.next();
+      }
+      const apiKey = Object.keys(apiPermissionMap).find(prefix => matchesPathPrefix(pathname, prefix));
+      if (!apiKey || !userPermissions.includes(apiPermissionMap[apiKey])) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      return NextResponse.next();
+    }
+
+    const requiredPermissionKey = Object.keys(permissionMap).find(path => matchesPathPrefix(pathname, path));
+
     if (!requiredPermissionKey) {
         return NextResponse.redirect(new URL('/unauthorized', request.url));
     }

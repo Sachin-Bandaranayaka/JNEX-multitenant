@@ -13,6 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Badge, Card, PageHeader, saBtnGhost, saBtnPrimary, saCard, saInput, saLabel, saTable, saTd, saTh, saThead, saTr } from '../ui';
 
 interface StoreProduct {
   id: string;
@@ -195,36 +196,25 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Store Management</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            Manage products available for tenant purchase
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/superadmin/store/purchases"
-            className="relative inline-flex items-center gap-2 rounded-lg bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600 transition-colors"
-          >
-            <ClipboardDocumentListIcon className="h-5 w-5" />
-            Purchases
-            {pendingCount > 0 && (
-              <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-yellow-500 text-xs font-bold text-black">
-                {pendingCount}
-              </span>
-            )}
-          </Link>
-          <button
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
-          >
-            <PlusIcon className="h-5 w-5" />
-            Add Product
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Platform store"
+        title="Store management"
+        description="Manage the products tenants can purchase from the platform."
+      >
+        <Link href="/superadmin/store/purchases" className={`relative ${saBtnGhost}`}>
+          <ClipboardDocumentListIcon className="h-5 w-5 text-slate-500" />
+          Purchases
+          {pendingCount > 0 && (
+            <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#e10600] px-1 text-[11px] font-bold text-white">
+              {pendingCount}
+            </span>
+          )}
+        </Link>
+        <button onClick={() => setShowForm(true)} className={saBtnPrimary}>
+          <PlusIcon className="h-5 w-5" />
+          Add product
+        </button>
+      </PageHeader>
 
       <AnimatePresence mode="wait">
         {showForm && (
@@ -232,21 +222,20 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="rounded-xl bg-gray-800/80 ring-1 ring-white/10 p-6"
+            className={`${saCard} p-5`}
           >
-            <h2 className="text-lg font-semibold text-white mb-4">
-              {editingProduct ? 'Edit Product' : 'Add New Product'}
+            <h2 className="mb-1 font-bold text-slate-900">
+              {editingProduct ? 'Edit product' : 'Add new product'}
             </h2>
+            <p className="mb-5 text-xs text-slate-500">Products appear in every tenant&apos;s store once saved.</p>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Image Upload Section */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Product Image
-                </label>
+                <label className={`${saLabel} mb-2`}>Product image</label>
                 <div className="flex items-start gap-4">
                   {imagePreview ? (
                     <div className="relative">
-                      <div className="relative h-32 w-32 rounded-lg overflow-hidden bg-gray-700">
+                      <div className="relative h-32 w-32 overflow-hidden rounded-md border border-slate-200 bg-slate-100">
                         <Image
                           src={imagePreview}
                           alt="Product preview"
@@ -257,7 +246,7 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
                       <button
                         type="button"
                         onClick={removeImage}
-                        className="absolute -top-2 -right-2 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+                        className="absolute -right-2 -top-2 rounded-full bg-[#e10600] p-1 text-white transition-colors hover:bg-[#ba0500]"
                       >
                         <XMarkIcon className="h-4 w-4" />
                       </button>
@@ -265,14 +254,14 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
                   ) : (
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="h-32 w-32 rounded-lg border-2 border-dashed border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-gray-500 transition-colors"
+                      className="flex h-32 w-32 cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-slate-300 bg-slate-50 transition-colors hover:border-slate-400"
                     >
                       {uploading ? (
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+                        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#e10600]" />
                       ) : (
                         <>
-                          <PhotoIcon className="h-8 w-8 text-gray-500" />
-                          <span className="text-xs text-gray-500 mt-1">Upload</span>
+                          <PhotoIcon className="h-8 w-8 text-slate-400" />
+                          <span className="mt-1 text-xs font-semibold text-slate-500">Upload</span>
                         </>
                       )}
                     </div>
@@ -284,16 +273,16 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
                     onChange={handleImageUpload}
                     className="hidden"
                   />
-                  <div className="text-sm text-gray-400">
+                  <div className="text-sm text-slate-600">
                     <p>Click to upload product image</p>
-                    <p className="text-xs mt-1">JPEG, PNG, WebP, GIF (max 5MB)</p>
+                    <p className="mt-1 text-xs text-slate-500">JPEG, PNG, WebP, GIF (max 5MB)</p>
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className={`${saLabel} mb-1.5`}>
                     Product Name *
                   </label>
                   <input
@@ -301,12 +290,12 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
                     required
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full rounded-lg bg-gray-700 border-gray-600 px-3 py-2 text-white placeholder-gray-400"
+                    className={saInput}
                     placeholder="Enter product name"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className={`${saLabel} mb-1.5`}>
                     SKU *
                   </label>
                   <input
@@ -314,13 +303,13 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
                     required
                     value={formData.sku}
                     onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
-                    className="w-full rounded-lg bg-gray-700 border-gray-600 px-3 py-2 text-white placeholder-gray-400"
+                    className={saInput}
                     placeholder="e.g., PROD-001"
                     disabled={!!editingProduct}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className={`${saLabel} mb-1.5`}>
                     Price (LKR) *
                   </label>
                   <input
@@ -330,12 +319,12 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
                     step="0.01"
                     value={formData.price}
                     onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                    className="w-full rounded-lg bg-gray-700 border-gray-600 px-3 py-2 text-white placeholder-gray-400"
+                    className={saInput}
                     placeholder="0.00"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className={`${saLabel} mb-1.5`}>
                     Stock *
                   </label>
                   <input
@@ -344,20 +333,20 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
                     min="0"
                     value={formData.stock}
                     onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
-                    className="w-full rounded-lg bg-gray-700 border-gray-600 px-3 py-2 text-white placeholder-gray-400"
+                    className={saInput}
                     placeholder="0"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+                <label className={`${saLabel} mb-1.5`}>
                   Description
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
-                  className="w-full rounded-lg bg-gray-700 border-gray-600 px-3 py-2 text-white placeholder-gray-400"
+                  className={saInput}
                   placeholder="Product description (optional)"
                 />
               </div>
@@ -365,16 +354,16 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 transition-colors"
+                  className={saBtnGhost}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || uploading}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors disabled:opacity-50"
+                  className={saBtnPrimary}
                 >
-                  {submitting ? 'Saving...' : editingProduct ? 'Update Product' : 'Add Product'}
+                  {submitting ? 'Saving…' : editingProduct ? 'Update product' : 'Add product'}
                 </button>
               </div>
             </form>
@@ -383,47 +372,48 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
       </AnimatePresence>
 
       {products.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center rounded-xl bg-gray-800/50 ring-1 ring-white/10">
-          <div className="p-4 rounded-full bg-gray-700 mb-4">
-            <ShoppingBagIcon className="h-8 w-8 text-gray-400" />
+        <div className={`${saCard} flex flex-col items-center justify-center px-5 py-16 text-center`}>
+          <div className="mb-4 rounded-full bg-slate-100 p-4">
+            <ShoppingBagIcon className="h-8 w-8 text-slate-400" />
           </div>
-          <h3 className="text-lg font-medium text-white">No products yet</h3>
-          <p className="text-sm text-gray-400 mt-1">
+          <h3 className="font-bold text-slate-900">No products yet</h3>
+          <p className="mt-1 text-sm text-slate-500">
             Add your first product to the store.
           </p>
         </div>
       ) : (
-        <div className="rounded-xl bg-gray-800/80 ring-1 ring-white/10 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-700">
-            <thead className="bg-gray-800">
+        <Card flush>
+          <div className="overflow-x-auto">
+          <table className={saTable}>
+            <thead className={saThead}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className={saTh}>
                   Product
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className={saTh}>
                   SKU
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className={saTh}>
                   Price
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className={saTh}>
                   Stock
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className={saTh}>
                   Status
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">
+                <th className={`${saTh} text-right`}>
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700">
+            <tbody className="divide-y divide-slate-200">
               {products.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-700/50 transition-colors">
-                  <td className="px-6 py-4">
+                <tr key={product.id} className={saTr}>
+                  <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
                       {product.imageUrl ? (
-                        <div className="relative h-10 w-10 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
+                        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-100">
                           <Image
                             src={product.imageUrl}
                             alt={product.name}
@@ -432,53 +422,51 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
                           />
                         </div>
                       ) : (
-                        <div className="h-10 w-10 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0">
-                          <PhotoIcon className="h-5 w-5 text-gray-500" />
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-100">
+                          <PhotoIcon className="h-5 w-5 text-slate-400" />
                         </div>
                       )}
                       <div>
-                        <p className="font-medium text-white">{product.name}</p>
+                        <p className="font-bold text-slate-900">{product.name}</p>
                         {product.description && (
-                          <p className="text-sm text-gray-400 truncate max-w-xs">
+                          <p className="max-w-xs truncate text-sm text-slate-500">
                             {product.description}
                           </p>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-300">{product.sku}</td>
-                  <td className="px-6 py-4 text-sm text-white font-medium">
+                  <td className={`${saTd} font-mono text-xs`}>{product.sku}</td>
+                  <td className={`${saTd} font-semibold tabular-nums text-slate-900`}>
                     LKR {product.price.toLocaleString()}
                   </td>
-                  <td className="px-6 py-4">
-                    <span className={`text-sm font-medium ${
-                      product.stock > 10 ? 'text-green-400' : 
-                      product.stock > 0 ? 'text-yellow-400' : 'text-red-400'
+                  <td className="px-4 py-4">
+                    <span className={`text-sm font-bold tabular-nums ${
+                      product.stock > 10 ? 'text-emerald-700' :
+                      product.stock > 0 ? 'text-amber-700' : 'text-red-700'
                     }`}>
                       {product.stock}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      product.isActive 
-                        ? 'bg-green-500/10 text-green-400' 
-                        : 'bg-red-500/10 text-red-400'
-                    }`}>
+                  <td className="px-4 py-4">
+                    <Badge tone={product.isActive ? 'green' : 'red'}>
                       {product.isActive ? 'Active' : 'Inactive'}
-                    </span>
+                    </Badge>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => openEditForm(product)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+                        aria-label={`Edit ${product.name}`}
+                        className="rounded-md border border-slate-300 p-2 text-slate-600 transition-colors hover:border-slate-500 hover:bg-slate-50 hover:text-slate-900"
                       >
                         <PencilIcon className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(product.id)}
                         disabled={deleting === product.id}
-                        className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-gray-700 transition-colors disabled:opacity-50"
+                        aria-label={`Delete ${product.name}`}
+                        className="rounded-md border border-slate-300 p-2 text-slate-600 transition-colors hover:border-red-400 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
                       >
                         <TrashIcon className="h-4 w-4" />
                       </button>
@@ -488,7 +476,8 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </Card>
       )}
     </div>
   );

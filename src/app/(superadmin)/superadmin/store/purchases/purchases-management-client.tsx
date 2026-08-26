@@ -2,14 +2,8 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  CheckCircleIcon, 
-  XCircleIcon, 
-  ClockIcon,
-  ArrowLeftIcon,
-  EyeIcon
-} from '@heroicons/react/24/outline';
-import Link from 'next/link';
+import { CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { EmptyState, PageHeader, saBtnDanger, saBtnGhost, saBtnSuccess, saCard, saInput, saLabel } from '../../ui';
 
 interface PurchaseItem {
   id: string;
@@ -116,22 +110,20 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
   };
 
   const statusConfig = {
-    PENDING: { icon: ClockIcon, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
-    CONFIRMED: { icon: CheckCircleIcon, color: 'text-green-400', bg: 'bg-green-500/10' },
-    REJECTED: { icon: XCircleIcon, color: 'text-red-400', bg: 'bg-red-500/10' },
+    PENDING: { icon: ClockIcon, color: 'text-amber-800', bg: 'bg-amber-50' },
+    CONFIRMED: { icon: CheckCircleIcon, color: 'text-emerald-700', bg: 'bg-emerald-50' },
+    REJECTED: { icon: XCircleIcon, color: 'text-red-700', bg: 'bg-red-50' },
   };
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-4">
-        <Link href="/superadmin/store" className="p-2 rounded-lg hover:bg-gray-700 transition-colors">
-          <ArrowLeftIcon className="h-5 w-5 text-gray-400" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-white">Purchase Orders</h1>
-          <p className="text-sm text-gray-400">Review and manage purchase requests</p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Platform store"
+        title="Purchase orders"
+        description="Review and manage tenant purchase requests."
+        backHref="/superadmin/store"
+        backLabel="Back to store"
+      />
 
       {/* Filter Tabs */}
       <div className="flex gap-2">
@@ -139,15 +131,15 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
           <button
             key={status}
             onClick={() => setFilter(status)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`inline-flex items-center rounded-md px-4 py-2 text-sm font-bold transition-colors ${
               filter === status
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                ? 'bg-slate-900 text-white'
+                : 'border border-slate-300 bg-white text-slate-700 hover:border-slate-500 hover:bg-slate-50'
             }`}
           >
             {status === 'ALL' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
             {status === 'PENDING' && (
-              <span className="ml-2 px-1.5 py-0.5 rounded-full bg-yellow-500 text-black text-xs">
+              <span className="ml-2 rounded-full bg-[#e10600] px-1.5 py-0.5 text-[11px] font-bold text-white">
                 {purchases.filter(p => p.status === 'PENDING').length}
               </span>
             )}
@@ -156,8 +148,8 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
       </div>
 
       {filteredPurchases.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
-          No purchases found.
+        <div className={saCard}>
+          <EmptyState title="No purchases found" description="Purchase requests matching this filter will appear here." />
         </div>
       ) : (
         <div className="space-y-4">
@@ -170,16 +162,16 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
                 key={purchase.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-xl bg-gray-800/80 ring-1 ring-white/10 overflow-hidden"
+                className={`${saCard} overflow-hidden`}
               >
                 <div className="p-5">
                   <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="text-sm font-mono text-gray-400">
+                        <span className="font-mono text-sm text-slate-500">
                           #{purchase.id.slice(-8).toUpperCase()}
                         </span>
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.color}`}>
+                        <span className={`inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-bold ${config.bg} ${config.color}`}>
                           <StatusIcon className="h-3 w-3" />
                           {purchase.status}
                         </span>
@@ -187,53 +179,53 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                         <div>
-                          <p className="text-xs text-gray-500 uppercase">Tenant</p>
-                          <p className="text-white font-medium">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Tenant</p>
+                          <p className="font-bold text-slate-900">
                             {purchase.tenant.businessName || purchase.tenant.name}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 uppercase">User</p>
-                          <p className="text-white">{purchase.user.name || purchase.user.email}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">User</p>
+                          <p className="text-sm text-slate-700">{purchase.user.name || purchase.user.email}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 uppercase">Receipt Number</p>
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Receipt Number</p>
                           <p className="text-white font-mono">{purchase.bankReceiptNumber}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 uppercase">WhatsApp</p>
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">WhatsApp</p>
                           <a 
                             href={`https://wa.me/${purchase.whatsappNumber.replace(/[^0-9]/g, '')}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-indigo-400 hover:underline"
+                            className="text-sm font-bold text-[#c50500] hover:underline"
                           >
                             {purchase.whatsappNumber}
                           </a>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 uppercase">Transfer Time</p>
-                          <p className="text-white">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Transfer Time</p>
+                          <p className="text-sm text-slate-700">
                             {new Date(purchase.transferTime).toLocaleString()}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 uppercase">Order Date</p>
-                          <p className="text-white">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Order Date</p>
+                          <p className="text-sm text-slate-700">
                             {new Date(purchase.createdAt).toLocaleString()}
                           </p>
                         </div>
                       </div>
 
-                      <div className="border-t border-gray-700 pt-4">
-                        <p className="text-xs text-gray-500 uppercase mb-2">Items</p>
+                      <div className="border-t border-slate-200 pt-4">
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-slate-500">Items</p>
                         <div className="space-y-1">
                           {purchase.items.map((item) => (
                             <div key={item.id} className="flex justify-between text-sm">
-                              <span className="text-gray-300">
+                              <span className="text-slate-600">
                                 {item.storeProduct.name} × {item.quantity}
                               </span>
-                              <span className="text-white font-medium">
+                              <span className="font-semibold tabular-nums text-slate-900">
                                 LKR {(item.quantity * item.priceAtPurchase).toLocaleString()}
                               </span>
                             </div>
@@ -244,8 +236,8 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
 
                     <div className="flex flex-col items-end gap-3">
                       <div className="text-right">
-                        <p className="text-xs text-gray-500">Total Amount</p>
-                        <p className="text-2xl font-bold text-white">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Total amount</p>
+                        <p className="text-2xl font-bold tabular-nums text-slate-900">
                           LKR {purchase.totalAmount.toLocaleString()}
                         </p>
                       </div>
@@ -255,7 +247,7 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
                           <button
                             onClick={() => handleConfirm(purchase.id)}
                             disabled={processing === purchase.id}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-500 transition-colors disabled:opacity-50"
+                            className={saBtnSuccess}
                           >
                             <CheckCircleIcon className="h-4 w-4" />
                             Confirm
@@ -263,7 +255,7 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
                           <button
                             onClick={() => openRejectModal(purchase)}
                             disabled={processing === purchase.id}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-500 transition-colors disabled:opacity-50"
+                            className={saBtnDanger}
                           >
                             <XCircleIcon className="h-4 w-4" />
                             Reject
@@ -273,15 +265,15 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
 
                       {purchase.status === 'REJECTED' && purchase.rejectionReason && (
                         <div className="text-right">
-                          <p className="text-xs text-gray-500">Rejection Reason</p>
-                          <p className="text-sm text-red-400">{purchase.rejectionReason}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Rejection reason</p>
+                          <p className="text-sm font-semibold text-red-700">{purchase.rejectionReason}</p>
                         </div>
                       )}
 
                       {purchase.status === 'CONFIRMED' && purchase.confirmedAt && (
                         <div className="text-right">
-                          <p className="text-xs text-gray-500">Confirmed At</p>
-                          <p className="text-sm text-green-400">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Confirmed at</p>
+                          <p className="text-sm font-semibold text-emerald-700">
                             {new Date(purchase.confirmedAt).toLocaleString()}
                           </p>
                         </div>
@@ -302,7 +294,7 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
             onClick={() => setShowRejectModal(false)}
           >
             <motion.div
@@ -310,38 +302,39 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-gray-800 rounded-xl ring-1 ring-white/10 p-6 max-w-md w-full"
+              className="w-full max-w-md rounded-md border border-slate-300 bg-white p-6 shadow-2xl"
             >
-              <h3 className="text-lg font-semibold text-white mb-4">Reject Purchase</h3>
-              <p className="text-sm text-gray-400 mb-4">
+              <h3 className="font-bold text-slate-900">Reject purchase</h3>
+              <p className="mb-4 mt-2 text-sm text-slate-600">
                 Are you sure you want to reject this purchase from{' '}
-                <span className="text-white">{selectedPurchase.tenant.businessName || selectedPurchase.tenant.name}</span>?
+                <span className="font-bold text-slate-900">{selectedPurchase.tenant.businessName || selectedPurchase.tenant.name}</span>?
               </p>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Rejection Reason (optional)
+                <label htmlFor="rejectionReason" className={`${saLabel} mb-1.5`}>
+                  Rejection reason (optional)
                 </label>
                 <textarea
+                  id="rejectionReason"
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   rows={3}
-                  className="w-full rounded-lg bg-gray-700 border-gray-600 px-3 py-2 text-white placeholder-gray-400"
-                  placeholder="Enter reason for rejection..."
+                  className={saInput}
+                  placeholder="Enter reason for rejection…"
                 />
               </div>
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowRejectModal(false)}
-                  className="px-4 py-2 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors"
+                  className={saBtnGhost}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleReject}
                   disabled={processing === selectedPurchase.id}
-                  className="px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-500 transition-colors disabled:opacity-50"
+                  className={saBtnDanger}
                 >
-                  {processing === selectedPurchase.id ? 'Rejecting...' : 'Reject Purchase'}
+                  {processing === selectedPurchase.id ? 'Rejecting…' : 'Reject purchase'}
                 </button>
               </div>
             </motion.div>

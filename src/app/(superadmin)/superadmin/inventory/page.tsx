@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { prisma } from '@/lib/prisma';
 import { StockReceiptForm } from './stock-receipt-form';
+import { Card, EmptyState, PageHeader, saTable, saTd, saTh, saThead, saTr } from '../ui';
 
 export default async function SuperAdminInventoryPage() {
   const [tenants, recent] = await Promise.all([
@@ -38,29 +39,36 @@ export default async function SuperAdminInventoryPage() {
   }));
 
   return <div className="space-y-8">
-    <div>
-      <h1 className="text-2xl font-bold text-white">Inventory Control</h1>
-      <p className="mt-2 text-sm text-gray-300">Tenant users can view stock but cannot move it manually. Store approvals and order lifecycle events remain automatic.</p>
-    </div>
+    <PageHeader
+      eyebrow="Stock custody"
+      title="Inventory control"
+      description="Tenant users can view stock but cannot move it manually. Store approvals and order lifecycle events remain automatic."
+    />
     <StockReceiptForm tenants={options} />
-    <section className="space-y-3">
-      <h2 className="text-lg font-semibold text-white">Recent own-supplier receipts</h2>
-      <div className="overflow-x-auto rounded-lg ring-1 ring-white/10">
-        <table className="min-w-full divide-y divide-white/10 text-sm">
-          <thead className="bg-gray-800/80 text-left text-xs uppercase text-gray-400"><tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Tenant</th><th className="px-4 py-3">Product</th><th className="px-4 py-3 text-right">Quantity</th><th className="px-4 py-3">Details</th><th className="px-4 py-3">Recorded by</th></tr></thead>
-          <tbody className="divide-y divide-white/5 bg-gray-900/40">
-            {recent.length === 0 && <tr><td colSpan={6} className="px-4 py-6 text-center text-gray-500">No own-supplier receipts recorded yet.</td></tr>}
-            {recent.map((movement) => <tr key={movement.id}>
-              <td className="px-4 py-3 text-gray-400">{movement.createdAt.toLocaleString('en-LK')}</td>
-              <td className="px-4 py-3 text-white">{movement.tenant.businessName || movement.tenant.name}</td>
-              <td className="px-4 py-3 text-gray-300">{movement.product.code} · {movement.product.name}</td>
-              <td className="px-4 py-3 text-right font-semibold text-green-400">+{movement.quantity}</td>
-              <td className="px-4 py-3 text-gray-400">{movement.reason}</td>
-              <td className="px-4 py-3 text-gray-400">{movement.adjustedBy.name || movement.adjustedBy.email}</td>
+    <Card title="Recent own-supplier receipts" description="The latest 25 owner-recorded stock movements" flush>
+      <div className="overflow-x-auto">
+        <table className={saTable}>
+          <thead className={saThead}><tr>
+            <th className={saTh}>Date</th>
+            <th className={saTh}>Tenant</th>
+            <th className={saTh}>Product</th>
+            <th className={`${saTh} text-right`}>Quantity</th>
+            <th className={saTh}>Details</th>
+            <th className={saTh}>Recorded by</th>
+          </tr></thead>
+          <tbody className="divide-y divide-slate-200">
+            {recent.length === 0 && <tr><td colSpan={6} className="p-0"><EmptyState title="No own-supplier receipts yet" description="Stock received directly from a tenant's own supplier will be listed here." /></td></tr>}
+            {recent.map((movement) => <tr key={movement.id} className={saTr}>
+              <td className={`${saTd} whitespace-nowrap text-slate-500`}>{movement.createdAt.toLocaleString('en-LK')}</td>
+              <td className={`${saTd} font-semibold text-slate-900`}>{movement.tenant.businessName || movement.tenant.name}</td>
+              <td className={saTd}>{movement.product.code} · {movement.product.name}</td>
+              <td className={`${saTd} text-right font-bold tabular-nums text-emerald-700`}>+{movement.quantity}</td>
+              <td className={`${saTd} text-slate-500`}>{movement.reason}</td>
+              <td className={`${saTd} text-slate-500`}>{movement.adjustedBy.name || movement.adjustedBy.email}</td>
             </tr>)}
           </tbody>
         </table>
       </div>
-    </section>
+    </Card>
   </div>;
 }

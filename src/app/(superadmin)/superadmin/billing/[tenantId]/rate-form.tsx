@@ -3,10 +3,10 @@
 import { useState, useTransition } from 'react';
 import { setTenantRate } from '../actions';
 import { computeFee, type FeeModelName, type FeeTier } from '@/lib/billing/compute-fee';
+import { saBtnPrimary, saCard, saError, saInput, saLabel, saSuccess } from '../../ui';
 
-const inputClass =
-  'w-full rounded-md border-0 bg-gray-900 p-2 text-sm text-white ring-1 ring-white/10 placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500';
-const labelClass = 'block text-sm font-medium text-gray-300';
+const inputClass = `mt-1.5 ${saInput}`;
+const labelClass = saLabel;
 
 function parseTierText(raw: string): FeeTier[] {
   return raw
@@ -70,13 +70,13 @@ export function RateForm({ tenantId, currency }: { tenantId: string; currency: s
           }
         });
       }}
-      className="space-y-4 rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10"
+      className={`${saCard} space-y-5 p-5`}
     >
       <input type="hidden" name="tenantId" value={tenantId} />
 
       <div>
-        <h3 className="text-lg font-semibold text-white">New rate</h3>
-        <p className="mt-1 text-sm text-gray-400">
+        <h2 className="font-bold text-slate-900">New rate</h2>
+        <p className="mt-1 text-xs text-slate-500">
           Saving closes the current rate and starts this one. Charges already recorded keep their original terms.
         </p>
       </div>
@@ -134,7 +134,7 @@ export function RateForm({ tenantId, currency }: { tenantId: string; currency: s
               placeholder="2.5"
               className={inputClass}
             />
-            <p className="mt-1 text-xs text-gray-500">Entered as a percentage — 2.5 means 2.5%.</p>
+            <p className="mt-1 text-xs text-slate-500">Entered as a percentage — 2.5 means 2.5%.</p>
           </div>
         )}
 
@@ -149,7 +149,7 @@ export function RateForm({ tenantId, currency }: { tenantId: string; currency: s
               onChange={(event) => setTiers(event.target.value)}
               className={`${inputClass} font-mono`}
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-slate-500">
               One tier per line as <code>up-to: fee</code>. The last line must have a blank bound — it covers
               everything above. Example: <code>500: 50</code> then <code>: 40</code> charges Rs. 50 for the
               first 500 deliveries in a month and Rs. 40 after that.
@@ -176,7 +176,7 @@ export function RateForm({ tenantId, currency }: { tenantId: string; currency: s
         <div>
           <label className={labelClass} htmlFor="effectiveFrom">Effective from (optional)</label>
           <input id="effectiveFrom" name="effectiveFrom" type="datetime-local" className={inputClass} />
-          <p className="mt-1 text-xs text-gray-500">Defaults to now. Must be after the current rate started.</p>
+          <p className="mt-1 text-xs text-slate-500">Defaults to now. Must be after the current rate started.</p>
         </div>
 
         <div>
@@ -185,23 +185,23 @@ export function RateForm({ tenantId, currency }: { tenantId: string; currency: s
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-white/10 pt-4">
+      <div className="flex flex-wrap items-center gap-4 border-t border-slate-200 pt-4">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+          className={saBtnPrimary}
         >
           {pending ? 'Saving…' : 'Put this rate in force'}
         </button>
         {preview && (
-          <span className="text-sm text-gray-400">
-            An order worth {currency} 5,000.00 would be charged <span className="text-white">{preview}</span>
+          <span className="text-sm text-slate-600">
+            An order worth {currency} 5,000.00 would be charged <span className="font-bold text-slate-900">{preview}</span>
           </span>
         )}
       </div>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      {done && <p className="text-sm text-green-400">Rate saved and now in force.</p>}
+      {error && <p role="alert" className={saError}>{error}</p>}
+      {done && <p className={saSuccess}>Rate saved and now in force.</p>}
     </form>
   );
 }

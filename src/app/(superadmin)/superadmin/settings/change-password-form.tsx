@@ -5,12 +5,13 @@ import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { updateSuperAdminPassword } from './actions';
 import { useEffect, useRef } from 'react';
+import { saBtnPrimary, saError, saInput, saLabel, saSuccess } from '../ui';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 disabled:opacity-50">
-      {pending ? 'Saving...' : 'Save Password'}
+    <button type="submit" disabled={pending} className={saBtnPrimary}>
+      {pending ? 'Saving…' : 'Save password'}
     </button>
   );
 }
@@ -29,18 +30,18 @@ export function ChangePasswordForm({ userId }: { userId: string }) {
     <form action={dispatch} ref={formRef} className="space-y-4">
       <input type="hidden" name="userId" value={userId} />
       <div>
-        <label htmlFor="currentPassword" className="block text-sm font-medium leading-6 text-gray-200">Current Password</label>
-        <input type="password" name="currentPassword" id="currentPassword" required className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500" />
+        <label htmlFor="currentPassword" className={saLabel}>Current password</label>
+        <input type="password" name="currentPassword" id="currentPassword" autoComplete="current-password" required className={`mt-1.5 ${saInput}`} />
       </div>
       <div>
-        <label htmlFor="newPassword" className="block text-sm font-medium leading-6 text-gray-200">New Password</label>
-        <input type="password" name="newPassword" id="newPassword" required className="mt-2 block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500" />
+        <label htmlFor="newPassword" className={saLabel}>New password</label>
+        <input type="password" name="newPassword" id="newPassword" autoComplete="new-password" required className={`mt-1.5 ${saInput}`} />
       </div>
       <div className="flex justify-end">
         <SubmitButton />
       </div>
-      {state?.status === 'error' && <p className="text-sm text-red-400">{state.message || "An unknown error occurred."}</p>}
-      {state?.status === 'success' && <p className="text-sm text-green-400">{state.message}</p>}
+      {state?.status === 'error' && <p role="alert" className={saError}>{state.message || 'An unknown error occurred.'}</p>}
+      {state?.status === 'success' && <p className={saSuccess}>{state.message}</p>}
     </form>
   );
 }

@@ -2,7 +2,6 @@
 
 export const dynamic = 'force-dynamic';
 
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChargeStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
@@ -11,6 +10,7 @@ import { describeRate } from '@/lib/billing/rates';
 import { invoiceReference } from '@/lib/billing/invoicing';
 import { RateForm } from './rate-form';
 import { closePeriodForTenant } from '../actions';
+import { Card, PageHeader, Stat, saBtnPrimary, saTable, saTd, saTh, saThead, saTr } from '../../ui';
 
 function money(amount: string | number, currency = 'LKR') {
   const value = typeof amount === 'string' ? Number(amount) : amount;
@@ -18,11 +18,11 @@ function money(amount: string | number, currency = 'LKR') {
 }
 
 const chargeStatusStyles: Record<ChargeStatus, string> = {
-  ACCRUED: 'bg-blue-500/10 text-blue-300',
-  INVOICED: 'bg-amber-500/10 text-amber-300',
-  PAID: 'bg-green-500/10 text-green-300',
-  REVERSED: 'bg-red-500/10 text-red-300',
-  WAIVED: 'bg-gray-500/10 text-gray-300',
+  ACCRUED: 'bg-blue-50 text-blue-800',
+  INVOICED: 'bg-amber-50 text-amber-800',
+  PAID: 'bg-emerald-50 text-emerald-700',
+  REVERSED: 'bg-red-50 text-red-700',
+  WAIVED: 'bg-slate-100 text-slate-700',
 };
 
 export default async function TenantBillingPage({ params }: { params: Promise<{ tenantId: string }> }) {
@@ -71,127 +71,112 @@ export default async function TenantBillingPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-8">
-      <div>
-        <Link href="/superadmin/billing" className="text-sm text-indigo-400 hover:text-indigo-300">
-          ← All tenants
-        </Link>
-        <h1 className="mt-2 text-2xl font-bold leading-6 text-white">
-          {tenant.businessName || tenant.name}
-        </h1>
-        <p className="mt-2 text-sm text-gray-300">
-          {activeRate ? describeRate(activeRate) : 'No rate in force — deliveries are not being billed.'}
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Tenant billing"
+        title={tenant.businessName || tenant.name}
+        description={activeRate ? describeRate(activeRate) : 'No rate in force — deliveries are not being billed.'}
+        backHref="/superadmin/billing"
+        backLabel="All tenants"
+      />
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <div className="rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10">
-          <div className="text-sm font-medium text-gray-400">{formatPeriod(currentPeriod)} so far</div>
-          <div className="mt-2 text-3xl font-semibold text-white">
-            {money(Number(accruedNow?._sum.amount ?? 0), currency)}
-          </div>
-          <div className="mt-1 text-sm text-gray-500">{accruedNow?._count ?? 0} billable deliveries</div>
-        </div>
-        <div className="rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10">
-          <div className="text-sm font-medium text-gray-400">Rate versions</div>
-          <div className="mt-2 text-3xl font-semibold text-white">{rates.length}</div>
-        </div>
-        <div className="rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10">
-          <div className="text-sm font-medium text-gray-400">Invoices issued</div>
-          <div className="mt-2 text-3xl font-semibold text-white">{invoices.length}</div>
-        </div>
+        <Stat
+          label={`${formatPeriod(currentPeriod)} so far`}
+          value={money(Number(accruedNow?._sum.amount ?? 0), currency)}
+          hint={`${accruedNow?._count ?? 0} billable deliveries`}
+        />
+        <Stat label="Rate versions" value={rates.length} />
+        <Stat label="Invoices issued" value={invoices.length} />
       </div>
 
       <RateForm tenantId={tenant.id} currency={currency} />
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-white">Rate history</h2>
-        <div className="overflow-x-auto rounded-lg ring-1 ring-white/10">
-          <table className="min-w-full divide-y divide-white/10">
-            <thead className="bg-gray-800/80">
+      <Card title="Rate history" description="Every version of this tenant's terms" flush>
+        <div className="overflow-x-auto">
+          <table className={saTable}>
+            <thead className={saThead}>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Terms</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">In force</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Charges</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Note</th>
+                <th className={saTh}>Terms</th>
+                <th className={saTh}>In force</th>
+                <th className={`${saTh} text-right`}>Charges</th>
+                <th className={saTh}>Note</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 bg-gray-900/40">
+            <tbody className="divide-y divide-slate-200">
               {rates.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">
+                  <td colSpan={4} className="px-4 py-10 text-center text-sm text-slate-500">
                     No rate has ever been set for this tenant.
                   </td>
                 </tr>
               )}
               {rates.map((rate) => (
-                <tr key={rate.id}>
-                  <td className="px-4 py-3 text-sm text-white">{describeRate(rate)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-300">
+                <tr key={rate.id} className={saTr}>
+                  <td className={`${saTd} font-semibold text-slate-900`}>{describeRate(rate)}</td>
+                  <td className={saTd}>
                     {rate.effectiveFrom.toLocaleDateString('en-LK')} →{' '}
                     {rate.effectiveTo
                       ? rate.effectiveTo.toLocaleDateString('en-LK')
-                      : <span className="text-green-400">now</span>}
+                      : <span className="font-semibold text-emerald-700">now</span>}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-300">{rate._count.charges}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{rate.note || '—'}</td>
+                  <td className={`${saTd} text-right tabular-nums`}>{rate._count.charges}</td>
+                  <td className={`${saTd} text-slate-500`}>{rate.note || '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </section>
+      </Card>
 
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-white">Invoices</h2>
-          {hasUninvoicedLastMonth && (
-            <form action={closePeriodForTenant}>
-              <input type="hidden" name="tenantId" value={tenant.id} />
-              <input type="hidden" name="periodKey" value={lastPeriod} />
-              <button
-                type="submit"
-                className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
-              >
-                Issue {formatPeriod(lastPeriod)} invoice
-              </button>
-            </form>
-          )}
-        </div>
-        <div className="overflow-x-auto rounded-lg ring-1 ring-white/10">
-          <table className="min-w-full divide-y divide-white/10">
-            <thead className="bg-gray-800/80">
+      <Card
+        title="Invoices"
+        description="Issued statements and their payment state"
+        flush
+        actions={hasUninvoicedLastMonth ? (
+          <form action={closePeriodForTenant}>
+            <input type="hidden" name="tenantId" value={tenant.id} />
+            <input type="hidden" name="periodKey" value={lastPeriod} />
+            <button type="submit" className={saBtnPrimary}>
+              Issue {formatPeriod(lastPeriod)} invoice
+            </button>
+          </form>
+        ) : undefined}
+      >
+        <div className="overflow-x-auto">
+          <table className={saTable}>
+            <thead className={saThead}>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Invoice</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Period</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Orders</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Adjustments</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Total</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Status</th>
+                <th className={saTh}>Invoice</th>
+                <th className={saTh}>Period</th>
+                <th className={`${saTh} text-right`}>Orders</th>
+                <th className={`${saTh} text-right`}>Adjustments</th>
+                <th className={`${saTh} text-right`}>Total</th>
+                <th className={saTh}>Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 bg-gray-900/40">
+            <tbody className="divide-y divide-slate-200">
               {invoices.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-500">
+                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">
                     Nothing invoiced yet.
                   </td>
                 </tr>
               )}
               {invoices.map((invoice) => (
-                <tr key={invoice.id}>
-                  <td className="px-4 py-3 font-mono text-sm text-gray-300">{invoiceReference(invoice)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-300">{formatPeriod(invoice.periodKey)}</td>
-                  <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-300">{invoice.chargeCount}</td>
-                  <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-300">
+                <tr key={invoice.id} className={saTr}>
+                  <td className={`${saTd} font-mono`}>{invoiceReference(invoice)}</td>
+                  <td className={saTd}>{formatPeriod(invoice.periodKey)}</td>
+                  <td className={`${saTd} text-right tabular-nums`}>{invoice.chargeCount}</td>
+                  <td className={`${saTd} text-right tabular-nums`}>
                     {Number(invoice.adjustments) === 0 ? '—' : money(invoice.adjustments.toFixed(2), invoice.currency)}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm tabular-nums text-white">
+                  <td className={`${saTd} text-right font-semibold tabular-nums text-slate-900`}>
                     {money(invoice.total.toFixed(2), invoice.currency)}
                   </td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className="text-gray-300">{invoice.status}</span>
+                  <td className={saTd}>
+                    <span className="font-semibold text-slate-700">{invoice.status}</span>
                     {invoice.payments[0]?.status === 'PENDING' && (
-                      <span className="ml-2 text-xs text-amber-400">transfer awaiting review</span>
+                      <span className="ml-2 text-xs font-semibold text-amber-700">transfer awaiting review</span>
                     )}
                   </td>
                 </tr>
@@ -199,49 +184,48 @@ export default async function TenantBillingPage({ params }: { params: Promise<{ 
             </tbody>
           </table>
         </div>
-      </section>
+      </Card>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-white">Recent charges</h2>
-        <div className="overflow-x-auto rounded-lg ring-1 ring-white/10">
-          <table className="min-w-full divide-y divide-white/10">
-            <thead className="bg-gray-800/80">
+      <Card title="Recent charges" description="The latest 50 delivery fees" flush>
+        <div className="overflow-x-auto">
+          <table className={saTable}>
+            <thead className={saThead}>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Delivered</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Order</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Order value</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Fee</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Status</th>
+                <th className={saTh}>Delivered</th>
+                <th className={saTh}>Order</th>
+                <th className={`${saTh} text-right`}>Order value</th>
+                <th className={`${saTh} text-right`}>Fee</th>
+                <th className={saTh}>Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 bg-gray-900/40">
+            <tbody className="divide-y divide-slate-200">
               {charges.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">
+                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-500">
                     No charges recorded yet.
                   </td>
                 </tr>
               )}
               {charges.map((charge) => (
-                <tr key={charge.id}>
-                  <td className="px-4 py-3 text-sm text-gray-300">
+                <tr key={charge.id} className={saTr}>
+                  <td className={saTd}>
                     {charge.deliveredAt.toLocaleDateString('en-LK')}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-300">
+                  <td className={saTd}>
                     #{charge.order.number} · {charge.order.customerName}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-400">
+                  <td className={`${saTd} text-right tabular-nums text-slate-500`}>
                     {money(charge.orderTotal.toFixed(2), charge.currency)}
                   </td>
-                  <td className="px-4 py-3 text-right text-sm tabular-nums text-white">
+                  <td className={`${saTd} text-right font-semibold tabular-nums text-slate-900`}>
                     {money(charge.amount.toFixed(2), charge.currency)}
                   </td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${chargeStatusStyles[charge.status]}`}>
+                  <td className={saTd}>
+                    <span className={`inline-flex rounded px-2 py-1 text-[11px] font-bold ${chargeStatusStyles[charge.status]}`}>
                       {charge.status}
                     </span>
                     {charge.reversalReason && (
-                      <div className="mt-1 text-xs text-gray-500">{charge.reversalReason}</div>
+                      <div className="mt-1 text-xs text-slate-500">{charge.reversalReason}</div>
                     )}
                   </td>
                 </tr>
@@ -249,7 +233,7 @@ export default async function TenantBillingPage({ params }: { params: Promise<{ 
             </tbody>
           </table>
         </div>
-      </section>
+      </Card>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { confirmPayment, rejectPayment } from './actions';
+import { saBtnDanger, saBtnGhost, saBtnSuccess, saError, saInput } from '../ui';
 
 /**
  * Confirm/reject controls for a submitted bank transfer. Rejection asks for a
@@ -33,10 +34,10 @@ export function PaymentReviewForm({ paymentId }: { paymentId: string }) {
           onChange={(event) => setReason(event.target.value)}
           rows={2}
           placeholder="Why is this transfer being rejected?"
-          className="w-full rounded-md border-0 bg-gray-900 p-2 text-sm text-white ring-1 ring-white/10 placeholder:text-gray-500 focus:ring-2 focus:ring-indigo-500"
+          className={saInput}
         />
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        <div className="flex gap-2">
+        {error && <p role="alert" className={saError}>{error}</p>}
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             disabled={pending}
@@ -46,14 +47,14 @@ export function PaymentReviewForm({ paymentId }: { paymentId: string }) {
               formData.set('reason', reason);
               run(rejectPayment, formData);
             }}
-            className="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50"
+            className={saBtnDanger}
           >
             {pending ? 'Rejecting…' : 'Confirm rejection'}
           </button>
           <button
             type="button"
             onClick={() => { setRejecting(false); setError(null); }}
-            className="rounded-md bg-gray-700 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-600"
+            className={saBtnGhost}
           >
             Cancel
           </button>
@@ -64,8 +65,8 @@ export function PaymentReviewForm({ paymentId }: { paymentId: string }) {
 
   return (
     <div className="space-y-2 text-right">
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      <div className="flex gap-2">
+      {error && <p role="alert" className={saError}>{error}</p>}
+      <div className="flex flex-wrap justify-end gap-2">
         <button
           type="button"
           disabled={pending}
@@ -74,14 +75,14 @@ export function PaymentReviewForm({ paymentId }: { paymentId: string }) {
             formData.set('paymentId', paymentId);
             run(confirmPayment, formData);
           }}
-          className="rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-500 disabled:opacity-50"
+          className={saBtnSuccess}
         >
           {pending ? 'Confirming…' : 'Confirm payment'}
         </button>
         <button
           type="button"
           onClick={() => setRejecting(true)}
-          className="rounded-md bg-gray-700 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-600"
+          className={saBtnGhost}
         >
           Reject
         </button>

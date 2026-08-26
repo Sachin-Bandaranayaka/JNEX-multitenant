@@ -9,14 +9,14 @@ import 'reactflow/dist/style.css'; // Import required styles
 // The component accepts the nodes and edges we prepared
 export function PyramidGraph({ nodes, edges }: { nodes: any[]; edges: any[] }) {
   return (
-    <div style={{ height: '70vh', width: '100%' }} className="bg-gray-800/50 rounded-lg">
+    <div style={{ height: '70vh', width: '100%' }} className="rounded-md border border-slate-300 bg-white">
       <ReactFlow
         nodes={nodes}
         edges={edges}
         fitView // Automatically zooms to fit the whole graph
         proOptions={{ hideAttribution: true }} // Hides the "React Flow" attribution
       >
-        <Background color="#555" gap={16} />
+        <Background color="#cbd5e1" gap={16} />
         <Controls />
         <MiniMap />
       </ReactFlow>

@@ -9,6 +9,7 @@ import { periodKeyFor, formatPeriod } from '@/lib/billing/period';
 import { describeRate } from '@/lib/billing/rates';
 import { invoiceReference } from '@/lib/billing/invoicing';
 import { PaymentReviewForm } from './payment-review-form';
+import { Card, PageHeader, Stat, saTable, saTd, saTh, saThead, saTr } from '../ui';
 
 function money(amount: string | number, currency = 'LKR') {
   const value = typeof amount === 'string' ? Number(amount) : amount;
@@ -83,75 +84,61 @@ export default async function SuperAdminBillingPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold leading-6 text-white">Billing</h1>
-        <p className="mt-2 text-sm text-gray-300">
-          Platform fees accrue per delivered order. {formatPeriod(periodKey)} is still open — it is invoiced
-          automatically on the 1st.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Revenue desk"
+        title="Billing"
+        description={`Platform fees accrue per delivered order. ${formatPeriod(periodKey)} is still open — it is invoiced automatically on the 1st.`}
+      />
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-4">
-        <div className="rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10">
-          <div className="text-sm font-medium text-gray-400">Accrued this month</div>
-          <div className="mt-2 text-3xl font-semibold text-white">{money(periodTotal)}</div>
-        </div>
-        <div className="rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10">
-          <div className="text-sm font-medium text-gray-400">Billable deliveries</div>
-          <div className="mt-2 text-3xl font-semibold text-white">{periodOrders.toLocaleString()}</div>
-        </div>
-        <div className="rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10">
-          <div className="text-sm font-medium text-gray-400">Awaiting payment</div>
-          <div className="mt-2 text-3xl font-semibold text-amber-400">{money(outstandingTotal)}</div>
-        </div>
-        <div className="rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10">
-          <div className="text-sm font-medium text-gray-400">Unbilled deliveries</div>
-          <div className={`mt-2 text-3xl font-semibold ${unbilledTotal > 0 ? 'text-red-400' : 'text-green-400'}`}>
-            {unbilledTotal.toLocaleString()}
-          </div>
-          <div className="mt-1 text-sm text-gray-500">
-            {unpriced} tenant{unpriced === 1 ? '' : 's'} without a rate
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat label="Accrued this month" value={money(periodTotal)} />
+        <Stat label="Billable deliveries" value={periodOrders.toLocaleString()} />
+        <Stat label="Awaiting payment" value={money(outstandingTotal)} tone={outstandingTotal > 0 ? 'warn' : 'default'} />
+        <Stat
+          label="Unbilled deliveries"
+          value={unbilledTotal.toLocaleString()}
+          tone={unbilledTotal > 0 ? 'bad' : 'good'}
+          hint={`${unpriced} tenant${unpriced === 1 ? '' : 's'} without a rate`}
+        />
       </div>
 
       {unbilled.length > 0 && (
-        <section className="space-y-3 rounded-lg border border-red-500/30 bg-red-950/20 p-5">
-          <div>
-            <h2 className="text-lg font-semibold text-red-300">
+        <section className="overflow-hidden rounded-md border border-red-300 bg-red-50 shadow-sm">
+          <div className="border-b border-red-200 px-5 py-4">
+            <h2 className="font-bold text-red-800">
               {unbilledTotal.toLocaleString()} delivered order{unbilledTotal === 1 ? '' : 's'} produced no charge
             </h2>
-            <p className="mt-1 text-sm text-gray-300">
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
               These deliveries had no fee rate in force at the time they were delivered, so nothing was billed.
               Setting a rate now only affects future deliveries — a rate cannot be applied backwards, and invoicing
               a tenant for months they were never quoted is not a conversation worth having. Fix the rate, then
               decide deliberately whether to backfill.
             </p>
           </div>
-          <div className="overflow-x-auto rounded-lg ring-1 ring-white/10">
-            <table className="min-w-full divide-y divide-white/10">
-              <thead className="bg-gray-900/60">
+          <div className="overflow-x-auto bg-white">
+            <table className={saTable}>
+              <thead className={saThead}>
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Tenant</th>
-                  <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Unbilled</th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">First</th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Most recent</th>
-                  <th className="px-4 py-2" />
+                  <th className={saTh}>Tenant</th>
+                  <th className={`${saTh} text-right`}>Unbilled</th>
+                  <th className={saTh}>First</th>
+                  <th className={saTh}>Most recent</th>
+                  <th className={saTh} />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 bg-gray-900/40">
+              <tbody className="divide-y divide-slate-200">
                 {unbilled.map((row) => (
-                  <tr key={row.tenantId}>
-                    <td className="px-4 py-2 text-sm text-white">{tenantNames.get(row.tenantId) ?? row.tenantId}</td>
-                    <td className="px-4 py-2 text-right text-sm tabular-nums text-red-300">{row._count.toLocaleString()}</td>
-                    <td className="px-4 py-2 text-sm text-gray-400">
+                  <tr key={row.tenantId} className={saTr}>
+                    <td className={`${saTd} font-semibold text-slate-900`}>{tenantNames.get(row.tenantId) ?? row.tenantId}</td>
+                    <td className={`${saTd} text-right font-bold tabular-nums text-red-700`}>{row._count.toLocaleString()}</td>
+                    <td className={`${saTd} whitespace-nowrap text-slate-500`}>
                       {row._min.deliveredAt ? row._min.deliveredAt.toLocaleDateString('en-LK') : '—'}
                     </td>
-                    <td className="px-4 py-2 text-sm text-gray-400">
+                    <td className={`${saTd} whitespace-nowrap text-slate-500`}>
                       {row._max.deliveredAt ? row._max.deliveredAt.toLocaleDateString('en-LK') : '—'}
                     </td>
-                    <td className="px-4 py-2 text-right">
-                      <Link href={`/superadmin/billing/${row.tenantId}`} className="text-sm text-indigo-400 hover:text-indigo-300">
+                    <td className={`${saTd} text-right`}>
+                      <Link href={`/superadmin/billing/${row.tenantId}`} className="font-bold text-[#c50500] hover:underline">
                         Set rate →
                       </Link>
                     </td>
@@ -164,26 +151,25 @@ export default async function SuperAdminBillingPage() {
       )}
 
       {pendingPayments.length > 0 && (
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">Transfers awaiting review</h2>
-          <div className="space-y-3">
+        <Card title="Transfers awaiting review" description={`${pendingPayments.length} submitted bank transfer${pendingPayments.length === 1 ? '' : 's'}`} flush>
+          <div className="divide-y divide-slate-200">
             {pendingPayments.map((payment) => (
-              <div key={payment.id} className="rounded-lg bg-gray-800/80 p-5 ring-1 ring-white/10">
+              <div key={payment.id} className="px-5 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="font-semibold text-white">
+                  <div className="min-w-0 space-y-1">
+                    <div className="font-bold text-slate-900">
                       {payment.tenant.businessName || payment.tenant.name}
                     </div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-slate-600">
                       {invoiceReference(payment.invoice)} · invoiced{' '}
                       {money(payment.invoice.total.toFixed(2), payment.invoice.currency)}
                     </div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-slate-600">
                       Paid {money(payment.amount.toFixed(2))} · receipt{' '}
-                      <span className="font-mono text-gray-200">{payment.bankReceiptNumber}</span> ·
+                      <span className="font-mono text-slate-900">{payment.bankReceiptNumber}</span> ·
                       transferred {payment.transferTime.toLocaleString('en-LK')}
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-xs text-slate-500">
                       Submitted by {payment.submittedBy.name || payment.submittedBy.email} · WhatsApp{' '}
                       {payment.whatsappNumber}
                     </div>
@@ -193,50 +179,49 @@ export default async function SuperAdminBillingPage() {
               </div>
             ))}
           </div>
-        </section>
+        </Card>
       )}
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-white">Tenants</h2>
-        <div className="overflow-x-auto rounded-lg ring-1 ring-white/10">
-          <table className="min-w-full divide-y divide-white/10">
-            <thead className="bg-gray-800/80">
+      <Card title="Tenants" description="Current rate and month-to-date position" flush>
+        <div className="overflow-x-auto">
+          <table className={saTable}>
+            <thead className={saThead}>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Tenant</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Current rate</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Deliveries</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Accrued</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Unpaid</th>
+                <th className={saTh}>Tenant</th>
+                <th className={saTh}>Current rate</th>
+                <th className={`${saTh} text-right`}>Deliveries</th>
+                <th className={`${saTh} text-right`}>Accrued</th>
+                <th className={`${saTh} text-right`}>Unpaid</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 bg-gray-900/40">
+            <tbody className="divide-y divide-slate-200">
               {tenants.map((tenant) => {
                 const rate = tenant.feeRates[0];
                 const tenantAccrued = accrued.get(tenant.id);
                 const tenantOutstanding = outstanding.get(tenant.id);
                 return (
-                  <tr key={tenant.id} className="hover:bg-gray-800/60">
-                    <td className="px-4 py-3">
-                      <Link href={`/superadmin/billing/${tenant.id}`} className="font-medium text-indigo-400 hover:text-indigo-300">
+                  <tr key={tenant.id} className={saTr}>
+                    <td className={saTd}>
+                      <Link href={`/superadmin/billing/${tenant.id}`} className="font-bold text-[#c50500] hover:underline">
                         {tenant.businessName || tenant.name}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-300">
-                      {rate ? describeRate(rate) : <span className="text-red-400">No rate — not billable</span>}
+                    <td className={saTd}>
+                      {rate ? describeRate(rate) : <span className="font-semibold text-red-700">No rate — not billable</span>}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm tabular-nums text-gray-300">
+                    <td className={`${saTd} text-right tabular-nums`}>
                       {tenantAccrued?._count ?? 0}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm tabular-nums text-white">
+                    <td className={`${saTd} text-right font-semibold tabular-nums text-slate-900`}>
                       {money(Number(tenantAccrued?._sum.amount ?? 0), rate?.currency)}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm tabular-nums">
+                    <td className={`${saTd} text-right tabular-nums`}>
                       {Number(tenantOutstanding?._sum.total ?? 0) > 0 ? (
-                        <span className="text-amber-400">
+                        <span className="font-semibold text-amber-700">
                           {money(Number(tenantOutstanding?._sum.total ?? 0), rate?.currency)}
                         </span>
                       ) : (
-                        <span className="text-gray-500">—</span>
+                        <span className="text-slate-400">—</span>
                       )}
                     </td>
                   </tr>
@@ -245,7 +230,7 @@ export default async function SuperAdminBillingPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </Card>
     </div>
   );
 }

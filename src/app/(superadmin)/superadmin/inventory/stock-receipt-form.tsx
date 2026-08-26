@@ -2,10 +2,9 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { recordOwnSupplierStock } from './actions';
+import { saBtnPrimary, saCard, saError, saInput, saLabel, saSuccess } from '../ui';
 
 type TenantOption = { id: string; name: string; products: Array<{ id: string; code: string; name: string; stock: number }> };
-
-const inputClass = 'w-full rounded-md border-0 bg-gray-900 p-2 text-sm text-white ring-1 ring-white/10 focus:ring-2 focus:ring-indigo-500';
 
 export function StockReceiptForm({ tenants }: { tenants: TenantOption[] }) {
   const [tenantId, setTenantId] = useState(tenants[0]?.id ?? '');
@@ -28,42 +27,44 @@ export function StockReceiptForm({ tenants }: { tenants: TenantOption[] }) {
           }
         });
       }}
-      className="space-y-5 rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10"
+      className={`${saCard} space-y-5 p-5`}
     >
       <div>
-        <h2 className="text-lg font-semibold text-white">Receive stock from tenant&apos;s own supplier</h2>
-        <p className="mt-1 text-sm text-gray-400">Only the platform owner can perform this movement. It does not create a platform-store payment.</p>
+        <h2 className="font-bold text-slate-900">Receive stock from tenant&apos;s own supplier</h2>
+        <p className="mt-1 text-xs text-slate-500">Only the platform owner can perform this movement. It does not create a platform-store payment.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="text-sm text-gray-300">Tenant
-          <select name="tenantId" value={tenantId} onChange={(event) => setTenantId(event.target.value)} className={`mt-1 ${inputClass}`} required>
+        <label className="block"><span className={saLabel}>Tenant</span>
+          <select name="tenantId" value={tenantId} onChange={(event) => setTenantId(event.target.value)} className={`mt-1.5 ${saInput}`} required>
             {tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name}</option>)}
           </select>
         </label>
-        <label className="text-sm text-gray-300">Product
-          <select name="productId" className={`mt-1 ${inputClass}`} required key={tenantId}>
+        <label className="block"><span className={saLabel}>Product</span>
+          <select name="productId" className={`mt-1.5 ${saInput}`} required key={tenantId}>
             <option value="">Select a product</option>
             {products.map((product) => <option key={product.id} value={product.id}>{product.code} · {product.name} (current {product.stock})</option>)}
           </select>
         </label>
-        <label className="text-sm text-gray-300">Quantity received
-          <input name="quantity" type="number" min="1" max="100000" step="1" className={`mt-1 ${inputClass}`} required />
+        <label className="block"><span className={saLabel}>Quantity received</span>
+          <input name="quantity" type="number" min="1" max="100000" step="1" className={`mt-1.5 ${saInput}`} required />
         </label>
-        <label className="text-sm text-gray-300">Supplier name
-          <input name="supplierName" maxLength={120} className={`mt-1 ${inputClass}`} required />
+        <label className="block"><span className={saLabel}>Supplier name</span>
+          <input name="supplierName" maxLength={120} className={`mt-1.5 ${saInput}`} required />
         </label>
-        <label className="text-sm text-gray-300">Invoice / reference (optional)
-          <input name="reference" maxLength={120} className={`mt-1 ${inputClass}`} />
+        <label className="block"><span className={saLabel}>Invoice / reference (optional)</span>
+          <input name="reference" maxLength={120} className={`mt-1.5 ${saInput}`} />
         </label>
-        <label className="text-sm text-gray-300">Note (optional)
-          <input name="note" maxLength={300} className={`mt-1 ${inputClass}`} />
+        <label className="block"><span className={saLabel}>Note (optional)</span>
+          <input name="note" maxLength={300} className={`mt-1.5 ${saInput}`} />
         </label>
       </div>
-      <button type="submit" disabled={pending || products.length === 0} className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50">
-        {pending ? 'Recording…' : 'Receive stock'}
-      </button>
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      {done && <p className="text-sm text-green-400">Stock receipt recorded.</p>}
+      <div className="border-t border-slate-200 pt-4">
+        <button type="submit" disabled={pending || products.length === 0} className={saBtnPrimary}>
+          {pending ? 'Recording…' : 'Receive stock'}
+        </button>
+        {error && <p className={saError}>{error}</p>}
+        {done && <p className={saSuccess}>Stock receipt recorded.</p>}
+      </div>
     </form>
   );
 }

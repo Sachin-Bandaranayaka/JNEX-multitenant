@@ -6,12 +6,13 @@ import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { createTenant } from './actions';
 import { Tenant } from '@prisma/client';
+import { Card, saBtnPrimary, saError, saInput, saLabel } from '../ui';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 disabled:opacity-50">
-      {pending ? 'Creating...' : 'Create Tenant'}
+    <button type="submit" disabled={pending} className={saBtnPrimary}>
+      {pending ? 'Creating…' : 'Create tenant'}
     </button>
   );
 }
@@ -21,20 +22,18 @@ export function CreateTenantForm({ tenants }: { tenants: Tenant[] }) {
   const [state, dispatch] = useActionState(createTenant, undefined);
 
   return (
-    <form action={dispatch} className="mt-8 max-w-xl">
-      <div className="space-y-8">
-        <div className="border-b border-white/10 pb-8">
-          <h3 className="text-base font-semibold leading-7 text-white">Tenant Information</h3>
-          <div className="mt-4">
-            <label htmlFor="tenantName" className="block text-sm font-medium leading-6 text-gray-200">Internal Tenant Name</label>
-            <input type="text" name="tenantName" id="tenantName" className="mt-2 block w-full rounded-md bg-white/5 py-1.5 text-white ring-1 ring-inset ring-white/10" required />
-            {state?.errors?.tenantName && <p className="mt-2 text-sm text-red-400">{state.errors.tenantName}</p>}
+    <form action={dispatch} className="max-w-2xl space-y-6">
+      <Card title="Tenant information" description="Identifies the business inside the platform">
+        <div className="space-y-5">
+          <div>
+            <label htmlFor="tenantName" className={saLabel}>Internal tenant name</label>
+            <input type="text" name="tenantName" id="tenantName" className={`mt-1.5 ${saInput}`} required />
+            {state?.errors?.tenantName && <p className={saError}>{state.errors.tenantName}</p>}
           </div>
-          
-          {/* --- NEW REFERRAL DROPDOWN --- */}
-          <div className="mt-4">
-            <label htmlFor="referredById" className="block text-sm font-medium leading-6 text-gray-200">Referred By (Optional)</label>
-            <select name="referredById" id="referredById" className="mt-2 block w-full rounded-md bg-gray-800 py-1.5 text-white ring-1 ring-inset ring-white/10">
+
+          <div>
+            <label htmlFor="referredById" className={saLabel}>Referred by (optional)</label>
+            <select name="referredById" id="referredById" className={`mt-1.5 ${saInput}`}>
               <option value="">None</option>
               {tenants.map(tenant => (
                 <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
@@ -42,30 +41,31 @@ export function CreateTenantForm({ tenants }: { tenants: Tenant[] }) {
             </select>
           </div>
         </div>
+      </Card>
 
-        <div className="border-b border-white/10 pb-8">
-          <h3 className="text-base font-semibold leading-7 text-white">Tenant Admin User</h3>
-          <div className="mt-4 grid grid-cols-1 gap-y-6">
-             <div>
-                <label htmlFor="adminName" className="block text-sm font-medium text-gray-200">Admin Name</label>
-                <input type="text" name="adminName" id="adminName" className="mt-2 block w-full rounded-md bg-gray-800 py-1.5 text-white ring-1 ring-inset ring-white/10" required />
-                {state?.errors?.adminName && <p className="mt-2 text-sm text-red-400">{state.errors.adminName}</p>}
-             </div>
-             <div>
-                <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-200">Admin Email</label>
-                <input type="email" name="adminEmail" id="adminEmail" className="mt-2 block w-full rounded-md bg-gray-800 py-1.5 text-white ring-1 ring-inset ring-white/10" required />
-                {state?.errors?.adminEmail && <p className="mt-2 text-sm text-red-400">{state.errors.adminEmail}</p>}
-             </div>
-             <div>
-                <label htmlFor="adminPassword" className="block text-sm font-medium text-gray-200">Admin Password</label>
-                <input type="password" name="adminPassword" id="adminPassword" className="mt-2 block w-full rounded-md bg-gray-800 py-1.5 text-white ring-1 ring-inset ring-white/10" required />
-                {state?.errors?.adminPassword && <p className="mt-2 text-sm text-red-400">{state.errors.adminPassword}</p>}
-             </div>
+      <Card title="Tenant admin user" description="The first account able to sign in for this tenant">
+        <div className="space-y-5">
+          <div>
+            <label htmlFor="adminName" className={saLabel}>Admin name</label>
+            <input type="text" name="adminName" id="adminName" className={`mt-1.5 ${saInput}`} required />
+            {state?.errors?.adminName && <p className={saError}>{state.errors.adminName}</p>}
+          </div>
+          <div>
+            <label htmlFor="adminEmail" className={saLabel}>Admin email</label>
+            <input type="email" name="adminEmail" id="adminEmail" className={`mt-1.5 ${saInput}`} required />
+            {state?.errors?.adminEmail && <p className={saError}>{state.errors.adminEmail}</p>}
+          </div>
+          <div>
+            <label htmlFor="adminPassword" className={saLabel}>Admin password</label>
+            <input type="password" name="adminPassword" id="adminPassword" className={`mt-1.5 ${saInput}`} required />
+            {state?.errors?.adminPassword && <p className={saError}>{state.errors.adminPassword}</p>}
           </div>
         </div>
-        {state?.message && <p className="mt-2 text-sm text-red-400">{state.message}</p>}
-      </div>
-      <div className="mt-6 flex items-center justify-end gap-x-6">
+      </Card>
+
+      {state?.message && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{state.message}</p>}
+
+      <div className="flex items-center justify-end">
         <SubmitButton />
       </div>
     </form>

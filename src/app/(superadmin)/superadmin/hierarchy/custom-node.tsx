@@ -13,12 +13,12 @@ export function CustomNode({ data }: { data: { label: string; color: string } })
       {/* This is the custom styled node */}
       <div
         style={{
-          background: `${data.color}30`, // Apply light tint for the background
+          background: `${data.color}1f`, // Apply light tint for the background
           borderColor: data.color,      // Apply full color for the border
         }}
         className="px-4 py-2 shadow-md rounded-md border-2"
       >
-        <div className="text-lg font-bold text-white">{data.label}</div>
+        <div className="text-sm font-bold text-slate-900">{data.label}</div>
       </div>
       
       {/* This Handle is the connection point for outgoing lines */}

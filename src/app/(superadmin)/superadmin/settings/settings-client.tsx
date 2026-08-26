@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ChangePasswordForm } from './change-password-form';
 import { CreateAdminForm } from './create-admin-form';
 import { User } from '@prisma/client';
+import { Badge, Card, EmptyState, PageHeader, saBtnDark } from '../ui';
 
 interface SettingsClientProps {
   currentSession: {
@@ -18,50 +19,49 @@ export function SettingsClient({ currentSession, superAdmins }: SettingsClientPr
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold leading-6 text-white">Settings</h1>
-        <p className="mt-2 text-sm text-gray-300">Manage super admin accounts and your credentials.</p>
-      </div>
+      <PageHeader
+        eyebrow="Owner security"
+        title="Settings"
+        description="Manage super admin accounts and your own credentials."
+      />
 
       {/* Super Admin List */}
-      <div className="rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10">
-        <h2 className="text-lg font-semibold text-white">Current Super Admins</h2>
-        <ul className="mt-4 divide-y divide-gray-700">
-          {superAdmins.map(admin => (
-            <li key={admin.id} className="py-2">
-              <p className="text-sm font-medium text-white">{admin.name}</p>
-              <p className="text-sm text-gray-400">{admin.email}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <Card title="Current super admins" description={`${superAdmins.length} account${superAdmins.length === 1 ? '' : 's'} with owner access`} flush>
+        {superAdmins.length ? (
+          <ul className="divide-y divide-slate-200">
+            {superAdmins.map(admin => (
+              <li key={admin.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-900">{admin.name || 'Super Admin'}</p>
+                  <p className="mt-0.5 break-all text-xs text-slate-500">{admin.email}</p>
+                </div>
+                {admin.id === currentSession.user.id && <Badge tone="green">You</Badge>}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <EmptyState title="No super admin accounts found" />
+        )}
+      </Card>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <div className="rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10">
-          <h2 className="text-lg font-semibold text-white">Change Your Password</h2>
-          <p className="text-sm text-gray-400 mt-1">Update the password for your own account.</p>
-          <div className="mt-6 border-t border-white/10 pt-6">
-            {activeForm === 'password' ? (
-              <ChangePasswordForm userId={currentSession.user.id} />
-            ) : (
-              <button onClick={() => setActiveForm('password')} className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400">Change Password</button>
-            )}
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card title="Change your password" description="Update the password for your own account.">
+          {activeForm === 'password' ? (
+            <ChangePasswordForm userId={currentSession.user.id} />
+          ) : (
+            <button onClick={() => setActiveForm('password')} className={saBtnDark}>Change password</button>
+          )}
+        </Card>
 
-        {/* <div className="rounded-lg bg-gray-800/80 p-6 ring-1 ring-white/10">
-          <h2 className="text-lg font-semibold text-white">Create New Super Admin</h2>
-          <p className="text-sm text-gray-400 mt-1">Create an additional super admin account.</p>
-          <div className="mt-6 border-t border-white/10 pt-6">
-            {activeForm === 'create' ? (
-              <CreateAdminForm tenantId={currentSession.user.tenantId} />
-            ) : (
-              <button onClick={() => setActiveForm('create')} className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400">Create Admin</button>
-            )}
-          </div>
-        </div> */}
-        
+        {/* <Card title="Create new super admin" description="Create an additional super admin account.">
+          {activeForm === 'create' ? (
+            <CreateAdminForm tenantId={currentSession.user.tenantId} />
+          ) : (
+            <button onClick={() => setActiveForm('create')} className={saBtnDark}>Create admin</button>
+          )}
+        </Card> */}
+
       </div>
     </div>
   );

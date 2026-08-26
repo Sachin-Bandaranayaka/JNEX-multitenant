@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { prisma } from '@/lib/prisma';
 import { CreateTenantForm } from './create-tenant-form';
+import { PageHeader } from '../ui';
 
 export default async function CreateTenantPage() {
 
@@ -13,13 +14,14 @@ export default async function CreateTenantPage() {
     });
 
     return (
-        <div className="rounded-lg bg-gray-800/80 p-6 sm:p-8 ring-1 ring-white/10">
-            <h2 className="text-2xl font-bold leading-7 text-white">
-                Create a New Tenant
-            </h2>
-            <p className="mt-1 text-sm leading-6 text-gray-300">
-                This will create a new tenant account and an initial admin user for that tenant.
-            </p>
+        <div className="space-y-8">
+            <PageHeader
+                eyebrow="Tenant provisioning"
+                title="Create a new tenant"
+                description="This creates a new tenant account and its initial admin user."
+                backHref="/superadmin/users"
+                backLabel="Back to tenants"
+            />
             <CreateTenantForm tenants={tenants} />
         </div>
     );

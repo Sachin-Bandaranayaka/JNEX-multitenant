@@ -76,6 +76,44 @@
     --genzo-amber-dark: 0 86% 42%;
     --genzo-teal: 2 100% 48%;
   }
+
+  /* The Super Admin console is a deliberately light surface — its shell paints
+     its own cream/white background regardless of the user's theme. Pinning the
+     tokens here keeps shared token-driven components (inputs, popovers, shadcn
+     pieces) light inside it, instead of rendering dark-on-white text that is
+     unreadable. Custom properties inherit, so this wins over `.dark` on <html>
+     for everything in the subtree. */
+  .superadmin-scope {
+    color-scheme: light;
+
+    --background: 0 0% 100%;
+    --foreground: 215 28% 17%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 218 16% 32%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 218 16% 32%;
+
+    --primary: 2 100% 44%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 216 16% 94%;
+    --secondary-foreground: 218 16% 32%;
+
+    --muted: 216 16% 94%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 0 100% 98%;
+    --accent-foreground: 0 95% 37%;
+
+    --destructive: 2 100% 44%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 14% 90%;
+    --input: 214 14% 83%;
+    --ring: 2 100% 44%;
+  }
 }
 
 @layer base {

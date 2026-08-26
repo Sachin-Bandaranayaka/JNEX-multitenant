@@ -38,7 +38,7 @@ export function SuperAdminShell({ children, actorName }: { children: React.React
     </aside>
   );
   return (
-    <div className="min-h-screen bg-[#f5f4f0] text-slate-900">
+    <div className="superadmin-scope min-h-screen bg-[#f5f4f0] text-slate-900">
       <div className="fixed inset-y-0 left-0 z-40 hidden lg:block">{sidebar}</div>
       <Dialog open={open} onClose={setOpen} className="relative z-50 lg:hidden">
         <DialogBackdrop transition className="fixed inset-0 bg-slate-950/60 transition-opacity data-[closed]:opacity-0" />

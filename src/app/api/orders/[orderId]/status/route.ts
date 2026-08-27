@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { OrderStatus } from '@prisma/client';
+import { InsufficientCreditError } from '@/lib/billing/credits';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +50,17 @@ export async function PATCH(
         error: 'Invalid request data',
         details: error.errors
       }, { status: 400 });
+    }
+    // Distinguished from a plain validation failure so the UI can offer a
+    // top-up rather than just repeating the message back at the user.
+    if (error instanceof InsufficientCreditError) {
+      return NextResponse.json({
+        error: error.message,
+        code: 'INSUFFICIENT_CREDIT',
+        available: error.available,
+        required: error.required,
+        shortfall: error.shortfall,
+      }, { status: 402 });
     }
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Failed to update order status'

@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { OrderStatus, ShippingProvider } from '@prisma/client';
 import type { ShippingAddress, PackageDetails } from '@/lib/shipping/types';
 import { transitionOrder } from '@/lib/order-workflow';
+import { checkCanShip, InsufficientCreditError } from '@/lib/billing/credits';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -63,6 +64,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Order cannot be shipped from ${order.status}` }, { status: 409 });
     }
 
+    // Checked before the courier is called, not after. The hold inside
+    // transitionOrder is the binding one, but reaching it with an empty wallet
+    // would mean a waybill was already bought for a shipment we then refuse.
+    const credit = await checkCanShip(prisma, { tenantId, orderTotal: order.total });
+    if (!credit.ok) {
+      return NextResponse.json(
+        {
+          error: `Not enough credit to ship this order. It needs ${credit.required} credit(s) and ${credit.available} are available.`,
+          code: 'INSUFFICIENT_CREDIT',
+          available: credit.available,
+          required: credit.required,
+          shortfall: credit.shortfall,
+        },
+        { status: 402 },
+      );
+    }
+
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       select: {
@@ -117,6 +135,22 @@ export async function POST(request: Request) {
         error: 'Invalid request data',
         details: error.errors,
       }, { status: 400 });
+    }
+
+    // The pre-flight above normally catches this; reaching it here means the
+    // balance moved between the check and the hold. The waybill exists but the
+    // order was not moved, so it is safe to report and retry after a top-up.
+    if (error instanceof InsufficientCreditError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: 'INSUFFICIENT_CREDIT',
+          available: error.available,
+          required: error.required,
+          shortfall: error.shortfall,
+        },
+        { status: 402 },
+      );
     }
 
     return NextResponse.json({

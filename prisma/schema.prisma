@@ -105,11 +105,30 @@ model Tenant {
   storePurchases StorePurchase[]
   printBatches   InvoicePrintBatch[]
 
+  // --- Prepaid credit policy ---
+  // POSTPAID tenants are billed by monthly invoice exactly as before; PREPAID
+  // tenants must hold credit before a shipment can leave. New tenants stay
+  // POSTPAID until a super admin deliberately moves them over.
+  billingMode          BillingMode @default(POSTPAID)
+  /// Overdraft allowed, in credits. 0 means "no credit, no shipping".
+  creditLimitCredits   Decimal     @default(0) @db.Decimal(14, 4)
+  /// Available balance below which shipping is refused. Defaults to 0.
+  minimumShipCredits   Decimal?    @db.Decimal(14, 4)
+  /// Available balance below which the tenant is nudged to top up.
+  lowBalanceCredits    Decimal?    @db.Decimal(14, 4)
+  /// Set when the low-balance notice was last sent, so it is not repeated daily.
+  lowBalanceNotifiedAt DateTime?
+
   // Platform billing relations
   feeRates        TenantFeeRate[]
   deliveryCharges DeliveryCharge[]
   invoices        TenantInvoice[]
   invoicePayments TenantInvoicePayment[]
+
+  // Prepaid credit relations
+  creditPrices       CreditPrice[]
+  creditTransactions CreditTransaction[]
+  creditTopUps       CreditTopUp[]
 
   impersonationSessions ImpersonationSession[]
   auditEvents           AuditEvent[]
@@ -139,6 +158,7 @@ model User {
 
   // Platform billing relations
   submittedInvoicePayments TenantInvoicePayment[] @relation("InvoicePaymentSubmitter")
+  submittedCreditTopUps    CreditTopUp[]          @relation("CreditTopUpSubmitter")
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
@@ -320,6 +340,7 @@ model Order {
   trackingLastError        String?
   printBatchItems          InvoicePrintBatchItem[]
   deliveryCharge           DeliveryCharge?
+  creditTransactions       CreditTransaction[]
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id])
@@ -734,6 +755,9 @@ model DeliveryCharge {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  /// Wallet movements this charge produced (PREPAID tenants only).
+  creditTransactions CreditTransaction[]
+
   @@index([tenantId, periodKey, status])
   @@index([tenantId, deliveredAt])
   @@index([invoiceId])
@@ -807,4 +831,183 @@ model TenantInvoicePayment {
   @@index([invoiceId])
   @@index([tenantId, status])
   @@index([status])
+}
+
+// ============================================
+// PREPAID CREDITS
+//
+// Design notes worth keeping next to the models:
+//   1. The wallet is denominated in CREDITS, not money. A credit's price in
+//      LKR is set by a super admin and is effective-dated, so raising the
+//      price never retroactively devalues credit a tenant already paid for.
+//   2. Credits consumed by an order = fee (TenantFeeRate) / credit price. With
+//      a LKR 75 flat fee and a LKR 75 credit that is exactly 1.0000 credit per
+//      delivered order; percentage and tiered pricing scale from the same rule.
+//   3. Credit is HELD when an order ships and CAPTURED when it delivers, so a
+//      tenant can never owe more than one order's fee at any instant. That, not
+//      a monthly minimum purchase, is what removes the non-payment risk.
+//   4. The ledger is append-only and every row carries an idempotencyKey, so a
+//      retried transition or a re-uploaded courier file can never double-spend.
+//   5. A tenant's balance is derived from the ledger under an advisory lock and
+//      stamped onto the row as `creditsAfter`; the money columns are reporting
+//      only and are never summed to produce a balance.
+// ============================================
+
+enum BillingMode {
+  /// Billed by monthly invoice after delivery. The original behaviour.
+  POSTPAID
+  /// Must hold credit before shipping; fees are taken from the wallet.
+  PREPAID
+}
+
+enum CreditTxType {
+  /// A confirmed bank transfer. Positive.
+  TOPUP
+  /// Reserved when an order ships. Negative.
+  HOLD
+  /// A hold given back — the order was returned, cancelled, or the hold was
+  /// superseded by the capture at delivery. Positive.
+  RELEASE
+  /// The real fee taken when an order delivers. Negative.
+  CAPTURE
+  /// A delivered order that was later returned. Positive.
+  REFUND
+  /// Manual super admin correction, in either direction. Always has a reason.
+  ADJUSTMENT
+}
+
+enum TopUpStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+/// An effective-dated price for one credit. Never updated in place: superseding
+/// sets `effectiveTo` and inserts a new row, so every historic transaction can
+/// still be valued at the terms that produced it.
+///
+/// A row with a null `tenantId` is the platform-wide default; a row with a
+/// tenantId overrides it for that tenant only.
+model CreditPrice {
+  id       String  @id @default(uuid())
+  tenantId String?
+  tenant   Tenant? @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  /// What one credit costs, e.g. 75.00.
+  unitPrice Decimal @db.Decimal(12, 2)
+  currency  String  @default("LKR")
+
+  /// Smallest top-up a tenant may submit, in credits.
+  minimumPurchaseCredits Decimal @default(100) @db.Decimal(14, 4)
+
+  effectiveFrom   DateTime
+  /// null means "still in force". Only one open row per scope at a time.
+  effectiveTo     DateTime?
+  note            String?
+  createdByUserId String?
+  createdAt       DateTime  @default(now())
+
+  transactions CreditTransaction[]
+  topUps       CreditTopUp[]
+
+  @@index([tenantId, effectiveFrom])
+  @@index([tenantId, effectiveTo])
+}
+
+/// One immutable row per wallet movement.
+model CreditTransaction {
+  id  String @id @default(uuid())
+  /// Monotonic per-tenant ordering. Rows are only ever written while holding
+  /// the tenant's advisory lock, so the highest seq is always the newest row —
+  /// which is how the running balance is read back in one indexed lookup.
+  seq Int    @default(autoincrement())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  type CreditTxType
+
+  /// Signed, in credits. Summing this column for a tenant gives the balance.
+  credits      Decimal @db.Decimal(14, 4)
+  /// Running balance after this row, written under the tenant advisory lock so
+  /// the balance can be read from one indexed row instead of a full sum.
+  creditsAfter Decimal @db.Decimal(14, 4)
+
+  /// Money value at the price in force when the row was written. Reporting and
+  /// reconciliation only — never summed to produce a balance.
+  amount    Decimal @db.Decimal(14, 2)
+  unitPrice Decimal @db.Decimal(12, 2)
+  currency  String  @default("LKR")
+
+  creditPriceId String?
+  creditPrice   CreditPrice? @relation(fields: [creditPriceId], references: [id])
+
+  /// The idempotency key for the whole wallet, e.g. "hold:<orderId>",
+  /// "release:<orderId>", "capture:<orderId>", "topup:<topUpId>".
+  idempotencyKey String @unique
+
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  chargeId String?
+  charge   DeliveryCharge? @relation(fields: [chargeId], references: [id])
+
+  topUpId String?
+  topUp   CreditTopUp? @relation(fields: [topUpId], references: [id])
+
+  reason          String?
+  createdByUserId String?
+  /// Reserved so use-it-or-lose-it credit can be added later without a
+  /// migration. Nothing reads it yet.
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([tenantId, seq])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, type])
+  @@index([orderId])
+  @@index([chargeId])
+  @@index([topUpId])
+}
+
+/// A bank-transfer credit purchase, mirroring TenantInvoicePayment: the tenant
+/// submits transfer details, a super admin confirms or rejects. Credit only
+/// reaches the wallet on confirmation.
+model CreditTopUp {
+  id       String @id @default(uuid())
+  number   Int    @default(autoincrement())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  submittedByUserId String
+  submittedBy       User   @relation("CreditTopUpSubmitter", fields: [submittedByUserId], references: [id])
+
+  /// What the tenant asked to buy, and the price they were quoted.
+  credits       Decimal      @db.Decimal(14, 4)
+  unitPrice     Decimal      @db.Decimal(12, 2)
+  amount        Decimal      @db.Decimal(14, 2)
+  currency      String       @default("LKR")
+  creditPriceId String?
+  creditPrice   CreditPrice? @relation(fields: [creditPriceId], references: [id])
+
+  bankReceiptNumber String
+  whatsappNumber    String
+  transferTime      DateTime
+
+  status          TopUpStatus @default(PENDING)
+  /// What was actually credited. Lets a super admin confirm a short transfer
+  /// for less than was requested instead of rejecting it outright.
+  creditedCredits Decimal?    @db.Decimal(14, 4)
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  reviewNote      String?
+  rejectionReason String?
+
+  transactions CreditTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([status, createdAt])
 }

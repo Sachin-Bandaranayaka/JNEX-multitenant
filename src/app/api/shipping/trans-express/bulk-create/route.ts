@@ -3,6 +3,9 @@ import { getScopedPrismaClient, prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
+import { OrderStatus } from '@prisma/client';
+import { transitionOrder } from '@/lib/order-workflow';
+import { planBulkShipment } from '@/lib/billing/credits';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,13 +84,27 @@ export async function POST(request: Request) {
     const yy = String(now.getFullYear()).slice(-2);
     const datePart = `${dd}${mm}${yy}`;
 
+    // Budgeted across the whole batch: ten orders that each pass on their own
+    // can still overdraw the wallet together. Orders that do not fit are
+    // reported alongside the ones that shipped rather than failing the batch.
+    const plan = await planBulkShipment(
+      tenantId,
+      ordersFromDb.map((o) => ({ orderId: o.id, orderTotal: o.total })),
+    );
+    const fundable = new Set(plan.allowed);
+
     const locationErrors: Array<{
       orderId: string;
       orderNo: string;
       trackingNumber?: string;
       error: string;
-    }> = [];
-    const shipmentInputs = ordersFromDb.flatMap((o) => {
+    }> = plan.blocked.map((blocked) => ({
+      orderId: blocked.orderId,
+      orderNo: String(ordersFromDb.find((o) => o.id === blocked.orderId)?.number ?? blocked.orderId),
+      error: `Not enough credit — this order needs ${blocked.required} credit(s). Top up and try again.`,
+    }));
+
+    const shipmentInputs = ordersFromDb.filter((o) => fundable.has(o.id)).flatMap((o) => {
         // Keep accepting explicit city IDs for backwards compatibility, but the
         // normal queue flow now uses the location saved during confirmation.
         const manualOrder = orders?.find((item) => item.orderId === o.id);
@@ -123,22 +140,24 @@ export async function POST(request: Request) {
       : [];
     const results = [...shipmentResults, ...locationErrors];
 
-    // Persist successful shipments to the DB
-    const updatePromises = results
-      .filter((r) => r.trackingNumber)
-      .map((r) =>
-        scopedPrisma.order.update({
-          where: { id: r.orderId },
-          data: {
-            status: 'SHIPPED',
-            shippingProvider: 'TRANS_EXPRESS',
-            trackingNumber: r.trackingNumber,
-            shippedAt: new Date(),
-          },
-        })
-      );
-
-    await Promise.allSettled(updatePromises);
+    // Persist successful shipments through the state machine rather than
+    // writing `status` directly. Going straight to the column skipped status
+    // history, the transition rules, and — now — the credit hold, so a bulk
+    // shipment could leave with no reservation against it at all.
+    await Promise.allSettled(
+      results
+        .filter((r) => r.trackingNumber)
+        .map((r) =>
+          transitionOrder({
+            orderId: r.orderId,
+            tenantId,
+            userId: session.user.id,
+            to: OrderStatus.SHIPPED,
+            source: 'Trans Express bulk shipment',
+            shipping: { provider: 'TRANS_EXPRESS', trackingNumber: r.trackingNumber as string },
+          }),
+        ),
+    );
 
     return NextResponse.json({ results });
   } catch (error) {

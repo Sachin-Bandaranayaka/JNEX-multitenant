@@ -68,6 +68,10 @@ export async function applyCourierStatus(
     userId: actorUserId ?? order.userId,
     to: target,
     source,
+    // The courier is reporting what already happened. Credit is still reserved
+    // so the ledger stays complete, but a short balance cannot stop us from
+    // recording the truth about where a parcel is.
+    enforceCredit: false,
     description: `${source} reported ${shipmentStatus}${order.trackingNumber ? ` (${order.trackingNumber})` : ''}`,
   });
 

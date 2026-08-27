@@ -1,6 +1,7 @@
-import { OrderStatus, ShippingProvider } from '@prisma/client';
+import { BillingMode, OrderStatus, ShippingProvider } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { accrueDeliveryCharge, reverseDeliveryCharge } from '@/lib/billing/charges';
+import { captureForDelivery, holdForShipment, refundCapture, releaseHold } from '@/lib/billing/credits';
 
 const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   PENDING: [OrderStatus.CONFIRMED, OrderStatus.SHIPPED, OrderStatus.CANCELLED],
@@ -24,6 +25,13 @@ export interface TransitionOrderInput {
     provider: ShippingProvider;
     trackingNumber: string;
   };
+  /**
+   * Set false when the shipment already happened in the real world and we are
+   * only catching up — courier polling, reconciliation, backfills. The credit
+   * hold is still recorded, but an under-funded tenant is not blocked, because
+   * there is nothing left to block. Defaults to true.
+   */
+  enforceCredit?: boolean;
 }
 
 export function canTransition(from: OrderStatus, to: OrderStatus) {
@@ -37,11 +45,28 @@ export async function transitionOrder(input: TransitionOrderInput) {
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.findFirst({
       where: { id: input.orderId, tenantId: input.tenantId },
-      include: { product: true },
+      include: { product: true, tenant: { select: { billingMode: true } } },
     });
     if (!order) throw new Error('Order not found');
     if (!canTransition(order.status, input.to)) {
       throw new Error(`Cannot transition order from ${order.status} to ${input.to}`);
+    }
+
+    const billingMode = order.tenant.billingMode;
+
+    // A prepaid tenant reserves the fee before the shipment is allowed to
+    // leave. This is the only billing check in the codebase that may abort what
+    // the user was doing, and it runs before the write so an under-funded
+    // tenant never gets a SHIPPED order recorded at all.
+    if (input.to === OrderStatus.SHIPPED && billingMode === BillingMode.PREPAID) {
+      await holdForShipment(tx, {
+        tenantId: input.tenantId,
+        orderId: order.id,
+        orderTotal: order.total,
+        at,
+        billingMode,
+        allowOverdraft: input.enforceCredit === false,
+      });
     }
 
     const update = await tx.order.updateMany({
@@ -104,11 +129,20 @@ export async function transitionOrder(input: TransitionOrderInput) {
         orderTotal: order.total,
         deliveredAt: at,
       });
+      // Settles the ship-time hold against the real fee and marks the charge
+      // PAID, so a prepaid tenant is never invoiced for money already taken
+      // from their wallet. Never blocks: a delivery is a fact, not a request.
+      await captureForDelivery(tx, { tenantId: input.tenantId, orderId: order.id, at, billingMode });
     } else if (input.to === OrderStatus.RETURNED && order.status === OrderStatus.DELIVERED) {
-      await reverseDeliveryCharge(tx, {
+      const reason = input.description ?? `Returned after delivery${input.source ? ` (${input.source})` : ''}`;
+      await reverseDeliveryCharge(tx, { orderId: order.id, reason, at });
+      await refundCapture(tx, { orderId: order.id, reason });
+    } else if (input.to === OrderStatus.RETURNED || input.to === OrderStatus.CANCELLED) {
+      // Left SHIPPED without delivering, so the reservation is given back. A
+      // no-op when there was no hold, which is every postpaid order.
+      await releaseHold(tx, {
         orderId: order.id,
-        reason: input.description ?? `Returned after delivery${input.source ? ` (${input.source})` : ''}`,
-        at,
+        reason: input.description ?? `Hold released on ${input.to.toLowerCase()}`,
       });
     }
 

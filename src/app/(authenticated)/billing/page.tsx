@@ -4,13 +4,27 @@ export const dynamic = 'force-dynamic';
 
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
-import { ChargeStatus, TenantInvoiceStatus } from '@prisma/client';
+import { BillingMode, ChargeStatus, CreditTxType, TenantInvoiceStatus } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { formatPeriod, periodKeyFor } from '@/lib/billing/period';
 import { describeRate } from '@/lib/billing/rates';
 import { invoiceReference } from '@/lib/billing/invoicing';
+import { getWalletSummary } from '@/lib/billing/credits';
+import { currentCreditPrice, formatCredits } from '@/lib/billing/credit-price';
+import { listTopUps, topUpReference } from '@/lib/billing/topups';
 import { PayInvoiceForm } from './pay-invoice-form';
+import { TopUpForm } from './top-up-form';
+
+/** Ledger types in the tenant's language rather than the enum's. */
+const CREDIT_ACTIVITY: Record<CreditTxType, string> = {
+  TOPUP: 'Credits purchased',
+  HOLD: 'Reserved on shipment',
+  RELEASE: 'Reservation returned',
+  CAPTURE: 'Delivery fee',
+  REFUND: 'Refunded after return',
+  ADJUSTMENT: 'Adjustment',
+};
 
 function money(amount: string | number, currency = 'LKR') {
   const value = typeof amount === 'string' ? Number(amount) : amount;
@@ -24,6 +38,20 @@ export default async function BillingPage() {
 
   const tenantId = session.user.tenantId;
   const periodKey = periodKeyFor(new Date());
+
+  const [tenant, wallet, creditPrice, topUps, ledger] = await Promise.all([
+    prisma.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { billingMode: true } }),
+    getWalletSummary(tenantId),
+    currentCreditPrice(tenantId),
+    listTopUps(tenantId, 10),
+    prisma.creditTransaction.findMany({
+      where: { tenantId },
+      orderBy: { seq: 'desc' },
+      take: 25,
+      include: { order: { select: { number: true, customerName: true } } },
+    }),
+  ]);
+  const prepaid = tenant.billingMode === BillingMode.PREPAID;
 
   const [rate, thisMonth, reversedCount, invoices, recentCharges] = await Promise.all([
     prisma.tenantFeeRate.findFirst({
@@ -60,10 +88,168 @@ export default async function BillingPage() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Platform billing</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          You are charged per delivered order. {formatPeriod(periodKey)} is still running and will be invoiced
-          at the start of next month.
+          {prepaid
+            ? 'You ship against prepaid credit. Credit is reserved when an order ships and charged when it delivers — returns give it straight back.'
+            : `You are charged per delivered order. ${formatPeriod(periodKey)} is still running and will be invoiced at the start of next month.`}
         </p>
       </div>
+
+      {prepaid && (
+        <>
+          {wallet.spendable <= 0 && (
+            <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4">
+              <p className="font-semibold text-red-600 dark:text-red-400">Shipping is paused</p>
+              <p className="mt-1 text-sm text-red-600/90 dark:text-red-400/90">
+                You have no credit left. Buy credits below to start shipping again — orders already on their
+                way are unaffected.
+              </p>
+            </div>
+          )}
+
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-foreground">Shipping credit</h2>
+              {creditPrice && (
+                <TopUpForm
+                  minimumCredits={Number(creditPrice.minimumPurchaseCredits)}
+                  unitPrice={Number(creditPrice.unitPrice)}
+                  currency={creditPrice.currency}
+                />
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="rounded-lg border border-border bg-card p-5">
+                <div className="text-sm font-medium text-muted-foreground">Available</div>
+                <div
+                  className={`mt-2 text-3xl font-semibold tabular-nums ${
+                    wallet.spendable <= 0 ? 'text-red-600 dark:text-red-400' : 'text-foreground'
+                  }`}
+                >
+                  {formatCredits(wallet.available)}
+                </div>
+                <div className="mt-1 text-sm text-muted-foreground">
+                  credits
+                  {wallet.shipmentsRemaining != null &&
+                    ` · about ${wallet.shipmentsRemaining.toLocaleString('en-LK')} more order${
+                      wallet.shipmentsRemaining === 1 ? '' : 's'
+                    }`}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-5">
+                <div className="text-sm font-medium text-muted-foreground">Reserved</div>
+                <div className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
+                  {formatCredits(wallet.held)}
+                </div>
+                <div className="mt-1 text-sm text-muted-foreground">
+                  held against orders in transit — returned to you if they do not deliver
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border bg-card p-5">
+                <div className="text-sm font-medium text-muted-foreground">Credit price</div>
+                <div className="mt-2 text-lg font-semibold text-foreground">
+                  {creditPrice
+                    ? `${creditPrice.currency} ${Number(creditPrice.unitPrice).toFixed(2)} each`
+                    : 'Not set'}
+                </div>
+                {creditPrice && (
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    minimum {formatCredits(creditPrice.minimumPurchaseCredits)} credits per purchase
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {topUps.length > 0 && (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Purchase</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Submitted</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Credits</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Amount</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border bg-card">
+                    {topUps.map((topUp) => (
+                      <tr key={topUp.id}>
+                        <td className="px-4 py-3 font-mono text-sm text-muted-foreground">{topUpReference(topUp)}</td>
+                        <td className="px-4 py-3 text-sm text-foreground">
+                          {topUp.createdAt.toLocaleDateString('en-LK')}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm tabular-nums text-foreground">
+                          {formatCredits(topUp.creditedCredits ?? topUp.credits)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm tabular-nums text-foreground">
+                          {money(topUp.amount.toFixed(2), topUp.currency)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">
+                          {topUp.status === 'REJECTED' && topUp.rejectionReason
+                            ? `Rejected — ${topUp.rejectionReason}`
+                            : topUp.status === 'PENDING'
+                              ? 'Awaiting review'
+                              : 'Credited'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-foreground">Credit activity</h2>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="min-w-full divide-y divide-border">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">When</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">What</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Credits</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">Balance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border bg-card">
+                  {ledger.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                        Nothing yet. Buy credits to start shipping.
+                      </td>
+                    </tr>
+                  )}
+                  {ledger.map((entry) => (
+                    <tr key={entry.id}>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {entry.createdAt.toLocaleString('en-LK')}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-foreground">
+                        {CREDIT_ACTIVITY[entry.type]}
+                        {entry.order && ` · order #${entry.order.number}`}
+                      </td>
+                      <td
+                        className={`px-4 py-3 text-right text-sm tabular-nums ${
+                          Number(entry.credits) < 0 ? 'text-foreground' : 'text-emerald-600 dark:text-emerald-400'
+                        }`}
+                      >
+                        {Number(entry.credits) > 0 ? '+' : ''}
+                        {formatCredits(entry.credits)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm tabular-nums text-muted-foreground">
+                        {formatCredits(entry.creditsAfter)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-border bg-card p-5">

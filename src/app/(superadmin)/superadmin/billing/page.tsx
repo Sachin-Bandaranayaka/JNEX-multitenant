@@ -3,13 +3,17 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { ChargeStatus, OrderStatus, TenantInvoiceStatus } from '@prisma/client';
+import { BillingMode, ChargeStatus, OrderStatus, TenantInvoiceStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { periodKeyFor, formatPeriod } from '@/lib/billing/period';
 import { describeRate } from '@/lib/billing/rates';
 import { invoiceReference } from '@/lib/billing/invoicing';
+import { formatCredits, platformCreditPrice } from '@/lib/billing/credit-price';
+import { pendingTopUps, topUpReference } from '@/lib/billing/topups';
 import { PaymentReviewForm } from './payment-review-form';
-import { Card, PageHeader, Stat, saTable, saTd, saTh, saThead, saTr } from '../ui';
+import { TopUpReviewForm } from './top-up-review-form';
+import { CreditPriceForm } from './credit-price-form';
+import { Badge, Card, PageHeader, Stat, saTable, saTd, saTh, saThead, saTr } from '../ui';
 
 function money(amount: string | number, currency = 'LKR') {
   const value = typeof amount === 'string' ? Number(amount) : amount;
@@ -70,6 +74,28 @@ export default async function SuperAdminBillingPage() {
     prisma.tenant.findMany({ select: { id: true, name: true, businessName: true } }),
   ]);
 
+  const [creditPrice, awaitingTopUps, walletBalances, prepaidTenants] = await Promise.all([
+    platformCreditPrice(),
+    pendingTopUps(),
+    // The newest ledger row per tenant carries the running balance, so one
+    // grouped max is enough to sort the console without summing any ledgers.
+    prisma.creditTransaction.groupBy({ by: ['tenantId'], _max: { seq: true } }),
+    prisma.tenant.findMany({
+      where: { billingMode: BillingMode.PREPAID },
+      select: { id: true, minimumShipCredits: true, creditLimitCredits: true },
+    }),
+  ]);
+
+  const latestRows = walletBalances.length
+    ? await prisma.creditTransaction.findMany({
+        where: { seq: { in: walletBalances.map((row) => row._max.seq as number).filter(Boolean) } },
+        select: { tenantId: true, creditsAfter: true },
+      })
+    : [];
+  const balances = new Map(latestRows.map((row) => [row.tenantId, Number(row.creditsAfter)]));
+  const prepaidIds = new Set(prepaidTenants.map((tenant) => tenant.id));
+  const emptyWallets = prepaidTenants.filter((tenant) => (balances.get(tenant.id) ?? 0) <= 0).length;
+
   const accrued = new Map(accruedByTenant.map((row) => [row.tenantId, row]));
   const outstanding = new Map(outstandingByTenant.map((row) => [row.tenantId, row]));
 
@@ -101,6 +127,65 @@ export default async function SuperAdminBillingPage() {
           hint={`${unpriced} tenant${unpriced === 1 ? '' : 's'} without a rate`}
         />
       </div>
+
+      {prepaidTenants.length > 0 && (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          <Stat label="Prepaid tenants" value={prepaidTenants.length.toLocaleString()} />
+          <Stat
+            label="Out of credit"
+            value={emptyWallets.toLocaleString()}
+            tone={emptyWallets > 0 ? 'warn' : 'good'}
+            hint="cannot ship until they top up"
+          />
+          <Stat
+            label="Top-ups to review"
+            value={awaitingTopUps.length.toLocaleString()}
+            tone={awaitingTopUps.length > 0 ? 'warn' : 'default'}
+          />
+          <Stat
+            label="Credit price"
+            value={creditPrice ? money(Number(creditPrice.unitPrice), creditPrice.currency) : 'Not set'}
+            tone={creditPrice ? 'default' : 'bad'}
+            hint="platform default"
+          />
+        </div>
+      )}
+
+      {awaitingTopUps.length > 0 && (
+        <Card
+          title="Credit purchases awaiting review"
+          description={`${awaitingTopUps.length} submitted bank transfer${awaitingTopUps.length === 1 ? '' : 's'} — no credit reaches a wallet until one of these is confirmed`}
+          flush
+        >
+          <div className="divide-y divide-slate-200">
+            {awaitingTopUps.map((topUp) => (
+              <div key={topUp.id} className="px-5 py-4">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0 space-y-1">
+                    <div className="font-bold text-slate-900">
+                      {topUp.tenant.businessName || topUp.tenant.name}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {topUpReference(topUp)} · {formatCredits(topUp.credits)} credits ·{' '}
+                      {money(topUp.amount.toFixed(2), topUp.currency)} at{' '}
+                      {money(topUp.unitPrice.toFixed(2), topUp.currency)} each
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      Receipt <span className="font-mono text-slate-900">{topUp.bankReceiptNumber}</span> ·
+                      transferred {topUp.transferTime.toLocaleString('en-LK')}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Submitted by {topUp.submittedBy.name || topUp.submittedBy.email} · WhatsApp{' '}
+                      {topUp.whatsappNumber}
+                    </div>
+                  </div>
+                  <TopUpReviewForm topUpId={topUp.id} requestedCredits={String(Number(topUp.credits))} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {unbilled.length > 0 && (
         <section className="overflow-hidden rounded-md border border-red-300 bg-red-50 shadow-sm">
@@ -182,6 +267,17 @@ export default async function SuperAdminBillingPage() {
         </Card>
       )}
 
+      <Card
+        title="Credit price"
+        description="What one credit costs, platform-wide. Tenants can be given their own override on their billing page."
+      >
+        <CreditPriceForm
+          currentUnitPrice={creditPrice ? Number(creditPrice.unitPrice) : undefined}
+          currentMinimum={creditPrice ? Number(creditPrice.minimumPurchaseCredits) : undefined}
+          currency={creditPrice?.currency ?? 'LKR'}
+        />
+      </Card>
+
       <Card title="Tenants" description="Current rate and month-to-date position" flush>
         <div className="overflow-x-auto">
           <table className={saTable}>
@@ -192,6 +288,7 @@ export default async function SuperAdminBillingPage() {
                 <th className={`${saTh} text-right`}>Deliveries</th>
                 <th className={`${saTh} text-right`}>Accrued</th>
                 <th className={`${saTh} text-right`}>Unpaid</th>
+                <th className={`${saTh} text-right`}>Credit</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -222,6 +319,19 @@ export default async function SuperAdminBillingPage() {
                         </span>
                       ) : (
                         <span className="text-slate-400">—</span>
+                      )}
+                    </td>
+                    <td className={`${saTd} text-right tabular-nums`}>
+                      {prepaidIds.has(tenant.id) ? (
+                        (balances.get(tenant.id) ?? 0) > 0 ? (
+                          <span className="font-semibold text-slate-900">
+                            {formatCredits(balances.get(tenant.id) ?? 0)}
+                          </span>
+                        ) : (
+                          <Badge tone="red">Out of credit</Badge>
+                        )
+                      ) : (
+                        <span className="text-slate-400">Postpaid</span>
                       )}
                     </td>
                   </tr>

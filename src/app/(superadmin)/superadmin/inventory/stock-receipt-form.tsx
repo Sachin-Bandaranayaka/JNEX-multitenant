@@ -4,14 +4,17 @@ import { useMemo, useState, useTransition } from 'react';
 import { recordOwnSupplierStock } from './actions';
 import { saBtnPrimary, saCard, saError, saInput, saLabel, saSuccess } from '../ui';
 
-type TenantOption = { id: string; name: string; products: Array<{ id: string; code: string; name: string; stock: number }> };
+type TenantOption = { id: string; name: string; products: Array<{ id: string; code: string; name: string; stock: number; isActive: boolean }> };
 
 export function StockReceiptForm({ tenants }: { tenants: TenantOption[] }) {
   const [tenantId, setTenantId] = useState(tenants[0]?.id ?? '');
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
-  const products = useMemo(() => tenants.find((tenant) => tenant.id === tenantId)?.products ?? [], [tenantId, tenants]);
+  const products = useMemo(
+    () => (tenants.find((tenant) => tenant.id === tenantId)?.products ?? []).filter((product) => product.isActive),
+    [tenantId, tenants],
+  );
 
   return (
     <form

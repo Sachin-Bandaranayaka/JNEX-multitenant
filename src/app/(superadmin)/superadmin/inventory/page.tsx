@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/prisma';
 import { StockReceiptForm } from './stock-receipt-form';
 import { StockControlPanel } from './stock-control-panel';
-import { Card, EmptyState, PageHeader, Stat, saTable, saTd, saTh, saThead, saTr } from '../ui';
+import { Card, EmptyState, PageHeader, Stat, saTable, saTd, saTh, saThead, saTr, tenantLabel } from '../ui';
 
 export default async function SuperAdminInventoryPage() {
   const [tenants, recent] = await Promise.all([
@@ -33,7 +33,7 @@ export default async function SuperAdminInventoryPage() {
 
   const options = tenants.map((tenant) => ({
     id: tenant.id,
-    name: tenant.businessName || tenant.name,
+    name: tenantLabel(tenant),
     products: tenant.products,
   }));
 
@@ -76,7 +76,7 @@ export default async function SuperAdminInventoryPage() {
             {recent.length === 0 && <tr><td colSpan={7} className="p-0"><EmptyState title="No stock movements yet" description="Every owner adjustment, receipt, and order-driven movement will be listed here." /></td></tr>}
             {recent.map((movement) => <tr key={movement.id} className={saTr}>
               <td className={`${saTd} whitespace-nowrap text-slate-500`}>{movement.createdAt.toLocaleString('en-LK')}</td>
-              <td className={`${saTd} font-semibold text-slate-900`}>{movement.tenant.businessName || movement.tenant.name}</td>
+              <td className={`${saTd} font-semibold text-slate-900`}>{tenantLabel(movement.tenant)}</td>
               <td className={saTd}>{movement.product.code} · {movement.product.name}</td>
               <td className={`${saTd} text-right font-bold tabular-nums ${movement.quantity < 0 ? 'text-red-700' : 'text-emerald-700'}`}>
                 {movement.quantity > 0 ? `+${movement.quantity}` : movement.quantity}

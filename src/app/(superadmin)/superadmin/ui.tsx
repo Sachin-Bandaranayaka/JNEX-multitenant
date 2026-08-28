@@ -154,3 +154,12 @@ export function EmptyState({ title, description }: { title: string; description?
     </div>
   );
 }
+
+/**
+ * How a tenant is named across the console. `name` is the distinguishing one —
+ * it carries the owner, as in "J-nex ( Mahesh )" — while `businessName` is the
+ * branding shown to that tenant's own customers and repeats across accounts.
+ */
+export function tenantLabel(tenant: { name: string; businessName?: string | null }) {
+  return tenant.name.trim() || tenant.businessName?.trim() || 'Unnamed tenant';
+}

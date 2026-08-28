@@ -150,11 +150,11 @@ function ProductControls({ tenantId, product, onDone }: { tenantId: string; prod
           setError(null);
           setMessage(null);
           startTransition(async () => {
-            try {
-              const result = await controlTenantStock(formData);
+            const result = await controlTenantStock(formData);
+            if (result.ok) {
               setMessage(`Stock moved from ${result.previousStock} to ${result.newStock}.`);
-            } catch (cause) {
-              setError(cause instanceof Error ? cause.message : 'Could not apply the stock movement.');
+            } else {
+              setError(result.message);
             }
           });
         }}
@@ -212,12 +212,9 @@ function ProductControls({ tenantId, product, onDone }: { tenantId: string; prod
           setAlertError(null);
           setAlertDone(false);
           startAlertTransition(async () => {
-            try {
-              await setLowStockAlert(formData);
-              setAlertDone(true);
-            } catch (cause) {
-              setAlertError(cause instanceof Error ? cause.message : 'Could not update the threshold.');
-            }
+            const result = await setLowStockAlert(formData);
+            if (result.ok) setAlertDone(true);
+            else setAlertError(result.message);
           });
         }}
         className="space-y-4 border-t border-slate-200 pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0"

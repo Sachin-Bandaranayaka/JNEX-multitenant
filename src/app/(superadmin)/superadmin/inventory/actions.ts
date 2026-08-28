@@ -3,11 +3,25 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { requireSuperAdmin } from '@/lib/superadmin-auth';
+import { AuthorizationError, requireSuperAdmin } from '@/lib/superadmin-auth';
+
+/**
+ * Tenant ids are cuids (`@default(cuid())`), product ids are uuids. Validating
+ * a tenant id as a uuid rejects every real tenant, so both are checked only for
+ * shape here — ownership is what actually authorises the write, and that is
+ * enforced against the database inside the transaction.
+ */
+const tenantId = z.string().trim().min(1, 'Select a tenant.').max(64);
+const productId = z.string().trim().min(1, 'Select a product.').max(64);
+
+/** What every action here hands back; `message` is safe to show the operator. */
+export type ActionResult<T = undefined> =
+  | ({ ok: true } & (T extends undefined ? {} : T))
+  | { ok: false; message: string };
 
 const receiptSchema = z.object({
-  tenantId: z.string().uuid(),
-  productId: z.string().uuid(),
+  tenantId,
+  productId,
   quantity: z.coerce.number().int().positive().max(100000),
   supplierName: z.string().trim().min(1).max(120),
   reference: z.string().trim().max(120).optional(),
@@ -15,16 +29,16 @@ const receiptSchema = z.object({
 });
 
 const controlSchema = z.object({
-  tenantId: z.string().uuid(),
-  productId: z.string().uuid(),
+  tenantId,
+  productId,
   mode: z.enum(['ADD', 'REMOVE', 'SET']),
   quantity: z.coerce.number().int().min(0).max(1000000),
   reason: z.string().trim().min(3, 'Give a reason for this movement.').max(300),
 });
 
 const alertSchema = z.object({
-  tenantId: z.string().uuid(),
-  productId: z.string().uuid(),
+  tenantId,
+  productId,
   lowStockAlert: z.coerce.number().int().min(0).max(100000),
 });
 
@@ -32,6 +46,27 @@ function revalidateStockViews() {
   revalidatePath('/superadmin/inventory');
   revalidatePath('/inventory');
   revalidatePath('/products');
+}
+
+/** An error whose message is written for the operator and safe to show them. */
+class StockControlError extends Error {}
+
+/**
+ * Next.js strips thrown server-action errors in production builds and hands the
+ * client a bare digest, so a failure here would otherwise reach the operator as
+ * "an error occurred". Every action returns its outcome instead: expected
+ * problems carry their own message, and anything unexpected is logged server
+ * side where the digest can be matched to it.
+ */
+function failure(scope: string, cause: unknown): { ok: false; message: string } {
+  if (cause instanceof StockControlError || cause instanceof AuthorizationError) {
+    return { ok: false, message: cause.message };
+  }
+  if (cause instanceof z.ZodError) {
+    return { ok: false, message: cause.errors.map((issue) => issue.message).join(' ') };
+  }
+  console.error(`[superadmin/inventory] ${scope} failed`, cause);
+  return { ok: false, message: 'The movement could not be saved. The server log has the details.' };
 }
 
 /**
@@ -58,14 +93,14 @@ async function applyStockMovement(input: {
       },
       select: { id: true, stock: true },
     });
-    if (!product) throw new Error('The selected product does not belong to this tenant.');
+    if (!product) throw new StockControlError('The selected product does not belong to this tenant.');
 
     const delta = input.resolveDelta(product.stock);
-    if (delta === 0) throw new Error('That would not change the stock level.');
+    if (delta === 0) throw new StockControlError('That would not change the stock level.');
 
     const newStock = product.stock + delta;
     if (newStock < 0) {
-      throw new Error(`Only ${product.stock} unit(s) in stock — that movement would push it negative.`);
+      throw new StockControlError(`Only ${product.stock} unit(s) in stock — that movement would push it negative.`);
     }
 
     await tx.product.update({ where: { id: product.id }, data: { stock: newStock } });
@@ -86,30 +121,30 @@ async function applyStockMovement(input: {
   });
 }
 
-export async function recordOwnSupplierStock(formData: FormData): Promise<void> {
-  const { actor } = await requireSuperAdmin();
+export async function recordOwnSupplierStock(formData: FormData): Promise<ActionResult> {
+  try {
+    const { actor } = await requireSuperAdmin();
+    const input = receiptSchema.parse(Object.fromEntries(formData.entries()));
 
-  const parsed = receiptSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) {
-    throw new Error(parsed.error.errors.map((issue) => issue.message).join(' '));
+    const details = [
+      `Own supplier: ${input.supplierName}`,
+      input.reference ? `Reference: ${input.reference}` : null,
+      input.note || null,
+    ].filter(Boolean).join(' · ');
+
+    await applyStockMovement({
+      tenantId: input.tenantId,
+      productId: input.productId,
+      actorId: actor.id,
+      resolveDelta: () => input.quantity,
+      reason: details,
+    });
+
+    revalidateStockViews();
+    return { ok: true };
+  } catch (cause) {
+    return failure('own-supplier receipt', cause);
   }
-  const input = parsed.data;
-
-  const details = [
-    `Own supplier: ${input.supplierName}`,
-    input.reference ? `Reference: ${input.reference}` : null,
-    input.note || null,
-  ].filter(Boolean).join(' · ');
-
-  await applyStockMovement({
-    tenantId: input.tenantId,
-    productId: input.productId,
-    actorId: actor.id,
-    resolveDelta: () => input.quantity,
-    reason: details,
-  });
-
-  revalidateStockViews();
 }
 
 /**
@@ -117,55 +152,58 @@ export async function recordOwnSupplierStock(formData: FormData): Promise<void> 
  * set the on-hand figure to an exact number. Every mode lands in the same
  * StockAdjustment ledger so the movement stays auditable.
  */
-export async function controlTenantStock(formData: FormData): Promise<{ previousStock: number; newStock: number }> {
-  const { actor } = await requireSuperAdmin();
+export async function controlTenantStock(
+  formData: FormData,
+): Promise<ActionResult<{ previousStock: number; newStock: number }>> {
+  try {
+    const { actor } = await requireSuperAdmin();
+    const input = controlSchema.parse(Object.fromEntries(formData.entries()));
 
-  const parsed = controlSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) {
-    throw new Error(parsed.error.errors.map((issue) => issue.message).join(' '));
+    if (input.mode !== 'SET' && input.quantity < 1) {
+      throw new StockControlError('Enter a quantity of at least 1.');
+    }
+
+    const label = { ADD: 'Owner stock in', REMOVE: 'Owner stock out', SET: 'Owner stock correction' }[input.mode];
+
+    const result = await applyStockMovement({
+      tenantId: input.tenantId,
+      productId: input.productId,
+      actorId: actor.id,
+      allowInactiveProduct: true,
+      resolveDelta: (currentStock) => {
+        if (input.mode === 'ADD') return input.quantity;
+        if (input.mode === 'REMOVE') return -input.quantity;
+        return input.quantity - currentStock;
+      },
+      reason: input.mode === 'SET'
+        ? `${label}: set to ${input.quantity} · ${input.reason}`
+        : `${label}: ${input.reason}`,
+    });
+
+    revalidateStockViews();
+    return { ok: true, previousStock: result.previousStock, newStock: result.newStock };
+  } catch (cause) {
+    return failure('stock control', cause);
   }
-  const input = parsed.data;
-
-  if (input.mode !== 'SET' && input.quantity < 1) {
-    throw new Error('Enter a quantity of at least 1.');
-  }
-
-  const label = { ADD: 'Owner stock in', REMOVE: 'Owner stock out', SET: 'Owner stock correction' }[input.mode];
-
-  const result = await applyStockMovement({
-    tenantId: input.tenantId,
-    productId: input.productId,
-    actorId: actor.id,
-    allowInactiveProduct: true,
-    resolveDelta: (currentStock) => {
-      if (input.mode === 'ADD') return input.quantity;
-      if (input.mode === 'REMOVE') return -input.quantity;
-      return input.quantity - currentStock;
-    },
-    reason: input.mode === 'SET'
-      ? `${label}: set to ${input.quantity} · ${input.reason}`
-      : `${label}: ${input.reason}`,
-  });
-
-  revalidateStockViews();
-  return { previousStock: result.previousStock, newStock: result.newStock };
 }
 
 /** Owner-side edit of a product's low-stock threshold. */
-export async function setLowStockAlert(formData: FormData): Promise<void> {
-  await requireSuperAdmin();
+export async function setLowStockAlert(formData: FormData): Promise<ActionResult> {
+  try {
+    await requireSuperAdmin();
+    const input = alertSchema.parse(Object.fromEntries(formData.entries()));
 
-  const parsed = alertSchema.safeParse(Object.fromEntries(formData.entries()));
-  if (!parsed.success) {
-    throw new Error(parsed.error.errors.map((issue) => issue.message).join(' '));
+    const updated = await prisma.product.updateMany({
+      where: { id: input.productId, tenantId: input.tenantId },
+      data: { lowStockAlert: input.lowStockAlert },
+    });
+    if (updated.count === 0) {
+      throw new StockControlError('The selected product does not belong to this tenant.');
+    }
+
+    revalidateStockViews();
+    return { ok: true };
+  } catch (cause) {
+    return failure('low-stock threshold', cause);
   }
-  const input = parsed.data;
-
-  const updated = await prisma.product.updateMany({
-    where: { id: input.productId, tenantId: input.tenantId },
-    data: { lowStockAlert: input.lowStockAlert },
-  });
-  if (updated.count === 0) throw new Error('The selected product does not belong to this tenant.');
-
-  revalidateStockViews();
 }

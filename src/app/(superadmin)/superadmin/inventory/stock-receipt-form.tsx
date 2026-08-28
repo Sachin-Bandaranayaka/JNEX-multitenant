@@ -22,12 +22,9 @@ export function StockReceiptForm({ tenants }: { tenants: TenantOption[] }) {
         setError(null);
         setDone(false);
         startTransition(async () => {
-          try {
-            await recordOwnSupplierStock(formData);
-            setDone(true);
-          } catch (cause) {
-            setError(cause instanceof Error ? cause.message : 'Could not record the stock receipt.');
-          }
+          const result = await recordOwnSupplierStock(formData);
+          if (result.ok) setDone(true);
+          else setError(result.message);
         });
       }}
       className={`${saCard} space-y-5 p-5`}

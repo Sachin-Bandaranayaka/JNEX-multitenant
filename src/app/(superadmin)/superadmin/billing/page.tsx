@@ -13,7 +13,7 @@ import { pendingTopUps, topUpReference } from '@/lib/billing/topups';
 import { PaymentReviewForm } from './payment-review-form';
 import { TopUpReviewForm } from './top-up-review-form';
 import { CreditPriceForm } from './credit-price-form';
-import { Badge, Card, PageHeader, Stat, saTable, saTd, saTh, saThead, saTr } from '../ui';
+import { Badge, Card, PageHeader, Stat, saTable, saTd, saTh, saThead, saTr, tenantLabel } from '../ui';
 
 function money(amount: string | number, currency = 'LKR') {
   const value = typeof amount === 'string' ? Number(amount) : amount;
@@ -104,7 +104,7 @@ export default async function SuperAdminBillingPage() {
   const outstandingTotal = outstandingByTenant.reduce((sum, row) => sum + Number(row._sum.total ?? 0), 0);
   const unpriced = tenants.filter((tenant) => tenant.feeRates.length === 0).length;
 
-  const tenantNames = new Map(allTenants.map((tenant) => [tenant.id, tenant.businessName || tenant.name]));
+  const tenantNames = new Map(allTenants.map((tenant) => [tenant.id, tenantLabel(tenant)]));
   const unbilled = [...unbilledByTenant].sort((a, b) => b._count - a._count);
   const unbilledTotal = unbilled.reduce((sum, row) => sum + row._count, 0);
 
@@ -163,7 +163,7 @@ export default async function SuperAdminBillingPage() {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 space-y-1">
                     <div className="font-bold text-slate-900">
-                      {topUp.tenant.businessName || topUp.tenant.name}
+                      {tenantLabel(topUp.tenant)}
                     </div>
                     <div className="text-sm text-slate-600">
                       {topUpReference(topUp)} · {formatCredits(topUp.credits)} credits ·{' '}
@@ -243,7 +243,7 @@ export default async function SuperAdminBillingPage() {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 space-y-1">
                     <div className="font-bold text-slate-900">
-                      {payment.tenant.businessName || payment.tenant.name}
+                      {tenantLabel(payment.tenant)}
                     </div>
                     <div className="text-sm text-slate-600">
                       {invoiceReference(payment.invoice)} · invoiced{' '}
@@ -300,7 +300,7 @@ export default async function SuperAdminBillingPage() {
                   <tr key={tenant.id} className={saTr}>
                     <td className={saTd}>
                       <Link href={`/superadmin/billing/${tenant.id}`} className="font-bold text-[#c50500] hover:underline">
-                        {tenant.businessName || tenant.name}
+                        {tenantLabel(tenant)}
                       </Link>
                     </td>
                     <td className={saTd}>

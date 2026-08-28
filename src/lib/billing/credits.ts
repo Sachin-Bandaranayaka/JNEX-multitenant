@@ -765,7 +765,7 @@ export async function runCreditMaintenance(now: Date = new Date()): Promise<Main
         }),
         prisma.tenant.update({ where: { id: tenant.id }, data: { lowBalanceNotifiedAt: now } }),
       ]);
-      report.notified.push({ tenantId: tenant.id, name: tenant.businessName || tenant.name, balance });
+      report.notified.push({ tenantId: tenant.id, name: tenant.name.trim() || tenant.businessName || 'Unnamed tenant', balance });
     }
 
     // A hold belongs to an order that is on its way. If the order left SHIPPED

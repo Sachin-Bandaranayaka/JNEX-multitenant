@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { EmptyState, PageHeader, saBtnDanger, saBtnGhost, saBtnSuccess, saCard, saInput, saLabel } from '../../ui';
+import { EmptyState, PageHeader, saBtnDanger, saBtnGhost, saBtnSuccess, saCard, saInput, saLabel, tenantLabel } from '../../ui';
 
 interface PurchaseItem {
   id: string;
@@ -181,7 +181,7 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
                         <div>
                           <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Tenant</p>
                           <p className="font-bold text-slate-900">
-                            {purchase.tenant.businessName || purchase.tenant.name}
+                            {tenantLabel(purchase.tenant)}
                           </p>
                         </div>
                         <div>
@@ -307,7 +307,7 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
               <h3 className="font-bold text-slate-900">Reject purchase</h3>
               <p className="mb-4 mt-2 text-sm text-slate-600">
                 Are you sure you want to reject this purchase from{' '}
-                <span className="font-bold text-slate-900">{selectedPurchase.tenant.businessName || selectedPurchase.tenant.name}</span>?
+                <span className="font-bold text-slate-900">{tenantLabel(selectedPurchase.tenant)}</span>?
               </p>
               <div className="mb-4">
                 <label htmlFor="rejectionReason" className={`${saLabel} mb-1.5`}>

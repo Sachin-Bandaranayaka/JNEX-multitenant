@@ -15,7 +15,7 @@ import { RateForm } from './rate-form';
 import { CreditPriceForm } from '../credit-price-form';
 import { AdjustCreditsForm, CreditPolicyForm } from '../credit-policy-form';
 import { closePeriodForTenant } from '../actions';
-import { Badge, Card, PageHeader, Stat, saBtnPrimary, saTable, saTd, saTh, saThead, saTr } from '../../ui';
+import { Badge, Card, PageHeader, Stat, saBtnPrimary, saTable, saTd, saTh, saThead, saTr, tenantLabel } from '../../ui';
 
 function money(amount: string | number, currency = 'LKR') {
   const value = typeof amount === 'string' ? Number(amount) : amount;
@@ -112,7 +112,7 @@ export default async function TenantBillingPage({ params }: { params: Promise<{ 
     <div className="space-y-8">
       <PageHeader
         eyebrow="Tenant billing"
-        title={tenant.businessName || tenant.name}
+        title={tenantLabel(tenant)}
         description={activeRate ? describeRate(activeRate) : 'No rate in force — deliveries are not being billed.'}
         backHref="/superadmin/billing"
         backLabel="All tenants"

@@ -5,8 +5,10 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
 import { compare } from 'bcryptjs';
 import { getServerSession } from 'next-auth/next';
-import { Role } from '@prisma/client';
+import { AuthCodePurpose, Role } from '@prisma/client';
 import { validateImpersonationSession } from './impersonation';
+import { consumeAuthCode, describeConsumeFailure, findUserForAuthCode } from './auth-codes';
+import { SESSION_IDLE_TIMEOUT_SECONDS } from './session-policy';
 
 function clearImpersonationClaims(token: any) {
   token.id = token.actorId;
@@ -57,7 +59,48 @@ export const authOptions: AuthOptions = {
           permissions: user.permissions, // This line is critical
         };
       }
-    })
+    }),
+    // Passwordless sign-in: the user proves control of their inbox with a
+    // six-digit code instead of typing a password. The code itself is issued
+    // and rate limited by /api/auth/code/request; all that happens here is
+    // redeeming it, exactly once.
+    CredentialsProvider({
+      id: 'email-code',
+      name: 'Email code',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        code: { label: 'Code', type: 'text' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials.code) { return null; }
+
+        const user = await findUserForAuthCode(credentials.email);
+
+        // An address with no account gets the same answer as a wrong code, so
+        // this screen cannot be used to find out who our customers are.
+        if (!user || !user.isActive) {
+          throw new Error(describeConsumeFailure('INVALID'));
+        }
+
+        if (user.role !== 'SUPER_ADMIN' && !user.tenant.isActive) {
+          throw new Error('Your account has been deactivated.');
+        }
+
+        const redeemed = await consumeAuthCode(user.email, AuthCodePurpose.LOGIN, credentials.code);
+        if (!redeemed.ok) {
+          throw new Error(describeConsumeFailure(redeemed.reason));
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          tenantId: user.tenantId,
+          permissions: user.permissions,
+        };
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user, trigger, session }) {
@@ -73,6 +116,10 @@ export const authOptions: AuthOptions = {
         token.actorPermissions = user.permissions;
         token.actorName = user.name;
         token.actorEmail = user.email;
+        // When these credentials were actually presented. Refreshing the
+        // session extends its expiry but must not move this, because it is
+        // what a password reset is compared against.
+        token.authenticatedAt = Date.now();
       }
 
       // Backfill immutable actor claims for sessions created before this feature.
@@ -120,6 +167,8 @@ export const authOptions: AuthOptions = {
         session.user.tenantId = token.tenantId as string;
         session.user.permissions = token.permissions as string[]; // Pass permissions to the session
         session.user.originalRole = token.actorRole as Role;
+        session.user.authenticatedAt =
+          typeof token.authenticatedAt === 'number' ? token.authenticatedAt : null;
         session.user.actor = {
           id: token.actorId as string,
           name: (token.actorName as string | null | undefined) ?? null,
@@ -155,8 +204,18 @@ export const authOptions: AuthOptions = {
   pages: {
     signIn: '/auth/signin',
   },
+  // Idle expiry, banking-app style. The JWT is minted with a two-hour life and
+  // is re-minted whenever the session is refreshed, which the client only does
+  // in response to real interaction (see IdleTimeoutGuard). Two hours of an
+  // untouched tab and the cookie is simply no longer valid -- there is no
+  // server-side state to forget to clean up, and no way for an idle client to
+  // keep itself alive by polling.
   session: {
     strategy: 'jwt',
+    maxAge: SESSION_IDLE_TIMEOUT_SECONDS,
+  },
+  jwt: {
+    maxAge: SESSION_IDLE_TIMEOUT_SECONDS,
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

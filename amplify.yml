@@ -11,6 +11,17 @@ frontend:
         - echo "DATABASE_URL=$DATABASE_URL" >> .env.production
         - echo "DIRECT_URL=$DIRECT_URL" >> .env.production
         - echo "CRON_SECRET_KEY=$CRON_SECRET_KEY" >> .env.production
+        # Outbound email. Without these the app builds fine but silently
+        # cannot send sign-in codes or password resets, which locks users out
+        # with no visible error. MAIL_FROM is quoted because it contains
+        # spaces and angle brackets.
+        - echo "MAIL_FROM=\"$MAIL_FROM\"" >> .env.production
+        - echo "SMTP_HOST=$SMTP_HOST" >> .env.production
+        - echo "SMTP_PORT=$SMTP_PORT" >> .env.production
+        - echo "SMTP_USER=$SMTP_USER" >> .env.production
+        - echo "SMTP_PASSWORD=$SMTP_PASSWORD" >> .env.production
+        # Unset today; lets a later switch to Resend be config-only.
+        - echo "RESEND_API_KEY=$RESEND_API_KEY" >> .env.production
         - npm run build
   artifacts:
     baseDirectory: .next

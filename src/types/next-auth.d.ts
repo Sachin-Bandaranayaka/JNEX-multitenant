@@ -14,6 +14,9 @@ declare module "next-auth" {
       tenantId: string
       permissions: string[] // <-- ADD THIS LINE
       originalRole: Role
+      /// Epoch millis of when the credentials for this session were presented.
+      /// Null for sessions minted before this claim existed.
+      authenticatedAt: number | null
       actor: { id: string; name?: string | null; email: string }
       impersonation?: {
         sessionId: string
@@ -49,6 +52,7 @@ declare module "next-auth/jwt" {
     actorPermissions: string[]
     actorName?: string | null
     actorEmail: string
+    authenticatedAt?: number
     impersonationSessionId?: string
     impersonationExpiresAt?: string
     impersonationTenantName?: string

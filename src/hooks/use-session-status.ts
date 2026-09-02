@@ -4,6 +4,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useEffect } from "react";
+import { signInUrlWithReason } from "@/lib/session-policy";
 
 export function useSessionStatus() {
   const { data: session, status } = useSession();
@@ -19,7 +20,7 @@ export function useSessionStatus() {
         const data = await response.json();
 
         if (!data.active) {
-          await signOut({ callbackUrl: '/auth/signin?error=SessionExpired' });
+          await signOut({ callbackUrl: signInUrlWithReason('expired') });
         }
       } catch (error) {
         console.error("Failed to check session status:", error);

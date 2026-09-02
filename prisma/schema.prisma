@@ -20,6 +20,11 @@ enum ImpersonationMode {
   READ_ONLY
 }
 
+enum AuthCodePurpose {
+  LOGIN
+  PASSWORD_RESET
+}
+
 enum LeadStatus {
   PENDING
   CONFIRMED
@@ -139,6 +144,10 @@ model User {
   email                  String              @unique
   name                   String?
   password               String
+  /// Set whenever the password changes. Sessions minted before this moment
+  /// are rejected by the session-status poll, so a password reset kicks out
+  /// anyone still holding a JWT issued with the old credentials.
+  passwordChangedAt      DateTime?
   role                   Role                @default(TEAM_MEMBER)
   permissions            String[]
   isActive               Boolean             @default(true)
@@ -1010,4 +1019,27 @@ model CreditTopUp {
 
   @@index([tenantId, status])
   @@index([status, createdAt])
+}
+
+/// One-time email codes for passwordless sign-in and password resets.
+///
+/// Keyed by email rather than by a User relation on purpose: a code is issued
+/// (or silently not issued) before we admit whether an account exists, and the
+/// rows outlive the account they belong to only until they expire.
+model AuthCode {
+  id         String          @id @default(uuid())
+  email      String
+  purpose    AuthCodePurpose
+  /// bcrypt hash. A leaked database dump must not hand out live codes.
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  /// Wrong guesses. The code is burned once this hits the attempt ceiling.
+  attempts   Int             @default(0)
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime        @default(now())
+
+  @@index([email, purpose, createdAt])
+  @@index([expiresAt])
 }

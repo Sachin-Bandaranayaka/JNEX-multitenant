@@ -2,11 +2,10 @@
 
 import { getScopedPrismaClient } from '@/lib/prisma';
 import { LeadSchema } from '@/lib/csv-parser'; // This is the schema for a single lead from CSV
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
+import { requirePermission } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,12 +25,10 @@ const RequestSchema = z.union([PreviewPayloadSchema, ImportPayloadSchema]);
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.tenantId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-    const tenantId = session.user.tenantId;
+    const guard = await requirePermission('CREATE_LEADS');
+    if (!guard.ok) return guard.response;
+    const session = guard.session;
+    const tenantId = guard.tenantId;
     const prisma = getScopedPrismaClient(tenantId);
     const json = await request.json();
 

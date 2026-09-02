@@ -1,14 +1,17 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ShippingProvider } from '@prisma/client';
+import { requirePermission, requireAnyPermission } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    // The tenant-wide default courier is a business setting, even though the
+    // control lives in the dashboard header.
+    const guard = await requirePermission('MANAGE_SETTINGS');
+    if (!guard.ok) return guard.response;
+    const session = guard.session;
 
     if (!session?.user?.tenantId) {
       return new NextResponse('Unauthorized', { status: 401 });

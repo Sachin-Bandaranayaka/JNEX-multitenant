@@ -1,13 +1,12 @@
 import { ShippingProviderFactory } from '@/lib/shipping/factory';
 import { prisma, getScopedPrismaClient } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { OrderStatus, ShippingProvider } from '@prisma/client';
 import type { ShippingAddress, PackageDetails } from '@/lib/shipping/types';
 import { transitionOrder } from '@/lib/order-workflow';
 import { checkCanShip, InsufficientCreditError } from '@/lib/billing/credits';
+import { requirePermission, requireAnyPermission } from '@/lib/authz';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -41,11 +40,10 @@ const CreateShipmentSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.tenantId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    // Booking a shipment moves an order forward; viewing shipping does not.
+    const guard = await requireAnyPermission(['UPDATE_SHIPPING_STATUS', 'EDIT_ORDERS']);
+    if (!guard.ok) return guard.response;
+    const session = guard.session;
 
     const json = await request.json();
     const data = CreateShipmentSchema.parse(json);

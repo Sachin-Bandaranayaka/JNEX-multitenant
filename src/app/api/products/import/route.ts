@@ -2,10 +2,9 @@
 
 import { getScopedPrismaClient } from '@/lib/prisma'; // Import our scoped client
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { parse } from 'papaparse';
 import { z } from 'zod';
+import { requirePermission } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,15 +19,13 @@ const productImportSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-
-    // 1. SECURE THE ROUTE: Check for session and tenantId
-    if (!session?.user?.tenantId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    // 1. SECURE THE ROUTE: importing products is a product-editing action,
+    // not a viewing one.
+    const guard = await requirePermission('EDIT_PRODUCTS');
+    if (!guard.ok) return guard.response;
 
     // 2. USE THE SCOPED CLIENT: All DB operations from here are tenant-aware
-    const prisma = getScopedPrismaClient(session.user.tenantId);
+    const prisma = getScopedPrismaClient(guard.tenantId);
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -105,7 +102,7 @@ export async function POST(request: Request) {
                 stock: 0,
                 lowStockAlert: validatedData.lowStockAlert,
                 tenant: {
-                  connect: { id: session.user.tenantId },
+                  connect: { id: guard.tenantId },
                 },
               },
             });

@@ -5,19 +5,31 @@ import { UserList } from '@/components/users/user-list';
 import { AddUserButton } from '@/components/users/add-user-button';
 import { UserForm } from '@/components/users/user-form';
 import { toast } from 'sonner';
+import { Role } from '@prisma/client';
 
 interface User {
     id: string;
     email: string;
     name: string | null;
-    role: 'ADMIN' | 'TEAM_MEMBER' | 'SUPER_ADMIN';
+    role: Role;
     createdAt: string;
     totalOrders: number;
     totalLeads: number;
     permissions: string[];
+    isActive: boolean;
 }
 
-export function UsersClient({ initialUsers, currentUserId }: { initialUsers: User[], currentUserId: string }) {
+export function UsersClient({
+    initialUsers,
+    currentUserId,
+    currentUserRole,
+    currentUserPermissions,
+}: {
+    initialUsers: User[];
+    currentUserId: string;
+    currentUserRole: Role;
+    currentUserPermissions: string[];
+}) {
 
     const [users, setUsers] = useState<User[]>(initialUsers);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -44,7 +56,9 @@ export function UsersClient({ initialUsers, currentUserId }: { initialUsers: Use
     };
 
     const handleDelete = async (userId: string) => {
-        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+        // Staff are deactivated rather than deleted: their orders, leads and
+        // audit trail stay attached to them, and the account can be revived.
+        if (!confirm('Deactivate this staff account? They will be signed out and unable to sign in. You can reactivate them later.')) {
             return;
         }
 
@@ -58,7 +72,7 @@ export function UsersClient({ initialUsers, currentUserId }: { initialUsers: Use
                 throw new Error(data.error || 'Failed to delete user.');
             }
 
-            toast.success('User deleted successfully.');
+            toast.success('Staff account deactivated.');
             await handleUserChange();
         } catch (error) {
             toast.error(error instanceof Error ? error.message : 'An error occurred.');
@@ -69,8 +83,8 @@ export function UsersClient({ initialUsers, currentUserId }: { initialUsers: Use
         <div className="container mx-auto px-4 py-8 space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-foreground tracking-tight">Users</h1>
-                    <p className="mt-1 text-sm text-muted-foreground">Manage users and their permissions.</p>
+                    <h1 className="text-3xl font-bold text-foreground tracking-tight">Staff</h1>
+                    <p className="mt-1 text-sm text-muted-foreground">Manage staff accounts and what each person can do.</p>
                 </div>
                 <AddUserButton onAddUser={openFormForCreate} />
             </div>
@@ -96,6 +110,11 @@ export function UsersClient({ initialUsers, currentUserId }: { initialUsers: Use
                         <div className="p-6">
                             <UserForm
                                 user={editingUser}
+                                actor={{
+                                    id: currentUserId,
+                                    role: currentUserRole,
+                                    permissions: currentUserPermissions,
+                                }}
                                 onSuccess={() => {
                                     setIsFormOpen(false);
                                     handleUserChange();

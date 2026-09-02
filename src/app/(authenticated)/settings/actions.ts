@@ -6,6 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { ShippingProvider } from '@prisma/client';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs'; // Import bcrypt for hashing
+import { can } from '@/lib/permissions';
+import { invalidateUserAccess } from '@/lib/user-access';
 
 // --- SCHEMA FOR TENANT DETAILS (API keys removed - super admin only) ---
 const settingsSchema = z.object({
@@ -32,7 +34,7 @@ export async function updateTenantSettings(
 ): Promise<{ status: 'error' | 'success', message: string }> {
   const session = await getSession();
 
-  if (!session?.user?.tenantId || session.user.role !== 'ADMIN') {
+  if (!session?.user?.tenantId || !can(session.user, 'MANAGE_SETTINGS')) {
     return { status: 'error' as const, message: 'Unauthorized' };
   }
 
@@ -81,8 +83,9 @@ export async function updateUserPassword(
 
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, passwordChangedAt: new Date() },
     });
+    invalidateUserAccess(session.user.id);
 
     return { status: 'success' as const, message: 'Password updated successfully.' };
 

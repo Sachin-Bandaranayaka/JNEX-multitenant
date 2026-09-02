@@ -1,11 +1,10 @@
 import { TransExpressProvider } from '@/lib/shipping/trans-express';
 import { getScopedPrismaClient, prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import { OrderStatus } from '@prisma/client';
 import { transitionOrder } from '@/lib/order-workflow';
 import { planBulkShipment } from '@/lib/billing/credits';
+import { requireAnyPermission } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,11 +15,9 @@ interface BulkOrderInput {
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.tenantId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    const guard = await requireAnyPermission(['UPDATE_SHIPPING_STATUS', 'EDIT_ORDERS']);
+    if (!guard.ok) return guard.response;
+    const session = guard.session;
 
     const tenantId = session.user.tenantId;
     const body = await request.json();

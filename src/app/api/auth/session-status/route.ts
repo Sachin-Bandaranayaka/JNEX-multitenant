@@ -1,14 +1,17 @@
 // src/app/api/auth/session-status/route.ts
 
 import { getServerSession } from "next-auth";
+import { getToken } from "next-auth/jwt";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getFreshUserAccess, samePermissions } from "@/lib/user-access";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 // Add this line to tell Next.js to always run this route dynamically
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -47,8 +50,24 @@ export async function GET() {
       return NextResponse.json({ active: false, reason: 'password-changed' });
     }
 
+    // Middleware reads the cookie directly and cannot refresh it, so a staff
+    // member whose permissions were just changed would keep the old routing
+    // rules until something else happened to re-mint the JWT. Compare what the
+    // cookie still claims against the database and ask the client to refresh
+    // its session when the two have drifted apart.
+    const rawToken = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    let stale = false;
+    if (rawToken && !rawToken.impersonationSessionId) {
+      const access = await getFreshUserAccess(actorId);
+      stale = Boolean(
+        access &&
+          (access.role !== rawToken.role ||
+            !samePermissions(access.permissions, (rawToken.permissions as string[]) || [])),
+      );
+    }
+
     // If all checks pass, the session is valid
-    return NextResponse.json({ active: true });
+    return NextResponse.json({ active: true, stale });
 
   } catch (error) {
     console.error("Session status check error:", error);

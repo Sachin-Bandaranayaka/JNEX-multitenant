@@ -1,12 +1,11 @@
 // src/app/api/orders/create/route.ts
 
 import { createOrderFromLead } from '@/lib/orders';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma as unscopedPrisma } from '@/lib/prisma';
 import { LeadStatus } from '@prisma/client'; // Import LeadStatus
+import { requirePermission } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,11 +24,11 @@ const CreateOrderSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user?.tenantId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    // Confirming a lead into an order is the CREATE_ORDERS grant. Middleware
+    // only knows this path as "orders", which VIEW_ORDERS already satisfies.
+    const guard = await requirePermission('CREATE_ORDERS');
+    if (!guard.ok) return guard.response;
+    const session = guard.session;
 
     const json = await request.json();
     const { leadId, quantity, forceCreate, shippingLocation } = CreateOrderSchema.parse(json);

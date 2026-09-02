@@ -200,6 +200,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                             isActive={pathname === '/dashboard'} onClick={closeMobileSidebar}>Dashboard</NavLink>
                     )}
 
+                    {userRole === 'ADMIN' && (
                     <NavGroup
                         icon={<ShoppingCartIcon className="h-5 w-5" />}
                         label="Products Purchase"
@@ -212,8 +213,9 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                         ]}
                         pathname={pathname} onNavigate={closeMobileSidebar}
                     />
+                    )}
 
-                    {has('VIEW_INVENTORY') && (
+                    {has('VIEW_PRODUCTS') && (
                         <NavGroup
                             icon={<CubeIcon className="h-5 w-5" />}
                             label="Stock"
@@ -245,7 +247,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                             isExpanded={expandedGroup === 'Leads'}
                             onToggle={() => handleToggleGroup('Leads')}
                             links={[
-                                { href: '/leads/import', label: 'Import Lead' },
+                                ...(has('CREATE_LEADS') ? [{ href: '/leads/import', label: 'Import Lead' }] : []),
                                 { href: '/leads', label: 'Lead List' },
                                 { href: '/leads/remind-leads', label: 'Remind Leads', badge: dueReminderCount },
                             ]}
@@ -262,13 +264,14 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                             links={[
                                 { href: '/orders', label: 'Pending Orders' },
                                 ...(userRole === 'ADMIN' ? [{ href: '/orders/bulk-update', label: 'Import Deliveries' }] : []),
-                                { href: '/leads/new', label: 'New Order' },
+                                ...(has('CREATE_ORDERS') ? [{ href: '/leads/new', label: 'New Order' }] : []),
                                 { href: '/search', label: 'Search Orders' },
                             ]}
                             pathname={pathname} onNavigate={closeMobileSidebar}
                         />
                     )}
 
+                    {has('VIEW_ORDERS') && (
                     <NavGroup
                         icon={<ArrowUturnLeftIcon className="h-5 w-5" />}
                         label="Return"
@@ -280,6 +283,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                         ]}
                         pathname={pathname} onNavigate={closeMobileSidebar}
                     />
+                    )}
 
                     {has('VIEW_REPORTS') && (
                         <NavLink href="/reports" icon={<BuildingOffice2Icon className="h-5 w-5" />}

@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { OrderStatus } from '@prisma/client';
 import { transitionOrder } from '@/lib/order-workflow';
+import { requirePermission, requireAnyPermission } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +43,9 @@ export async function GET(request: Request) {
 // Mark an order as returned by waybill number
 export async function POST(request: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const guard = await requirePermission('EDIT_ORDERS');
+        if (!guard.ok) return guard.response;
+        const session = guard.session;
         if (!session?.user?.tenantId) {
             return new NextResponse('Unauthorized', { status: 401 });
         }

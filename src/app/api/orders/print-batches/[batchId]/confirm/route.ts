@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requirePermission, requireAnyPermission } from '@/lib/authz';
 
 export async function POST(_: Request, { params }: { params: Promise<{ batchId: string }> }) {
-  const session = await getServerSession(authOptions);
+  const guard = await requireAnyPermission(['CREATE_ORDERS', 'EDIT_ORDERS']);
+  if (!guard.ok) return guard.response;
+  const session = guard.session;
   if (!session?.user?.tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { batchId } = await params;
   const batch = await prisma.invoicePrintBatch.findFirst({

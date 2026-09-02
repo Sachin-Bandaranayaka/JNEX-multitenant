@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
 import { getScopedPrismaClient } from '@/lib/prisma';
+import { requirePermission, requireAnyPermission } from '@/lib/authz';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -18,13 +18,9 @@ export async function PATCH(
     try {
         
     const resolvedParams = await params;// Check authentication
-        const session = await getSession();
-        if (!session?.user?.tenantId) {
-            return NextResponse.json(
-                { error: 'You must be logged in to update invoice print status' },
-                { status: 401 }
-            );
-        }
+        const guard = await requireAnyPermission(['CREATE_ORDERS', 'EDIT_ORDERS']);
+        if (!guard.ok) return guard.response;
+        const session = guard.session;
 
         // Tenant-scoped client: only orders owned by the caller's tenant can be
         // marked printed; a cross-tenant orderId resolves to no record.

@@ -4,6 +4,7 @@ import { getScopedPrismaClient } from '@/lib/prisma'; // <-- Import our scoped c
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { requirePermission, requireAnyPermission } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,10 @@ export async function POST(
 ) {
   try {
     
-    const resolvedParams = await params;const session = await getServerSession(authOptions);
+    const resolvedParams = await params;
+    const guard = await requireAnyPermission(['UPDATE_SHIPPING_STATUS', 'EDIT_ORDERS']);
+    if (!guard.ok) return guard.response;
+    const session = guard.session;
 
     // 1. Check for session and tenantId
     if (!session?.user?.tenantId) {

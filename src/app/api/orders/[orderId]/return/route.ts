@@ -1,9 +1,8 @@
 import { getScopedPrismaClient } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { OrderStatus } from '@prisma/client';
 import { transitionOrder } from '@/lib/order-workflow';
+import { requirePermission, requireAnyPermission } from '@/lib/authz';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -15,7 +14,9 @@ export async function POST(
   try {
     
     const resolvedParams = await params;
-    const session = await getServerSession(authOptions);
+    const guard = await requirePermission('EDIT_ORDERS');
+    if (!guard.ok) return guard.response;
+    const session = guard.session;
 
     if (!session?.user?.tenantId) {
       return new NextResponse('Unauthorized', { status: 401 });

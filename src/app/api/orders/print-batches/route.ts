@@ -3,12 +3,14 @@ import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requirePermission, requireAnyPermission } from '@/lib/authz';
 
 const createSchema = z.object({ orderIds: z.array(z.string().min(1)).min(1).max(500) });
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const guard = await requireAnyPermission(['CREATE_ORDERS', 'EDIT_ORDERS']);
+  if (!guard.ok) return guard.response;
+  const session = guard.session;
   const parsed = createSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: 'Invalid order selection' }, { status: 400 });
   const orderIds = [...new Set(parsed.data.orderIds)];

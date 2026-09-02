@@ -53,6 +53,7 @@ declare module "next-auth/jwt" {
     actorName?: string | null
     actorEmail: string
     authenticatedAt?: number
+    accessRevoked?: boolean
     impersonationSessionId?: string
     impersonationExpiresAt?: string
     impersonationTenantName?: string

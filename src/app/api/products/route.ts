@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { transformProduct } from '@/lib/products'; // <-- Import our new helper
+import { requirePermission } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,11 +64,12 @@ export async function GET(request: Request) {
 // ... (keep the POST function exactly the same as before)
 export async function POST(request: Request) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session?.user?.tenantId) {
-            return new NextResponse('Unauthorized', { status: 401 });
-        }
-        const prisma = getScopedPrismaClient(session.user.tenantId);
+        // Middleware only gates this path on VIEW_PRODUCTS, which is the "can
+        // you open the products area" grant. Creating a product needs the
+        // grant that actually says so.
+        const guard = await requirePermission('EDIT_PRODUCTS');
+        if (!guard.ok) return guard.response;
+        const prisma = getScopedPrismaClient(guard.tenantId);
         const data = await request.json();
         const validatedData = productSchema.parse(data);
         if (validatedData.stock !== 0) {
@@ -113,7 +115,7 @@ export async function POST(request: Request) {
                         stock: 0,
                         lowStockAlert: validatedData.lowStockAlert,
                         tenant: {
-                            connect: { id: session.user.tenantId },
+                            connect: { id: guard.tenantId },
                         },
                     },
                 });

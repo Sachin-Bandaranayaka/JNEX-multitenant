@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { generateInvoicePDF } from '@/lib/invoice/pdf-generator';
 import { InvoiceFormat, BatchInvoiceRequest, InvoiceData } from '@/types/invoice';
 import { validateBatchInvoiceRequest, formatValidationErrors } from '@/lib/invoice/validation';
 import { z } from 'zod';
+import { requireAnyPermission } from '@/lib/authz';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -68,18 +67,21 @@ const BatchInvoiceRequestSchema = z.object({
 export async function POST(request: Request) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions);
-
-    if (!session?.user) {
+    const guard = await requireAnyPermission(['VIEW_ORDERS', 'CREATE_ORDERS', 'EDIT_ORDERS']);
+    if (!guard.ok) {
+      // This endpoint answers in its own envelope, so translate rather than
+      // handing back the shared guard response.
+      const status = guard.response.status;
       return NextResponse.json(
         {
           success: false,
-          error: 'Authentication required',
-          code: 'UNAUTHORIZED',
+          error: status === 401 ? 'Authentication required' : 'You do not have permission to generate invoices',
+          code: status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN',
         },
-        { status: 401 }
+        { status },
       );
     }
+    const session = guard.session;
 
     // Parse request body with error handling
     let json: any;

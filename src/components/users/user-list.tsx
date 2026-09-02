@@ -13,6 +13,7 @@ interface User {
   totalOrders: number;
   totalLeads: number;
   permissions: string[];
+  isActive: boolean;
 }
 
 interface UserListProps {
@@ -65,9 +66,16 @@ export function UserList({ users, currentUserId, onEdit, onDelete }: UserListPro
                 <h3 className="font-semibold text-foreground truncate max-w-[150px] sm:max-w-[200px]">
                   {user.name || 'No name'}
                 </h3>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
-                  {user.role === 'TEAM_MEMBER' ? 'Team Member' : user.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'}
-                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
+                    {user.role === 'TEAM_MEMBER' ? 'Team Member' : user.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'}
+                  </span>
+                  {user.isActive === false && (
+                    <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                      Deactivated
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -81,9 +89,9 @@ export function UserList({ users, currentUserId, onEdit, onDelete }: UserListPro
               </button>
               <button
                 onClick={() => onDelete(user.id)}
-                disabled={user.id === currentUserId}
+                disabled={user.id === currentUserId || user.isActive === false}
                 className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Delete user"
+                aria-label="Deactivate user"
               >
                 <TrashIcon className="h-4 w-4" />
               </button>
@@ -101,7 +109,11 @@ export function UserList({ users, currentUserId, onEdit, onDelete }: UserListPro
             </div>
             <div className="flex items-center gap-2">
               <ShieldCheckIcon className="h-4 w-4" />
-              <span>{user.permissions.length} Permissions</span>
+              <span>
+                {user.role === 'TEAM_MEMBER'
+                  ? `${user.permissions.length} Permissions`
+                  : 'Full access'}
+              </span>
             </div>
           </div>
 

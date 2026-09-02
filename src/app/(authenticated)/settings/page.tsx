@@ -2,6 +2,7 @@
 
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { can } from "@/lib/permissions";
 import { notFound, redirect } from "next/navigation";
 import { SettingsForm } from "./settings-form";
 
@@ -11,8 +12,8 @@ export default async function TenantSettingsPage() {
         return redirect('/auth/signin');
     }
 
-    // Only Admins can access the settings page
-    if (session.user.role !== 'ADMIN') {
+    // Admins, plus anyone they have delegated MANAGE_SETTINGS to.
+    if (!can(session.user, 'MANAGE_SETTINGS')) {
         return redirect('/unauthorized');
     }
 

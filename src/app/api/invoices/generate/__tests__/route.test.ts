@@ -18,11 +18,27 @@ vi.mock('@/lib/auth', () => ({
   authOptions: {},
 }));
 
+vi.mock('@/lib/user-access', () => ({
+  getFreshUserAccess: vi.fn().mockResolvedValue({
+    role: 'ADMIN',
+    permissions: [],
+    isActive: true,
+    tenantId: 'test-tenant-id',
+    tenantIsActive: true,
+    passwordChangedAt: null,
+  }),
+}));
+
 describe('POST /api/invoices/generate', () => {
+  // A real session always carries the tenant and the caller's access; the
+  // route now checks that a caller may work with orders at all.
   const mockSession = {
     user: {
       id: 'test-user-id',
       email: 'test@example.com',
+      role: 'ADMIN',
+      tenantId: 'test-tenant-id',
+      permissions: [],
     },
   };
 

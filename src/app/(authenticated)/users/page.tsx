@@ -3,6 +3,7 @@
 import { Role } from '@prisma/client';
 import { Metadata } from 'next';
 import { getSession } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { getScopedPrismaClient } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { UsersClient } from './users-client';
@@ -20,8 +21,11 @@ export default async function UsersPage() {
         return redirect('/auth/signin');
     }
 
-    // Only tenant admins can manage users
-    if (session.user.role !== 'ADMIN') {
+    // Tenant admins, and any team member the admin has delegated MANAGE_USERS
+    // to. The permission used to be offered in the staff form and enforced
+    // nowhere, so granting it produced a sidebar link that bounced the holder
+    // straight to /unauthorized.
+    if (!can(session.user, 'MANAGE_USERS')) {
         return redirect('/unauthorized');
     }
 
@@ -38,7 +42,17 @@ export default async function UsersPage() {
         orderBy: {
             name: 'asc'
         },
-        include: {
+        // Select explicitly: `include` returns every column, which put each
+        // staff member's bcrypt hash into the props serialised down to the
+        // browser.
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            permissions: true,
+            isActive: true,
+            createdAt: true,
             _count: {
                 select: {
                     orders: true,
@@ -57,5 +71,12 @@ export default async function UsersPage() {
     }));
     
     // 4. Render the client component with the secure data
-    return <UsersClient initialUsers={users} currentUserId={session.user.id} />;
+    return (
+        <UsersClient
+            initialUsers={users}
+            currentUserId={session.user.id}
+            currentUserRole={session.user.role}
+            currentUserPermissions={session.user.permissions || []}
+        />
+    );
 }

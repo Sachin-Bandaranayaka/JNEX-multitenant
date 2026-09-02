@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
 import { Prisma, LeadStatus } from '@prisma/client';
+import { requirePermission } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,13 +81,14 @@ export async function GET(request: Request) {
 // SECURED POST HANDLER
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    // CREATE_LEADS was enforced on the page and in the UI only, so a team
+    // member with read-only VIEW_LEADS could still create leads by calling
+    // this endpoint directly.
+    const guard = await requirePermission('CREATE_LEADS');
+    if (!guard.ok) return guard.response;
+    const session = guard.session;
 
-    if (!session?.user?.tenantId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    const prisma = getScopedPrismaClient(session.user.tenantId);
+    const prisma = getScopedPrismaClient(guard.tenantId);
     const data = await request.json();
     const validatedData = leadSchema.parse(data);
 

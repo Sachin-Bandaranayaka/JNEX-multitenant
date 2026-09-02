@@ -1,10 +1,9 @@
 // src/app/api/orders/bulk/mark-printed/route.ts
 
 import { getScopedPrismaClient } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { requirePermission, requireAnyPermission } from '@/lib/authz';
 
 const MarkPrintedSchema = z.object({
   orderIds: z.array(z.string()),
@@ -12,7 +11,9 @@ const MarkPrintedSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const guard = await requireAnyPermission(['CREATE_ORDERS', 'EDIT_ORDERS']);
+    if (!guard.ok) return guard.response;
+    const session = guard.session;
 
     if (!session?.user?.tenantId) {
       return new NextResponse('Unauthorized', { status: 401 });

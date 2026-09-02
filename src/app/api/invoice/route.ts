@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { generateInvoicePDF } from '@/lib/invoice';
 import { z } from 'zod';
+import { requireAnyPermission } from '@/lib/authz';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -18,11 +17,8 @@ const InvoiceSchema = z.object({
 
 export async function POST(request: Request) {
     try {
-        const session = await getServerSession(authOptions);
-
-        if (!session?.user) {
-            return new NextResponse('Unauthorized', { status: 401 });
-        }
+        const guard = await requireAnyPermission(['VIEW_ORDERS', 'CREATE_ORDERS', 'EDIT_ORDERS']);
+        if (!guard.ok) return guard.response;
 
         const json = await request.json();
         const data = InvoiceSchema.parse(json);

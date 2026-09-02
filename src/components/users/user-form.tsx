@@ -7,24 +7,48 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Role } from '@prisma/client';
 import { CheckIcon } from '@heroicons/react/24/outline';
+import {
+  PERMISSION_GROUPS,
+  PERMISSION_LABELS,
+  PERMISSIONS,
+  can,
+  type Permission,
+} from '@/lib/permissions';
+import { PASSWORD_RULE_TEXT, validatePassword } from '@/lib/password-policy';
 
-const permissionsList = [
-  "VIEW_DASHBOARD", "VIEW_PRODUCTS", "EDIT_PRODUCTS", "DELETE_PRODUCTS",
-  "VIEW_LEADS", "CREATE_LEADS", "EDIT_LEADS", "DELETE_LEADS",
-  "VIEW_ORDERS", "CREATE_ORDERS", "EDIT_ORDERS", "DELETE_ORDERS",
-  "VIEW_SHIPPING", "UPDATE_SHIPPING_STATUS", "VIEW_REPORTS", "EXPORT_REPORTS",
-  "MANAGE_USERS", "MANAGE_SETTINGS"
-];
-
-const userSchema = z.object({
+const baseSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Invalid email address'),
-  role: z.nativeEnum(Role),
+  role: z.enum([Role.ADMIN, Role.TEAM_MEMBER]),
   password: z.string().optional(),
-  permissions: z.array(z.string()).optional(),
+  permissions: z.array(z.enum(PERMISSIONS)).optional(),
+  isActive: z.boolean().optional(),
 });
 
-type UserFormData = z.infer<typeof userSchema>;
+/// A new account always needs a password; an existing one only validates the
+/// field when the admin actually typed a replacement. The API applies the same
+/// rule, this just means the person sees the problem next to the field.
+function schemaFor(isEditing: boolean) {
+  return baseSchema.superRefine((values, ctx) => {
+    const password = values.password?.trim();
+    if (!isEditing && !password) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['password'],
+        message: `Password is required (${PASSWORD_RULE_TEXT.toLowerCase()})`,
+      });
+      return;
+    }
+    if (password) {
+      const problem = validatePassword(password);
+      if (problem) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['password'], message: problem });
+      }
+    }
+  });
+}
+
+type UserFormData = z.infer<typeof baseSchema>;
 
 interface User {
   id: string;
@@ -32,44 +56,67 @@ interface User {
   email: string;
   role: Role;
   permissions: string[];
+  isActive?: boolean;
 }
 
 interface UserFormProps {
   user: User | null; // null for creating, user object for editing
+  /// The person doing the editing: a delegate with MANAGE_USERS can only hand
+  /// out access they hold themselves, and cannot touch admin accounts. The API
+  /// enforces this; the form simply stops offering what would be refused.
+  actor: { id: string; role: Role; permissions: string[] };
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function UserForm({ user, onSuccess, onCancel }: UserFormProps) {
+export function UserForm({ user, actor, onSuccess, onCancel }: UserFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const { register, handleSubmit, control, formState: { errors } } = useForm<UserFormData>({
-    resolver: zodResolver(userSchema),
+  const isEditing = Boolean(user);
+  const actorIsAdmin = actor.role === Role.ADMIN || actor.role === Role.SUPER_ADMIN;
+  const isSelf = user?.id === actor.id;
+
+  const { register, handleSubmit, control, watch, formState: { errors } } = useForm<UserFormData>({
+    resolver: zodResolver(schemaFor(isEditing)),
     defaultValues: {
       name: user?.name || '',
       email: user?.email || '',
-      role: user?.role || Role.TEAM_MEMBER,
-      permissions: user?.permissions || [],
+      role: (user?.role === Role.ADMIN ? Role.ADMIN : Role.TEAM_MEMBER),
+      permissions: (user?.permissions || []).filter((p): p is Permission =>
+        (PERMISSIONS as readonly string[]).includes(p),
+      ),
+      password: '',
+      isActive: user?.isActive ?? true,
     },
   });
+
+  const selectedRole = watch('role');
+
+  const canGrant = (permission: Permission) => actorIsAdmin || can(actor, permission);
 
   const onSubmit = async (data: UserFormData) => {
     setIsLoading(true);
     const apiEndpoint = user ? `/api/users/${user.id}` : '/api/users';
     const method = user ? 'PUT' : 'POST';
+    const password = data.password?.trim();
 
     try {
       const response = await fetch(apiEndpoint, {
         method: method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          // An empty password field on an edit means "leave it alone".
+          password: password || undefined,
+          permissions: data.permissions ?? [],
+        }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `Failed to ${user ? 'update' : 'create'} user.`);
       }
 
-      toast.success(`User ${user ? 'updated' : 'created'} successfully!`);
+      toast.success(`Staff account ${user ? 'updated' : 'created'} successfully!`);
       onSuccess();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'An error occurred.');
@@ -106,67 +153,130 @@ export function UserForm({ user, onSuccess, onCancel }: UserFormProps) {
         </div>
       </div>
 
-      {/* Password field (only for new users) */}
-      {!user && (
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">Password</label>
-          <input
-            type="password"
-            id="password"
-            {...register('password')}
-            className="block w-full rounded-xl border-border bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm px-4 py-2"
-            placeholder="••••••••"
-          />
-          {errors.password && <p className="text-destructive text-xs mt-1">{errors.password.message}</p>}
-        </div>
-      )}
+      {/* Password: required when creating, optional reset when editing */}
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
+          {isEditing ? 'Reset password' : 'Password'}
+        </label>
+        <input
+          type="password"
+          id="password"
+          autoComplete="new-password"
+          {...register('password')}
+          className="block w-full rounded-xl border-border bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm px-4 py-2"
+          placeholder={isEditing ? 'Leave blank to keep the current password' : '••••••••'}
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          {isEditing
+            ? `Setting a new password signs this person out everywhere. ${PASSWORD_RULE_TEXT}`
+            : PASSWORD_RULE_TEXT}
+        </p>
+        {errors.password && <p className="text-destructive text-xs mt-1">{errors.password.message}</p>}
+      </div>
 
       {/* Role Selector */}
       <div>
         <label htmlFor="role" className="block text-sm font-medium text-foreground mb-1">Role</label>
-        <select
-          id="role"
-          {...register('role')}
-          className="block w-full rounded-xl border-border bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm px-4 py-2"
-        >
-          <option value={Role.ADMIN}>Admin</option>
-          <option value={Role.TEAM_MEMBER}>Team Member</option>
-        </select>
+        {/* Editing yourself: the role is shown but not editable, and the real
+            value still travels with the form so the update is a no-op change
+            rather than a missing field. */}
+        {isSelf ? (
+          <>
+            <input type="hidden" {...register('role')} />
+            <div className="block w-full rounded-xl border border-border bg-muted/40 text-muted-foreground sm:text-sm px-4 py-2">
+              {user?.role === Role.ADMIN ? 'Admin' : 'Team Member'}
+            </div>
+          </>
+        ) : (
+          <select
+            id="role"
+            {...register('role')}
+            className="block w-full rounded-xl border-border bg-background text-foreground shadow-sm focus:border-primary focus:ring-primary sm:text-sm px-4 py-2"
+          >
+            {/* Only an admin can create or edit another admin. */}
+            {actorIsAdmin && <option value={Role.ADMIN}>Admin</option>}
+            <option value={Role.TEAM_MEMBER}>Team Member</option>
+          </select>
+        )}
+        {isSelf && (
+          <p className="text-xs text-muted-foreground mt-1">You cannot change your own role or access.</p>
+        )}
       </div>
 
+      {/* Account status, when editing someone else */}
+      {isEditing && !isSelf && (
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="isActive"
+            {...register('isActive')}
+            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          />
+          <label htmlFor="isActive" className="text-sm text-foreground select-none cursor-pointer">
+            Account is active (inactive staff cannot sign in)
+          </label>
+        </div>
+      )}
+
       {/* Permissions Checkboxes */}
-      <div>
-        <label className="block text-sm font-medium text-foreground mb-2">Permissions</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-4 bg-muted/30 rounded-2xl border border-border">
-          {permissionsList.map(permission => (
-            <div key={permission} className="flex items-start">
-              <Controller
-                name="permissions"
-                control={control}
-                render={({ field }) => (
-                  <div className="flex items-center h-5">
-                    <input
-                      type="checkbox"
-                      id={permission}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                      checked={field.value?.includes(permission)}
-                      onChange={(e) => {
-                        const newPermissions = e.target.checked
-                          ? [...(field.value || []), permission]
-                          : (field.value || []).filter(p => p !== permission);
-                        field.onChange(newPermissions);
+      {selectedRole === Role.ADMIN ? (
+        <p className="text-sm text-muted-foreground bg-muted/30 rounded-2xl border border-border p-4">
+          Admins have full access to the business, so there is nothing to tick here.
+        </p>
+      ) : (
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-2">Permissions</label>
+          <div className="space-y-4 max-h-72 overflow-y-auto p-4 bg-muted/30 rounded-2xl border border-border">
+            {PERMISSION_GROUPS.map(group => (
+              <div key={group.label}>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  {group.label}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {group.permissions.map(permission => (
+                    <Controller
+                      key={permission}
+                      name="permissions"
+                      control={control}
+                      render={({ field }) => {
+                        const grantable = canGrant(permission) && !isSelf;
+                        return (
+                          <label
+                            htmlFor={permission}
+                            className={`flex items-start gap-3 ${grantable ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
+                          >
+                            <input
+                              type="checkbox"
+                              id={permission}
+                              disabled={!grantable}
+                              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                              checked={field.value?.includes(permission) ?? false}
+                              onChange={(e) => {
+                                const next = e.target.checked
+                                  ? [...(field.value || []), permission]
+                                  : (field.value || []).filter(p => p !== permission);
+                                field.onChange(next);
+                              }}
+                            />
+                            <span className="text-xs text-muted-foreground select-none">
+                              {PERMISSION_LABELS[permission]}
+                            </span>
+                          </label>
+                        );
                       }}
                     />
-                  </div>
-                )}
-              />
-              <label htmlFor={permission} className="ml-3 text-xs text-muted-foreground select-none cursor-pointer">
-                {permission.replace(/_/g, ' ')}
-              </label>
-            </div>
-          ))}
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          {!actorIsAdmin && (
+            <p className="text-xs text-muted-foreground mt-2">
+              You can only grant access that you hold yourself.
+            </p>
+          )}
         </div>
-      </div>
+      )}
 
       <div className="flex justify-end gap-3 pt-4 border-t border-border">
         <button

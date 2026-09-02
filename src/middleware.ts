@@ -4,14 +4,23 @@ import type { NextRequest } from 'next/server';
 import { Role } from '@prisma/client';
 import { isAllowedImpersonationRequest, isImpersonationExpired } from '@/lib/impersonation-policy';
 
-const permissionMap: Record<string, string> = {
-  '/dashboard': 'VIEW_DASHBOARD',
-  '/orders': 'VIEW_ORDERS',
-  '/leads': 'VIEW_LEADS',
-  '/products': 'VIEW_PRODUCTS',
-  '/inventory': 'VIEW_PRODUCTS',
-  '/shipping': 'VIEW_SHIPPING',
-  '/reports': 'VIEW_REPORTS',
+const permissionMap: Record<string, string[]> = {
+  '/dashboard': ['VIEW_DASHBOARD'],
+  '/orders': ['VIEW_ORDERS'],
+  // Returns and the order search are order work, and the sidebar has always
+  // offered them to team members; without these entries every one of those
+  // links dead-ended on /unauthorized.
+  '/returns': ['VIEW_ORDERS'],
+  '/search': ['VIEW_ORDERS'],
+  '/leads': ['VIEW_LEADS'],
+  '/products': ['VIEW_PRODUCTS'],
+  '/inventory': ['VIEW_PRODUCTS'],
+  '/shipping': ['VIEW_SHIPPING'],
+  '/reports': ['VIEW_REPORTS'],
+  // These two are real grants, not decoration: the pages behind them accept a
+  // delegated team member as well as the tenant admin.
+  '/users': ['MANAGE_USERS'],
+  '/settings': ['MANAGE_SETTINGS'],
 };
 
 // API counterpart of `permissionMap`. Client-side fetches never hit the page
@@ -20,20 +29,22 @@ const permissionMap: Record<string, string> = {
 // This is the same coarse "can you see this area" gate the pages use --
 // finer-grained rules (EDIT_ORDERS, DELETE_PRODUCTS, ...) stay in the route
 // handlers, which read them off the session.
-const apiPermissionMap: Record<string, string> = {
-  '/api/dashboard': 'VIEW_DASHBOARD',
-  '/api/orders': 'VIEW_ORDERS',
-  '/api/invoice': 'VIEW_ORDERS',
-  '/api/invoices': 'VIEW_ORDERS',
-  '/api/returns': 'VIEW_ORDERS',
-  '/api/leads': 'VIEW_LEADS',
-  '/api/lead-reminders': 'VIEW_LEADS',
-  '/api/products': 'VIEW_PRODUCTS',
-  '/api/inventory': 'VIEW_PRODUCTS',
-  '/api/shipping': 'VIEW_SHIPPING',
-  // Only endpoint here is the default-courier picker in the dashboard header.
-  '/api/settings': 'VIEW_SHIPPING',
-  '/api/reports': 'VIEW_REPORTS',
+const apiPermissionMap: Record<string, string[]> = {
+  '/api/dashboard': ['VIEW_DASHBOARD'],
+  '/api/orders': ['VIEW_ORDERS'],
+  '/api/invoice': ['VIEW_ORDERS'],
+  '/api/invoices': ['VIEW_ORDERS'],
+  '/api/returns': ['VIEW_ORDERS'],
+  '/api/leads': ['VIEW_LEADS'],
+  '/api/lead-reminders': ['VIEW_LEADS'],
+  '/api/products': ['VIEW_PRODUCTS'],
+  '/api/inventory': ['VIEW_PRODUCTS'],
+  '/api/shipping': ['VIEW_SHIPPING'],
+  // The default-courier picker in the dashboard header, which shipping staff
+  // use, and which anyone managing business settings also reaches.
+  '/api/settings': ['VIEW_SHIPPING', 'MANAGE_SETTINGS'],
+  '/api/reports': ['VIEW_REPORTS'],
+  '/api/users': ['MANAGE_USERS'],
 };
 
 // Shared dashboard chrome that every authenticated tenant user loads: the
@@ -110,8 +121,8 @@ export async function middleware(request: NextRequest) {
         landingPage = '/dashboard';
       } else if (userRole === 'TEAM_MEMBER') {
         const allowedPage = orderedRoutes.find(route => {
-            const requiredPermission = permissionMap[route];
-            return requiredPermission && userPermissions.includes(requiredPermission);
+            const requiredPermissions = permissionMap[route];
+            return requiredPermissions?.some(permission => userPermissions.includes(permission));
         });
         if (allowedPage) {
             landingPage = allowedPage;
@@ -192,7 +203,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
       }
       const apiKey = Object.keys(apiPermissionMap).find(prefix => matchesPathPrefix(pathname, prefix));
-      if (!apiKey || !userPermissions.includes(apiPermissionMap[apiKey])) {
+      if (!apiKey || !apiPermissionMap[apiKey].some(permission => userPermissions.includes(permission))) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
       return NextResponse.next();
@@ -203,8 +214,8 @@ export async function middleware(request: NextRequest) {
     if (!requiredPermissionKey) {
         return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
-    const requiredPermission = permissionMap[requiredPermissionKey];
-    if (!userPermissions.includes(requiredPermission)) {
+    const requiredPermissions = permissionMap[requiredPermissionKey];
+    if (!requiredPermissions.some(permission => userPermissions.includes(permission))) {
         return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
   }

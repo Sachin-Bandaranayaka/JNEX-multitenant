@@ -3,14 +3,20 @@
 import { Bars3Icon, MagnifyingGlassIcon, ArrowRightOnRectangleIcon, TruckIcon } from '@heroicons/react/24/outline';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { Notifications } from './notifications';
 import { Tenant } from '@prisma/client';
 import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { can } from '@/lib/permissions';
 
 export function Header({ tenant, userName, onMenuClick, readOnly = false }: { tenant: Tenant; userName?: string | null; onMenuClick?: () => void; readOnly?: boolean }) {
     const router = useRouter();
+    const { data: session } = useSession();
+    // The default courier is a tenant-wide setting even though the control
+    // lives up here, so only someone who may manage settings can change it --
+    // everyone else sees which courier is in use.
+    const courierReadOnly = readOnly || !can(session?.user, 'MANAGE_SETTINGS');
     const [q, setQ] = useState('');
     const [defaultCourier, setDefaultCourier] = useState<string>(tenant.defaultShippingProvider || 'TRANS_EXPRESS');
     const [showDropdown, setShowDropdown] = useState(false);
@@ -72,7 +78,7 @@ export function Header({ tenant, userName, onMenuClick, readOnly = false }: { te
     }, [q]);
 
     const handleSelectCourier = async (courierId: string) => {
-        if (readOnly) return;
+        if (courierReadOnly) return;
         try {
             const response = await fetch('/api/settings/default-courier', {
                 method: 'POST',
@@ -180,10 +186,10 @@ export function Header({ tenant, userName, onMenuClick, readOnly = false }: { te
             {/* Courier Selector Dropdown */}
             <div className="courier-dropdown-container relative">
                 <button
-                    onClick={() => !readOnly && setShowDropdown(!showDropdown)}
-                    disabled={readOnly}
+                    onClick={() => !courierReadOnly && setShowDropdown(!showDropdown)}
+                    disabled={courierReadOnly}
                     className="flex items-center gap-2 rounded-md bg-[#e10600] p-2 text-sm font-semibold text-white transition-colors hover:bg-[#b80505] focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 focus:ring-offset-[#17181c] disabled:cursor-not-allowed disabled:bg-slate-600 sm:px-3.5 sm:py-2"
-                    aria-label={readOnly ? `Default courier: ${currentCourierName}. Read-only access cannot change it` : `Default courier: ${currentCourierName}. Change default courier`}
+                    aria-label={courierReadOnly ? `Default courier: ${currentCourierName}. You cannot change it` : `Default courier: ${currentCourierName}. Change default courier`}
                     aria-expanded={showDropdown}
                 >
                     <TruckIcon className="h-4 w-4" />
@@ -192,7 +198,7 @@ export function Header({ tenant, userName, onMenuClick, readOnly = false }: { te
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
-                {showDropdown && !readOnly && (
+                {showDropdown && !courierReadOnly && (
                     <div className="absolute right-0 z-50 mt-2 w-48 rounded-md border border-border bg-popover py-1 text-popover-foreground shadow-lg ring-1 ring-black/5 focus:outline-none dark:ring-white/10">
                         {couriers.map((c) => (
                             <button

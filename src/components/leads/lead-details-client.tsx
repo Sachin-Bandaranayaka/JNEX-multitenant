@@ -10,6 +10,7 @@ import { LeadDetails, type Lead as LeadDetailsType } from './lead-details';
 import { LeadEditForm, type Lead } from './lead-edit-form';
 import type { LeadWithRelations } from '@/app/(authenticated)/leads/[leadId]/page';
 import { LeadData } from '@/types/leads';
+import { AssignLeadsDialog } from './assign-leads-dialog';
 
 interface LeadDetailsClientProps {
     initialLead: LeadWithRelations;
@@ -25,6 +26,9 @@ export function LeadDetailsClient({ initialLead, products, user }: LeadDetailsCl
 
     // --- PERMISSION CHECK ---
     const canEdit = user.role === 'ADMIN' || user.permissions?.includes('EDIT_LEADS');
+    // Handing the lead to someone else is the admin's call alone.
+    const canAssign = user.role === 'ADMIN';
+    const [isAssigning, setIsAssigning] = useState(false);
 
     const handleSuccess = async () => {
         // Fetch updated lead data
@@ -54,14 +58,24 @@ export function LeadDetailsClient({ initialLead, products, user }: LeadDetailsCl
                     </p>
                 </div>
                 {/* --- PERMISSION-BASED UI --- */}
-                {canEdit && !isEditing && lead.status === 'PENDING' && (
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
-                    >
-                        Edit Lead
-                    </button>
-                )}
+                <div className="flex items-center gap-3">
+                    {canAssign && !isEditing && lead.status !== 'DELETED' && (
+                        <button
+                            onClick={() => setIsAssigning(true)}
+                            className="inline-flex items-center justify-center rounded-xl border border-border bg-background px-5 py-2.5 text-sm font-medium text-foreground shadow-sm hover:bg-muted transition-colors"
+                        >
+                            Assign
+                        </button>
+                    )}
+                    {canEdit && !isEditing && lead.status === 'PENDING' && (
+                        <button
+                            onClick={() => setIsEditing(true)}
+                            className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
+                        >
+                            Edit Lead
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className={isEditing ? "rounded-xl border border-border bg-card shadow-sm p-6 sm:p-8" : ""}>
@@ -76,6 +90,14 @@ export function LeadDetailsClient({ initialLead, products, user }: LeadDetailsCl
                     <LeadDetails lead={lead as unknown as LeadDetailsType} />
                 )}
             </div>
+
+            {isAssigning && (
+                <AssignLeadsDialog
+                    leadIds={[lead.id]}
+                    onClose={() => setIsAssigning(false)}
+                    onAssigned={handleSuccess}
+                />
+            )}
         </div>
     );
 }

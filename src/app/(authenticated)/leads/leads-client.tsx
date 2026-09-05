@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { LeadActions } from '@/components/leads/lead-actions';
 import { DataExport } from '@/components/leads/data-export';
+import { AssignLeadsDialog } from '@/components/leads/assign-leads-dialog';
 import type { LeadWithDetails } from './page';
 import { User } from 'next-auth';
 import { toast } from 'sonner';
@@ -122,6 +123,10 @@ export function LeadsClient({
   const canEdit = user.role === 'ADMIN' || user.permissions?.includes('EDIT_LEADS');
   const canDelete = user.role === 'ADMIN' || user.permissions?.includes('DELETE_LEADS');
   const canCreateOrder = user.role === 'ADMIN' || user.permissions?.includes('CREATE_ORDERS');
+  // Deciding who works a lead is the business owner's call, not a delegable
+  // permission -- the endpoint enforces the same rule.
+  const canAssign = user.role === 'ADMIN';
+  const [assigningIds, setAssigningIds] = useState<string[] | null>(null);
 
   const handleLeadStatusChange = async (leadId: string, newStatus: string) => {
     try {
@@ -506,13 +511,13 @@ export function LeadsClient({
               <select onChange={(e) => {
                 const val = e.target.value;
                 if (val === 'delete') handleBulkDelete();
-                else if (val === 'reassign') toast.info('Reassign feature coming soon');
+                else if (val === 'reassign') setAssigningIds(selectedIds);
                 else if (val === 'reschedule') toast.info('Reschedule feature coming soon');
                 e.target.value = '';
               }} defaultValue="" disabled={isBulkLoading}
                 className="h-8 px-3 rounded-lg border border-border bg-background text-sm font-medium text-foreground focus:outline-none disabled:opacity-50">
                 <option value="" disabled>Action ({selectedIds.length})</option>
-                <option value="reassign">Reassign</option>
+                {canAssign && <option value="reassign">Reassign</option>}
                 <option value="delete">Delete</option>
                 <option value="reschedule">Reschedule</option>
               </select>
@@ -669,6 +674,14 @@ export function LeadsClient({
             </button>
           </div>
         </div>
+      )}
+
+      {assigningIds && (
+        <AssignLeadsDialog
+          leadIds={assigningIds}
+          onClose={() => setAssigningIds(null)}
+          onAssigned={refreshLeads}
+        />
       )}
     </div>
   );

@@ -94,3 +94,39 @@ export async function requireAnyPermission(permissions: readonly Permission[]): 
     tenantId: session.user.tenantId,
   };
 }
+
+/// Requires a tenant ADMIN specifically -- not a delegate holding some
+/// permission. Used for the handful of actions that are the business owner's
+/// alone, such as deciding which staff member a lead belongs to.
+export async function requireTenantAdmin(): Promise<Guard> {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.tenantId) {
+    return { ok: false, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+  }
+
+  const actorId = session.user.actor?.id || session.user.id;
+  const access = await getFreshUserAccess(actorId);
+  if (
+    !access?.isActive ||
+    (access.role !== 'SUPER_ADMIN' && !access.tenantIsActive)
+  ) {
+    return { ok: false, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+  }
+
+  if (session.user.role !== 'ADMIN') {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: 'Only an admin can perform this action.' },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return {
+    ok: true,
+    session: session as AuthorizedSession,
+    tenantId: session.user.tenantId,
+  };
+}

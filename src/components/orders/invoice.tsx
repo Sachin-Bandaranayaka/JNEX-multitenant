@@ -24,6 +24,7 @@ interface Order {
     // frozen when the order was created. Invoices must use this, NOT the live
     // product price, so a later catalog price change never alters past invoices.
     total: number;
+    unitPrice?: number | null; deliveryFee?: number | null; prepaidAmount?: number | null; codAmount?: number | null;
     notes?: string | null;
     shippingProvider?: string | null;
     trackingNumber?: string | null;
@@ -39,6 +40,7 @@ interface InvoiceProps {
     isMultiPrint?: boolean;
     showPrintControls?: boolean;
     printIndex?: number;
+    fullPage?: boolean;
 }
 
 export function Invoice({
@@ -50,6 +52,7 @@ export function Invoice({
     isMultiPrint = false,
     showPrintControls = false,
     printIndex,
+    fullPage = false,
 }: InvoiceProps) {
 
     // Use the sale-time total frozen on the order, not the live product price.
@@ -57,7 +60,8 @@ export function Invoice({
     // pre-discount line amount from it for display.
     const discount = order.discount || 0;
     const total = Math.max(0, order.total);
-    const subtotal = total + discount;
+    const subtotal = order.unitPrice == null ? null : order.unitPrice * order.quantity;
+    const money = (value:number) => new Intl.NumberFormat('en-LK', {style:'currency',currency:'LKR'}).format(value);
 
     const commonInvoice = (
         <div className={`jnex-print-surface w-full bg-white text-black ${isMultiPrint ? 'p-1' : 'px-2 p-4'} rounded relative`}>
@@ -99,26 +103,17 @@ export function Invoice({
                         <td className={`py-0.5 text-right ${isMultiPrint ? 'font-bold' : ''}`}>{order.quantity}</td>
                         {/* No discount: the line amount IS the total, so show it once, in bold */}
                         <td className={`py-0.5 text-right ${isMultiPrint ? 'font-bold' : discount > 0 ? '' : 'font-bold text-[8pt]'}`}>
-                            {new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' }).format(discount > 0 ? subtotal : total)}
+                            {subtotal == null ? 'Not recorded' : money(subtotal)}
                         </td>
                     </tr>
                 </tbody>
-                {discount > 0 && (
-                    <tfoot>
-                        <tr>
-                            <td colSpan={2} className="py-0.5 text-right">Discount:</td>
-                            <td className="py-0.5 text-right">
-                                -{new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' }).format(discount)}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td colSpan={2} className={`py-0.5 text-right font-bold ${isMultiPrint ? 'text-[6pt]' : 'text-[8pt]'}`}>Total:</td>
-                            <td className={`py-0.5 text-right font-bold ${isMultiPrint ? 'text-[6pt]' : 'text-[8pt]'}`}>
-                                {new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' }).format(total)}
-                            </td>
-                        </tr>
-                    </tfoot>
-                )}
+                <tfoot>
+                    {discount > 0 && <tr><td colSpan={2} className="text-right">Discount:</td><td className="text-right">−{money(discount)}</td></tr>}
+                    {order.deliveryFee != null && <tr><td colSpan={2} className="text-right">Delivery fee:</td><td className="text-right">{money(order.deliveryFee)}</td></tr>}
+                    <tr><td colSpan={2} className="text-right font-bold">Order total:</td><td className="text-right font-bold">{money(total)}</td></tr>
+                    {order.prepaidAmount != null && <tr><td colSpan={2} className="text-right">Prepaid:</td><td className="text-right">{money(order.prepaidAmount)}</td></tr>}
+                    <tr><td colSpan={2} className="text-right font-bold">{order.codAmount == null ? 'Amount due (legacy):' : 'COD amount:'}</td><td className="text-right font-bold">{money(order.codAmount ?? total)}</td></tr>
+                </tfoot>
             </table>
 
             {/* --- NEW: Barcode Section --- */}
@@ -160,7 +155,7 @@ export function Invoice({
         </div>
     );
 
-    if (isMultiPrint) {
+    if (isMultiPrint || fullPage) {
         return <div className="w-full">{commonInvoice}</div>;
     }
 

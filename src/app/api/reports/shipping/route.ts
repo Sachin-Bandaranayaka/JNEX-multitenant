@@ -1,3 +1,4 @@
+import { parseReportFilters } from '@/lib/report-filters';
 // src/app/api/reports/shipping/route.ts
 
 import { getServerSession } from 'next-auth';
@@ -26,6 +27,7 @@ export async function GET(request: Request) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    if (session.user.role !== 'ADMIN' && !session.user.permissions?.includes('VIEW_REPORTS')) return new NextResponse('Forbidden', {status:403});
     const { searchParams } = new URL(request.url);
     const query = QuerySchema.parse({
       startDate: searchParams.get('startDate'),
@@ -40,8 +42,10 @@ export async function GET(request: Request) {
       endDate: query.endDate,
       provider: query.provider,
       tenantId: session.user.tenantId,
+      ...parseReportFilters(searchParams),
     });
 
+    if (query.format !== 'json' && session.user.role !== 'ADMIN' && !session.user.permissions?.includes('EXPORT_REPORTS')) return new NextResponse('Forbidden', {status:403});
     if (query.format === 'json') {
       return NextResponse.json(report);
     }

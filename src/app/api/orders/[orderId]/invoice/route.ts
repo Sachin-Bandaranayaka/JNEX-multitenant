@@ -40,7 +40,7 @@ export async function GET(
       customerName: order.customerName,
       customerAddress: order.customerAddress,
       customerPhone: order.customerPhone,
-      amount: order.product.price,
+      amount: order.total,
       referenceNumber: order.id,
       productName: order.product.name,
       productCode: order.product.code

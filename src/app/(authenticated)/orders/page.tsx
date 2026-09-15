@@ -8,6 +8,7 @@ import { OrdersClient } from './orders-client'; // Import our new client compone
 import { SearchOrders } from '@/components/orders/search-orders';
 import { SortOrders } from '@/components/orders/sort-orders';
 import { DateFilter } from '@/components/orders/date-filter';
+import { orderSearchConditions } from '@/lib/order-search';
 
 export default async function OrdersPage({
   searchParams,
@@ -38,16 +39,19 @@ export default async function OrdersPage({
 
   const prisma = getScopedPrismaClient(user.tenantId);
 
-  const [sortField, sortDirection] = sortParam.split(':');
+  const [rawField, rawDirection] = sortParam.split(':');
+  const sortField = ['createdAt','number','total','customerName','status'].includes(rawField) ? rawField : 'createdAt';
+  const sortDirection: 'asc'|'desc' = rawDirection === 'desc' ? 'desc' : 'asc';
   const orderBy = { [sortField]: sortDirection };
+  const filterValue = (key:string) => typeof resolvedSearchParams[key] === 'string' ? resolvedSearchParams[key] as string : '';
+  const staff = filterValue('staff'), product = filterValue('product'), status = filterValue('status');
+  const minAmount = filterValue('minAmount'), maxAmount = filterValue('maxAmount');
 
   // Build date filter conditions
   const dateConditions: Prisma.OrderWhereInput = {};
-  if (startDate && endDate) {
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+  if (startDate && endDate && /^\d{4}-\d{2}-\d{2}$/.test(startDate) && /^\d{4}-\d{2}-\d{2}$/.test(endDate) && Number.isFinite(new Date(startDate).getTime()) && Number.isFinite(new Date(endDate).getTime())) {
+    const start = new Date(`${startDate}T00:00:00+05:30`);
+    const end = new Date(new Date(`${endDate}T00:00:00+05:30`).getTime()+86400000-1);
 
     dateConditions.createdAt = {
       gte: start,
@@ -59,19 +63,21 @@ export default async function OrdersPage({
     ...(!canViewAll && user.role === 'TEAM_MEMBER' ? { userId: user.id } : {}),
     // This page is the pre-shipping queue. Other lifecycle states remain
     // available through search, order details, shipping, and return pages.
-    status: 'CONFIRMED',
+    status: ['PENDING','CONFIRMED'].includes(status) ? status as 'PENDING'|'CONFIRMED' : {in:['PENDING','CONFIRMED']},
+    shippedAt:null, trackingNumber:null,
+    ...(product ? {productId:product} : {}),
+    ...(staff && canViewAll ? {userId:staff} : {}),
+    total: { ...(minAmount !== '' && Number.isFinite(Number(minAmount)) ? {gte:Number(minAmount)} : {}), ...(maxAmount !== '' && Number.isFinite(Number(maxAmount)) ? {lte:Number(maxAmount)} : {}) },
     ...(searchQuery ? {
       OR: [
-        { id: { contains: searchQuery, mode: 'insensitive' } },
-        { customerName: { contains: searchQuery, mode: 'insensitive' } },
-        { customerPhone: { contains: searchQuery, mode: 'insensitive' } },
+        ...orderSearchConditions(searchQuery),
         { product: { name: { contains: searchQuery, mode: 'insensitive' } } },
       ],
     } : {}),
     ...dateConditions,
   };
 
-  const [orders, tenant] = await Promise.all([
+  const [orders, tenant, filterProducts, filterStaff] = await Promise.all([
     prisma.order.findMany({
       where,
       include: { product: true, lead: true, assignedTo: true },
@@ -81,6 +87,8 @@ export default async function OrdersPage({
       where: { id: user.tenantId },
       select: { transExpressApiKey: true, transExpressOrderPrefix: true },
     }),
+    prisma.product.findMany({where:{tenantId:user.tenantId,isActive:true},select:{id:true,name:true,code:true},orderBy:{name:'asc'}}),
+    canViewAll ? prisma.user.findMany({where:{tenantId:user.tenantId,isActive:true},select:{id:true,name:true},orderBy:{name:'asc'}}) : [],
   ]);
 
   const tenantConfig = {
@@ -94,7 +102,7 @@ export default async function OrdersPage({
           <div>
             <h1 className="text-2xl font-bold text-foreground">Pending Orders</h1>
             <p className="text-sm text-muted-foreground">
-              Edit, delete, or bulk ship confirmed orders awaiting dispatch
+              Review pending and confirmed orders before booking and dispatch
               {searchQuery && ` • Searching: "${searchQuery}"`}
               {dateFilter && startDate && endDate && (
                 <span className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-medium">
@@ -120,6 +128,14 @@ export default async function OrdersPage({
         </div>
       </div>
 
+      <form action="/orders" method="get" className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
+        {Object.entries(resolvedSearchParams).filter(([key,value])=>!['staff','product','status','minAmount','maxAmount','page'].includes(key)&&typeof value==='string').map(([key,value])=><input key={key} type="hidden" name={key} value={value as string} />)}
+        <label className="text-xs text-muted-foreground">Product<select name="product" defaultValue={product} className="mt-1 block rounded-md border-border bg-background text-sm"><option value="">All products</option>{filterProducts.map(item=><option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></label>
+        {canViewAll && <label className="text-xs text-muted-foreground">Staff<select name="staff" defaultValue={staff} className="mt-1 block rounded-md border-border bg-background text-sm"><option value="">All staff</option>{filterStaff.map(item=><option key={item.id} value={item.id}>{item.name || 'Unnamed staff'}</option>)}</select></label>}
+        <label className="text-xs text-muted-foreground">Status<select name="status" defaultValue={status} className="mt-1 block rounded-md border-border bg-background text-sm"><option value="">Pending and confirmed</option><option value="PENDING">Pending</option><option value="CONFIRMED">Confirmed</option></select></label>
+        <label className="text-xs text-muted-foreground">Minimum total<input type="number" name="minAmount" min="0" step="0.01" defaultValue={minAmount} className="mt-1 block w-32 rounded-md border-border bg-background text-sm" /></label><label className="text-xs text-muted-foreground">Maximum total<input type="number" name="maxAmount" min="0" step="0.01" defaultValue={maxAmount} className="mt-1 block w-32 rounded-md border-border bg-background text-sm" /></label>
+        <button className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">Apply</button><a href="/orders" className="px-3 py-2 text-sm text-muted-foreground">Clear filters</a>
+      </form>
       {/* Render the new client component with the fetched data */}
       <OrdersClient initialOrders={orders} user={user} tenantConfig={tenantConfig} />
     </div>

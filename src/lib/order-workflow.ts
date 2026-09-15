@@ -70,7 +70,7 @@ export async function transitionOrder(input: TransitionOrderInput) {
     }
 
     const update = await tx.order.updateMany({
-      where: { id: order.id, tenantId: input.tenantId, status: order.status },
+      where: { id: order.id, tenantId: input.tenantId, status: order.status, updatedAt: order.updatedAt },
       data: {
         status: input.to,
         ...(input.to === OrderStatus.SHIPPED ? { shippedAt: at } : {}),
@@ -83,6 +83,17 @@ export async function transitionOrder(input: TransitionOrderInput) {
       },
     });
     if (update.count !== 1) throw new Error('Order changed while it was being updated; please retry');
+
+    await tx.auditEvent.create({ data: {
+      actorId: input.userId, tenantId: input.tenantId, action: 'ORDER_STATUS_CHANGED',
+      entityType: 'Order', entityId: order.id,
+      metadata: {
+        orderNumber: order.number,
+        before: { status: order.status, shippingProvider: order.shippingProvider, trackingNumber: order.trackingNumber },
+        after: { status: input.to, shippingProvider: input.shipping?.provider ?? order.shippingProvider, trackingNumber: input.shipping?.trackingNumber ?? order.trackingNumber },
+        source: input.source ?? 'manual',
+      },
+    } });
 
     const restoresStock = input.to === OrderStatus.RETURNED || input.to === OrderStatus.CANCELLED;
     if (restoresStock) {

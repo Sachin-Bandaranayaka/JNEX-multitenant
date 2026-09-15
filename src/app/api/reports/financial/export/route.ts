@@ -1,3 +1,4 @@
+import { parseReportFilters, reportOrderFilter } from '@/lib/report-filters';
 // src/app/api/reports/financial/export/route.ts
 
 import { getServerSession } from 'next-auth';
@@ -36,6 +37,7 @@ export async function GET(request: Request) {
         // Get all orders in date range
         const orders = await prisma.order.findMany({
             where: {
+                ...reportOrderFilter(session.user.tenantId, parseReportFilters(searchParams)),
                 createdAt: { gte: start, lte: end },
             },
             include: {

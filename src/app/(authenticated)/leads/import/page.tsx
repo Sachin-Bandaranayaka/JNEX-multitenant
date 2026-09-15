@@ -1,4 +1,4 @@
-// src/app/leads/import/page.tsx
+// Authenticated lead import workflow
 
 'use client';
 
@@ -6,6 +6,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { parse } from 'papaparse';
+import { decodeLeadCSV } from '@/lib/lead-csv-encoding';
 import { toast } from 'sonner';
 import {
   ExclamationTriangleIcon,
@@ -116,19 +117,23 @@ function CSVUpload({
 }) {
   const [error, setError] = useState<string | null>(null);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsLoading(true);
     setError(null);
 
-    parse<any>(file, {
+    try {
+      if (file.size > 5 * 1024 * 1024) throw new Error('Choose a CSV file smaller than 5 MB.');
+      const text = await decodeLeadCSV(file);
+      parse<any>(text, {
       header: true,
       skipEmptyLines: true,
       transformHeader: header => header.toLowerCase().trim().replace(/\s+/g, '_'),
       complete: (results) => {
         try {
+          if (results.errors.length > 0) throw new Error(`CSV could not be read: ${results.errors[0].message}`);
           if (!results.data || results.data.length === 0) {
             throw new Error('CSV file is empty');
           }
@@ -161,11 +166,13 @@ function CSVUpload({
           setIsLoading(false);
         }
       },
-      error: (err) => {
-        setError(err.message);
-        setIsLoading(false);
-      },
-    });
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to decode this CSV file. Please export it as UTF-8 CSV.');
+      setIsLoading(false);
+    } finally {
+      event.target.value = '';
+    }
   };
 
   return (
@@ -173,16 +180,17 @@ function CSVUpload({
       <div className="flex flex-col items-center justify-center w-full">
         <label
           htmlFor="dropzone-file"
-          className="flex flex-col items-center justify-center w-full h-64 border-2 border-[#ccd2da] border-dashed rounded-md cursor-pointer bg-[#f9fafb] hover:bg-[#f1f3f5] transition-colors dark:border-slate-600 dark:bg-slate-800/40 dark:hover:bg-slate-800/70"
+          className="flex flex-col items-center justify-center w-full h-64 focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 border-2 border-[#ccd2da] border-dashed rounded-md cursor-pointer bg-[#f9fafb] hover:bg-[#f1f3f5] transition-colors dark:border-slate-600 dark:bg-slate-800/40 dark:hover:bg-slate-800/70"
         >
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
             <svg className="w-8 h-8 mb-4 text-slate-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
               <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
             </svg>
-            <p className="mb-2 text-sm text-slate-600"><span className="font-semibold text-[#e89c31]">Click to upload</span> or drag and drop</p>
-            <p className="text-xs text-slate-400">CSV file (MAX. 5MB)</p>
+            <p className="mb-2 text-sm text-slate-600"><span className="font-semibold text-[#e89c31]">Click to upload</span></p>
+            <p className="text-xs text-muted-foreground">CSV file (MAX. 5MB)</p>
+            <p className="mt-2 px-4 text-center text-xs text-muted-foreground">Use UTF-8 CSV to preserve Sinhala names, addresses, and notes.</p>
           </div>
-          <input id="dropzone-file" type="file" className="hidden" accept=".csv" onChange={handleFileChange} disabled={isLoading} />
+          <input id="dropzone-file" type="file" className="sr-only" accept=".csv" onChange={handleFileChange} disabled={isLoading} />
         </label>
       </div>
       {error && <p className="mt-4 text-center text-red-500 font-semibold text-sm">{error}</p>}
@@ -197,32 +205,42 @@ function LeadPreview({
   onConfirm,
   onCancel,
   isImporting,
+  assignmentBlocked,
 }: {
   previewRows: PreviewRow[];
   setPreviewRows: React.Dispatch<React.SetStateAction<PreviewRow[]>>;
   onConfirm: (leadsToImport: any[]) => void;
   onCancel: () => void;
   isImporting: boolean;
+  assignmentBlocked: boolean;
 }) {
-  const [activeCell, setActiveCell] = useState<{ id: string; field: keyof PreviewRow } | null>(null);
+  const [stockError, setStockError] = useState<string | null>(null);
+  const [stockRetry, setStockRetry] = useState(0);
 
   // Auto-checks stock statuses for pending rows
   useEffect(() => {
     const pendingRows = previewRows.filter(
-      (row) => row.stockStatus === 'PENDING' && !row.errors.product_code
+      (row) => row.stockStatus === 'PENDING' && Object.keys(row.errors).length === 0
     );
-    if (pendingRows.length === 0) return;
+    if (pendingRows.length === 0 || isImporting) return;
+    const controller = new AbortController();
 
     const timer = setTimeout(async () => {
       try {
+        setStockError(null);
         const payloadLeads = cleanLeadsForPayload(pendingRows);
         const response = await fetch('/api/leads/import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'preview', leads: payloadLeads }),
+          signal: controller.signal,
         });
         const result = await response.json();
         
+        if (controller.signal.aborted) return;
+        if (!response.ok || !Array.isArray(result.preview) || result.preview.length !== pendingRows.length || result.preview.some((item: { status?: string }) => !['OK_TO_IMPORT', 'LOW_STOCK', 'OUT_OF_STOCK', 'INVALID_PRODUCT'].includes(item.status || ''))) {
+          throw new Error(result.error || 'Stock availability could not be checked.');
+        }
         if (response.ok && result.preview) {
           setPreviewRows((prev) =>
             prev.map((row) => {
@@ -242,12 +260,12 @@ function LeadPreview({
           );
         }
       } catch (err) {
-        console.error('Error fetching stock status:', err);
+        if (!controller.signal.aborted) setStockError(err instanceof Error ? err.message : 'Stock availability could not be checked.');
       }
     }, 1000); // 1-second debounce
 
-    return () => clearTimeout(timer);
-  }, [previewRows, setPreviewRows]);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [previewRows, setPreviewRows, stockRetry, isImporting]);
 
   const handleCellChange = (id: string, field: keyof PreviewRow, value: string) => {
     setPreviewRows((prev) =>
@@ -323,7 +341,7 @@ function LeadPreview({
     );
   };
 
-  const selectedRows = previewRows.filter((r) => r.selected);
+  const selectedRows = selectableRows.filter((r) => r.selected);
 
   const statusConfig: Record<StockStatus, { label: string; class: string }> = {
     OK_TO_IMPORT: { label: 'OK to Import', class: 'genzo-tag genzo-tag-green' },
@@ -380,6 +398,10 @@ function LeadPreview({
         </div>
       </div>
 
+      {stockError && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+        <p className="text-sm text-destructive">{stockError} Rows awaiting stock verification cannot be imported yet.</p>
+        <button type="button" disabled={isImporting} onClick={() => setStockRetry(value => value + 1)} className="rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">Retry stock check</button>
+      </div>}
       {/* Excel-like scrollable table container */}
       <div className="max-h-[55vh] overflow-auto rounded-md border border-slate-200 shadow-sm bg-white">
         <table className="w-full border-collapse text-xs select-none no-genzo-override">
@@ -391,7 +413,7 @@ function LeadPreview({
                   className="h-3.5 w-3.5 rounded border-slate-300 text-[#e89c31] focus:ring-[#e89c31] cursor-pointer"
                   checked={allSelected}
                   onChange={handleSelectAll}
-                  disabled={selectableRows.length === 0}
+                  disabled={isImporting || selectableRows.length === 0}
                 />
               </th>
               <th className="w-12 text-center p-2 border-r border-slate-200 bg-slate-50 font-bold text-slate-500">Row</th>
@@ -423,7 +445,7 @@ function LeadPreview({
                       type="checkbox"
                       className="h-3.5 w-3.5 rounded border-slate-300 text-[#e89c31] focus:ring-[#e89c31] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       checked={row.selected}
-                      disabled={!isRowSelectable}
+                      disabled={isImporting || !isRowSelectable}
                       onChange={() => handleSelectRow(row.id)}
                     />
                   </td>
@@ -435,6 +457,7 @@ function LeadPreview({
                   <td className="p-0.5 border-r border-slate-200 align-middle">
                     <input
                       type="text"
+                      disabled={isImporting}
                       value={row.customer_name}
                       onChange={(e) => handleCellChange(row.id, 'customer_name', e.target.value)}
                       className={`w-full bg-transparent border px-2 py-1 rounded text-xs focus:bg-white focus:ring-1 focus:ring-[#e89c31] focus:outline-none transition-all ${
@@ -450,6 +473,7 @@ function LeadPreview({
                   <td className="p-0.5 border-r border-slate-200 align-middle">
                     <input
                       type="text"
+                      disabled={isImporting}
                       value={row.phone}
                       onChange={(e) => handleCellChange(row.id, 'phone', e.target.value)}
                       className={`w-full bg-transparent border px-2 py-1 rounded text-xs font-mono focus:bg-white focus:ring-1 focus:ring-[#e89c31] focus:outline-none transition-all ${
@@ -465,6 +489,7 @@ function LeadPreview({
                   <td className="p-0.5 border-r border-slate-200 align-middle">
                     <input
                       type="text"
+                      disabled={isImporting}
                       value={row.second_phone}
                       onChange={(e) => handleCellChange(row.id, 'second_phone', e.target.value)}
                       className="w-full bg-transparent border border-transparent hover:border-slate-300 px-2 py-1 rounded text-xs font-mono focus:bg-white focus:ring-1 focus:ring-[#e89c31] focus:outline-none transition-all"
@@ -476,6 +501,7 @@ function LeadPreview({
                   <td className="p-0.5 border-r border-slate-200 align-middle">
                     <input
                       type="text"
+                      disabled={isImporting}
                       value={row.address}
                       onChange={(e) => handleCellChange(row.id, 'address', e.target.value)}
                       className={`w-full bg-transparent border px-2 py-1 rounded text-xs focus:bg-white focus:ring-1 focus:ring-[#e89c31] focus:outline-none transition-all ${
@@ -491,6 +517,7 @@ function LeadPreview({
                   <td className="p-0.5 border-r border-slate-200 align-middle">
                     <input
                       type="text"
+                      disabled={isImporting}
                       value={row.product_code}
                       onChange={(e) => handleCellChange(row.id, 'product_code', e.target.value)}
                       className={`w-full bg-transparent border px-2 py-1 rounded text-xs font-mono font-semibold focus:bg-white focus:ring-1 focus:ring-[#e89c31] focus:outline-none transition-all ${
@@ -506,6 +533,7 @@ function LeadPreview({
                   <td className="p-0.5 border-r border-slate-200 align-middle">
                     <input
                       type="text"
+                      disabled={isImporting}
                       value={row.email}
                       onChange={(e) => handleCellChange(row.id, 'email', e.target.value)}
                       className={`w-full bg-transparent border px-2 py-1 rounded text-xs focus:bg-white focus:ring-1 focus:ring-[#e89c31] focus:outline-none transition-all ${
@@ -521,6 +549,7 @@ function LeadPreview({
                   <td className="p-0.5 border-r border-slate-200 align-middle">
                     <input
                       type="text"
+                      disabled={isImporting}
                       value={row.notes}
                       onChange={(e) => handleCellChange(row.id, 'notes', e.target.value)}
                       className="w-full bg-transparent border border-transparent hover:border-slate-300 px-2 py-1 rounded text-xs focus:bg-white focus:ring-1 focus:ring-[#e89c31] focus:outline-none transition-all"
@@ -563,7 +592,7 @@ function LeadPreview({
           <button
             type="button"
             onClick={handleConfirmImportClick}
-            disabled={isImporting || selectedRows.length === 0}
+            disabled={isImporting || assignmentBlocked || selectedRows.length === 0}
             className="genzo-btn genzo-btn-amber disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow"
           >
             {isImporting ? (
@@ -588,6 +617,41 @@ export default function ImportLeadsPage() {
   const [importResult, setImportResult] = useState<{ count: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const [staff, setStaff] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+  const [staffState, setStaffState] = useState<'loading' | 'ready' | 'forbidden' | 'error'>('loading');
+  const [staffRetry, setStaffRetry] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setStaffState('loading');
+    const load = async () => {
+      try {
+        const response = await fetch('/api/leads/import/assignees', { signal: controller.signal, cache: 'no-store' });
+        if (controller.signal.aborted) return;
+        if (response.status === 403) {
+          setAssigneeIds([]);
+          setStaffState('forbidden');
+          return;
+        }
+        if (!response.ok) throw new Error('Could not load available staff');
+        const result = await response.json();
+        if (!Array.isArray(result.staff)) throw new Error('Invalid staff response');
+        if (!controller.signal.aborted) {
+          setStaff(result.staff);
+          setAssigneeIds(current => current.filter(id => result.staff.some((person: { id: string }) => person.id === id)));
+          setStaffState('ready');
+        }
+      } catch {
+        if (!controller.signal.aborted) setStaffState('error');
+      }
+    };
+    load();
+    return () => controller.abort();
+  }, [staffRetry]);
+
+  const selectedCount = previewRows.filter(row => row.selected && Object.keys(row.errors).length === 0 && (row.stockStatus === 'OK_TO_IMPORT' || row.stockStatus === 'LOW_STOCK')).length;
+  const assignmentBlocked = staffState === 'loading' || staffState === 'error';
 
   const handleUploadComplete = (initialRows: PreviewRow[]) => {
     setPreviewRows(initialRows);
@@ -596,13 +660,14 @@ export default function ImportLeadsPage() {
   };
 
   const handleConfirmImport = async (leadsToImport: any[]) => {
+    if (assignmentBlocked || isLoading) return;
     setIsLoading(true);
     setError(null);
     try {
       const response = await fetch('/api/leads/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'import', leads: leadsToImport }),
+        body: JSON.stringify({ action: 'import', leads: leadsToImport, ...(assigneeIds.length ? { assigneeIds } : {}) }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Failed to import leads');
@@ -650,17 +715,40 @@ export default function ImportLeadsPage() {
         </div>
 
         <div className="mt-8">
+          {stage !== 'complete' && staffState !== 'forbidden' && (
+            <section aria-labelledby="import-assignment-heading" className="mb-6 rounded-xl border border-border bg-card p-4 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 id="import-assignment-heading" className="text-base font-semibold text-foreground">Assign imported leads</h2>
+                <button type="button" disabled={isLoading || staffState === 'loading'} onClick={() => setStaffRetry(value => value + 1)} className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">Refresh staff list</button>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Refreshing removes unavailable staff from your selection and keeps your preview edits.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Choose staff to share the selected leads evenly, one lead at a time in preview order. With nobody selected, all imported leads are assigned to you.</p>
+              {staffState === 'loading' && <p role="status" className="mt-4 text-sm text-muted-foreground">Loading available staff…</p>}
+              {staffState === 'error' && <div role="alert" className="mt-4 flex flex-wrap items-center gap-3"><p className="text-sm text-destructive">Staff could not be loaded. Retry before confirming the import.</p><button type="button" disabled={isLoading} onClick={() => setStaffRetry(value => value + 1)} className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">Retry</button></div>}
+              {staffState === 'ready' && <>
+                <fieldset disabled={isLoading} className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  <legend className="sr-only">Staff available for imported leads</legend>
+                  {staff.map(person => <label key={person.id} className={`flex min-w-0 cursor-pointer items-start gap-3 rounded-md border p-3 ${assigneeIds.includes(person.id) ? 'border-primary bg-primary/5' : 'border-border'} ${isLoading ? 'opacity-60' : ''}`}>
+                    <input type="checkbox" checked={assigneeIds.includes(person.id)} onChange={event => setAssigneeIds(current => event.target.checked ? [...current, person.id] : current.filter(id => id !== person.id))} className="mt-0.5 rounded border-border text-primary focus:ring-primary" />
+                    <span className="min-w-0 break-words"><span className="block text-sm font-medium text-foreground">{person.name || person.email}</span><span className="block break-all text-xs text-muted-foreground">{person.email}</span></span>
+                  </label>)}
+                </fieldset>
+                {staff.length === 0 && <p className="mt-3 text-sm text-muted-foreground">No other staff are available for assignment.</p>}
+                <div className="mt-4 border-t border-border pt-3 text-sm text-foreground" aria-live="polite">
+                  {assigneeIds.length === 0 ? <p>{stage === 'preview' ? `${selectedCount} selected leads will be assigned to you.` : 'Imported leads will be assigned to you.'}</p> : <>
+                    <p className="font-medium">{stage === 'preview' ? `${selectedCount} selected leads across ${assigneeIds.length} staff ${assigneeIds.length === 1 ? 'member' : 'members'}` : `Leads will be shared across ${assigneeIds.length} staff ${assigneeIds.length === 1 ? 'member' : 'members'}`}</p>
+                    {stage === 'preview' && <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-muted-foreground">{assigneeIds.map((id, index) => <li key={id}>{staff.find(person => person.id === id)?.name || staff.find(person => person.id === id)?.email}: {Math.floor(selectedCount / assigneeIds.length) + (index < selectedCount % assigneeIds.length ? 1 : 0)} leads</li>)}</ul>}
+                  </>}
+                </div>
+              </>}
+            </section>
+          )}
+          {stage !== 'complete' && staffState === 'forbidden' && <p className="mb-4 text-sm text-muted-foreground">Imported leads will be assigned to you.</p>}
           <AnimatePresence mode="wait">
             {stage === 'upload' && (
               <motion.div key="upload" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                {isLoading ? (
-                  <div className="flex flex-col items-center justify-center p-12">
-                    <ArrowPathIcon className="h-10 w-10 text-[#e89c31] animate-spin mb-3" />
-                    <div className="text-slate-500 font-semibold text-sm">Processing and validating CSV file...</div>
-                  </div>
-                ) : (
-                  <CSVUpload onUploadComplete={handleUploadComplete} setIsLoading={setIsLoading} isLoading={isLoading} />
-                )}
+                <CSVUpload onUploadComplete={handleUploadComplete} setIsLoading={setIsLoading} isLoading={isLoading} />
+                {isLoading && <p role="status" className="mt-4 text-center text-sm text-muted-foreground">Processing and validating CSV file…</p>}
               </motion.div>
             )}
 
@@ -672,6 +760,7 @@ export default function ImportLeadsPage() {
                   onConfirm={handleConfirmImport}
                   onCancel={handleReset}
                   isImporting={isLoading}
+                  assignmentBlocked={assignmentBlocked}
                 />
               </motion.div>
             )}
@@ -696,7 +785,7 @@ export default function ImportLeadsPage() {
               </motion.div>
             )}
           </AnimatePresence>
-          {error && stage !== 'preview' && <p className="mt-4 text-center text-red-500 font-semibold text-sm">{error}</p>}
+          {error && <p role="alert" className="mt-4 text-center text-red-500 font-semibold text-sm">{error}</p>}
         </div>
       </div>
     </div>

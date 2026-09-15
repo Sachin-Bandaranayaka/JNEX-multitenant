@@ -1,7 +1,8 @@
-// 
+//
 
 'use client';
 
+import { shippingChartData } from '@/lib/report-chart-data';
 import { useState, useEffect } from 'react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend
@@ -17,16 +18,19 @@ interface ShippingReportProps {
     totalShipments: number;
     shippingStats: Record<string, number>;
     canExport?: boolean;
+    filterQuery?: string;
 }
 
 interface ShippingData {
+    totalShipments: number;
+    delivered: number; returned: number;
     dailyShipments: Array<{ date: string; count: number; }>;
     providerPerformance: Array<{ provider: string; shipments: number; }>;
     onTimeDeliveryRate: number;
     averageDeliveryTime: number;
 }
 
-export function ShippingReport({ startDate, endDate, canExport, shippingStats, totalShipments }: ShippingReportProps) {
+export function ShippingReport({ startDate, endDate, filterQuery = '', canExport, shippingStats, totalShipments }: ShippingReportProps) {
     const [data, setData] = useState<ShippingData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -37,7 +41,7 @@ export function ShippingReport({ startDate, endDate, canExport, shippingStats, t
             try {
                 setIsLoading(true);
                 setError(null);
-                let url = `/api/reports/shipping?startDate=${startDate}&endDate=${endDate}`;
+                let url = `/api/reports/shipping?startDate=${startDate}&endDate=${endDate}&${filterQuery}`;
                 if (provider !== 'ALL') {
                     url += `&provider=${provider}`;
                 }
@@ -47,7 +51,7 @@ export function ShippingReport({ startDate, endDate, canExport, shippingStats, t
                     throw new Error(errData.details || 'Failed to fetch shipping data');
                 }
                 const jsonData = await response.json();
-                setData(jsonData);
+                setData(shippingChartData(jsonData));
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'An error occurred');
             } finally {
@@ -55,11 +59,11 @@ export function ShippingReport({ startDate, endDate, canExport, shippingStats, t
             }
         };
         fetchData();
-    }, [startDate, endDate, provider]);
+    }, [startDate, endDate, provider, filterQuery]);
 
     // FIX: Simplified export handler
     const handleExport = (format: 'excel' | 'pdf') => {
-        let url = `/api/reports/shipping/export?startDate=${startDate}&endDate=${endDate}&format=${format}`;
+        let url = `/api/reports/shipping/export?startDate=${startDate}&endDate=${endDate}&${filterQuery}&format=${format}`;
         if (provider !== 'ALL') {
             url += `&provider=${provider}`;
         }
@@ -84,17 +88,7 @@ export function ShippingReport({ startDate, endDate, canExport, shippingStats, t
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <label htmlFor="provider-select" className="block text-sm font-medium text-muted-foreground mb-1">Filter by Provider</label>
-                    <select
-                        id="provider-select"
-                        value={provider}
-                        onChange={(e) => setProvider(e.target.value as ShippingProvider | 'ALL')}
-                        className="block w-full sm:w-auto pl-3 pr-10 py-2 text-sm border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary rounded-full"
-                    >
-                        <option value="ALL">All Providers</option>
-                        {Object.keys(shippingStats).map(p => (
-                            <option key={p} value={p}>{p.replace(/_/g, ' ')}</option>
-                        ))}
-                    </select>
+
                 </div>
 
                 {/* FIX: Conditionally render export buttons */}
@@ -125,16 +119,16 @@ export function ShippingReport({ startDate, endDate, canExport, shippingStats, t
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
                 <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
                     <div className="text-sm font-medium text-muted-foreground">Total Shipments</div>
-                    <div className="mt-2 text-3xl font-bold text-foreground">{totalShipments}</div>
+                    <div className="mt-2 text-3xl font-bold text-foreground">{data?.totalShipments ?? 0}</div>
                 </div>
                 {/* FIX: Added safety checks to prevent crashes */}
                 <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
-                    <div className="text-sm font-medium text-muted-foreground">On-Time Delivery Rate</div>
-                    <div className="mt-2 text-3xl font-bold text-foreground">{(data?.onTimeDeliveryRate ?? 0 * 100).toFixed(1)}%</div>
+                    <div className="text-sm font-medium text-muted-foreground">Delivered orders</div>
+                    <div className="mt-2 text-3xl font-bold text-foreground">{data?.delivered ?? 0}</div>
                 </div>
                 <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
-                    <div className="text-sm font-medium text-muted-foreground">Avg. Delivery Time</div>
-                    <div className="mt-2 text-3xl font-bold text-foreground">{(data?.averageDeliveryTime ?? 0).toFixed(1)} days</div>
+                    <div className="text-sm font-medium text-muted-foreground">Returned orders</div>
+                    <div className="mt-2 text-3xl font-bold text-foreground">{data?.returned ?? 0}</div>
                 </div>
             </div>
 

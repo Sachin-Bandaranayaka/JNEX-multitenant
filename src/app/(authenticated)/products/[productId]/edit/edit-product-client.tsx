@@ -52,7 +52,7 @@ export function EditProductClient({
         throw new Error(error.error || 'Failed to update product');
       }
 
-      router.push('/products');
+      router.push('/inventory');
       router.refresh();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'An error occurred');
@@ -67,10 +67,10 @@ export function EditProductClient({
           <p className="mt-2 text-sm text-muted-foreground">Update product details and review stock history</p>
         </div>
         <motion.button
-          onClick={() => router.back()}
+          onClick={() => router.push('/inventory')}
           className="inline-flex items-center px-4 py-2 border border-input rounded-md shadow-sm text-sm font-medium text-muted-foreground bg-card hover:bg-accent hover:text-accent-foreground"
         >
-          Back to Products
+          Back to Stock List
         </motion.button>
       </div>
 
@@ -80,7 +80,7 @@ export function EditProductClient({
             <ProductForm
               product={product}
               onSubmit={handleSubmit}
-              onCancel={() => router.back()}
+              onCancel={() => router.push('/inventory')}
               // --- FIX: Pass the entire user object to the ProductForm ---
               user={user}
             />

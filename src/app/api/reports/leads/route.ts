@@ -1,3 +1,4 @@
+import { parseReportFilters } from '@/lib/report-filters';
 // src/app/api/reports/leads/route.ts
 
 import { NextResponse } from 'next/server';
@@ -33,7 +34,8 @@ export async function GET(request: Request) {
     const reportData = await generateLeadReport({
       startDate: new Date(startDate),
       endDate: new Date(endDate),
-      tenantId: session.user.tenantId, // Pass the tenantId
+      tenantId: session.user.tenantId,
+      ...parseReportFilters(searchParams), // Pass the tenantId
     });
 
     // 3. Return the secure data

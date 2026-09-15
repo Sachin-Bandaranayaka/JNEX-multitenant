@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 interface ShippedOrder {
     id: string;
     number: number;
+    status: string;
+    deliveredAt: Date | null;
     quantity: number;
     customerName: string;
     customerAddress: string;
@@ -28,6 +30,9 @@ interface ShippedOrder {
 
 interface ShippingListProps {
     orders: ShippedOrder[];
+    serverFiltered?: boolean;
+    canPrint?: boolean;
+    canViewOrders?: boolean;
 }
 
 const SHIPPING_PROVIDERS: { key: ShippingProvider | 'ALL'; label: string }[] = [
@@ -35,7 +40,7 @@ const SHIPPING_PROVIDERS: { key: ShippingProvider | 'ALL'; label: string }[] = [
     { key: 'FARDA_EXPRESS', label: 'Farda Express' },
     { key: 'TRANS_EXPRESS', label: 'Trans Express' },
     { key: 'SL_POST', label: 'SL Post' },
-    { key: 'ROYAL_EXPRESS', label: 'Royal Express' },
+    { key: 'ROYAL_EXPRESS', label: 'Royal Express (historical)' },
 ];
 
 type DateFilterKey = 'ALL' | 'TODAY' | 'YESTERDAY' | 'LAST_7' | 'THIS_WEEK' | 'THIS_MONTH';
@@ -49,7 +54,7 @@ const DATE_FILTERS: { key: DateFilterKey; label: string }[] = [
     { key: 'THIS_MONTH', label: 'This Month' },
 ];
 
-export function ShippingList({ orders }: ShippingListProps) {
+export function ShippingList({ orders, serverFiltered = false, canPrint = true, canViewOrders = true }: ShippingListProps) {
     const router = useRouter();
     const [selectedProvider, setSelectedProvider] = useState<ShippingProvider | 'ALL'>('ALL');
     const [dateFilter, setDateFilter] = useState<DateFilterKey>('ALL');
@@ -68,8 +73,6 @@ export function ShippingList({ orders }: ShippingListProps) {
                 return `https://trans-express.net/track/${trackingNumber}`;
             case 'SL_POST':
                 return `https://posta.lk/tracking?id=${trackingNumber}`;
-            case 'ROYAL_EXPRESS':
-                return `https://royal-express.lk/track/${trackingNumber}`;
             default:
                 return '#';
         }
@@ -243,13 +246,15 @@ export function ShippingList({ orders }: ShippingListProps) {
 
     // Exports
     const copyToClipboard = () => {
-        const headers = ['#', 'Shipped Items', 'Deliver Company', 'Company Code', 'Shipped Date', 'User'];
+        const headers = ['#', 'Shipped Items', 'Deliver Company', 'Company Code', 'Status', 'Shipped Date', 'Delivered Date', 'User'];
         const rows = sortedOrders.map(order => [
-            order.number || order.id.slice(0, 8),
+            order.number,
             `${order.quantity} (${order.product.name})`,
             order.shippingProvider ? formatProviderName(order.shippingProvider) : 'Unknown',
             order.trackingNumber || '',
-            order.shippedAt ? format(new Date(order.shippedAt), 'yyyy-MM-dd HH:mm:ss') : '',
+            formatProviderName(order.status),
+            order.shippedAt ? new Intl.DateTimeFormat('en-LK', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Colombo' }).format(new Date(order.shippedAt)) : '',
+            order.deliveredAt ? new Intl.DateTimeFormat('en-LK', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Colombo' }).format(new Date(order.deliveredAt)) : '',
             order.assignedTo?.name || 'Unassigned'
         ]);
         const text = [headers.join('\t'), ...rows.map(e => e.join('\t'))].join('\n');
@@ -258,13 +263,15 @@ export function ShippingList({ orders }: ShippingListProps) {
     };
 
     const exportToCSV = () => {
-        const headers = ['#', 'Shipped Items', 'Deliver Company', 'Company Code', 'Shipped Date', 'User'];
+        const headers = ['#', 'Shipped Items', 'Deliver Company', 'Company Code', 'Status', 'Shipped Date', 'Delivered Date', 'User'];
         const rows = sortedOrders.map(order => [
-            order.number || order.id.slice(0, 8),
+            order.number,
             `${order.quantity} (${order.product.name})`,
             order.shippingProvider ? formatProviderName(order.shippingProvider) : 'Unknown',
             order.trackingNumber || '',
-            order.shippedAt ? format(new Date(order.shippedAt), 'yyyy-MM-dd HH:mm:ss') : '',
+            formatProviderName(order.status),
+            order.shippedAt ? new Intl.DateTimeFormat('en-LK', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Colombo' }).format(new Date(order.shippedAt)) : '',
+            order.deliveredAt ? new Intl.DateTimeFormat('en-LK', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Colombo' }).format(new Date(order.deliveredAt)) : '',
             order.assignedTo?.name || 'Unassigned'
         ]);
         
@@ -287,7 +294,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                     <TruckIcon className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <h3 className="text-lg font-medium text-foreground">No shipped orders found</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Orders will appear here once they are shipped.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Adjust the filters or return after orders have shipped.</p>
             </div>
         );
     }
@@ -295,7 +302,7 @@ export function ShippingList({ orders }: ShippingListProps) {
     return (
         <div className="space-y-6">
             {/* Provider Tabs */}
-            <div className="flex flex-wrap gap-2">
+            {!serverFiltered && <div className="flex flex-wrap gap-2">
                 {SHIPPING_PROVIDERS.map((provider) => {
                     const count = orderCountByProvider[provider.key] || 0;
                     const isActive = selectedProvider === provider.key;
@@ -332,7 +339,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                         </button>
                     );
                 })}
-            </div>
+            </div>}
 
             {/* Main Table Card */}
             <div className="bg-white dark:bg-card border border-border/50 shadow-sm rounded-lg p-6 space-y-4">
@@ -358,7 +365,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                             <span>entries</span>
                         </div>
 
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        {!serverFiltered && <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <CalendarIcon className="h-4 w-4 text-slate-400" />
                             <span>Shipped</span>
                             <select
@@ -374,12 +381,12 @@ export function ShippingList({ orders }: ShippingListProps) {
                                     <option key={f.key} value={f.key}>{f.label}</option>
                                 ))}
                             </select>
-                        </div>
+                        </div>}
                     </div>
 
                     {/* Search and Action Buttons */}
                     <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                        {!serverFiltered && <div className="flex items-center gap-2 text-sm text-slate-600">
                             <span>Search:</span>
                             <input
                                 type="text"
@@ -391,10 +398,10 @@ export function ShippingList({ orders }: ShippingListProps) {
                                 className="border border-[#ccd2da] dark:border-slate-600 bg-white text-slate-600 rounded px-3 py-1 text-xs focus:outline-none focus:border-primary w-48"
                                 placeholder="Search Shipped List..."
                             />
-                        </div>
+                        </div>}
 
                         {/* Print Selected Invoices */}
-                        <button
+                        {canPrint && <button
                             onClick={printSelectedInvoices}
                             disabled={selectedIds.length === 0}
                             title="Print invoices for selected orders"
@@ -406,7 +413,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                         >
                             <PrinterIcon className="h-4 w-4" />
                             Print Invoices ({selectedIds.length})
-                        </button>
+                        </button>}
 
                         {/* Export Toolbar */}
                         <div className="flex items-center gap-1 genzo-export">
@@ -466,12 +473,14 @@ export function ShippingList({ orders }: ShippingListProps) {
                                     >
                                         Company Code <SortIcon field="trackingNumber" />
                                     </th>
+                                    <th className="px-3 py-2 text-left text-xs font-semibold text-foreground">Status</th>
                                     <th 
                                         onClick={() => handleSort('shippedAt')}
                                         className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] border-r border-b border-slate-200 cursor-pointer select-none hover:bg-slate-50"
                                     >
                                         Shipped Date <SortIcon field="shippedAt" />
                                     </th>
+                                    <th className="px-3 py-2 text-left text-xs font-semibold text-foreground">Delivered date</th>
                                     <th 
                                         onClick={() => handleSort('assignedTo')}
                                         className="text-left px-3 py-2 font-bold text-slate-600 text-[13px] border-b border-slate-200 cursor-pointer select-none hover:bg-slate-50"
@@ -495,11 +504,11 @@ export function ShippingList({ orders }: ShippingListProps) {
                                             />
                                         </td>
                                         <td className="px-3 py-2.5 text-[13px] font-semibold text-slate-700 whitespace-nowrap border-r border-b border-slate-200 align-middle">
-                                            <Link href={`/orders/${order.id}`}>
+                                            {canViewOrders ? <Link href={`/orders/${order.id}`}>
                                                 <span className="hover:text-primary transition-colors cursor-pointer text-[#e89c31] hover:underline">
-                                                    {order.number || order.id.slice(0, 8)}
+                                                    {order.number}
                                                 </span>
-                                            </Link>
+                                            </Link> : <span>{order.number}</span>}
                                         </td>
                                         <td className="px-3 py-2.5 text-[13px] border-r border-b border-slate-200 align-middle">
                                             <div className="font-semibold text-slate-800">{order.quantity}</div>
@@ -511,7 +520,7 @@ export function ShippingList({ orders }: ShippingListProps) {
                                             {order.shippingProvider ? formatProviderName(order.shippingProvider) : 'Unknown'}
                                         </td>
                                         <td className="px-3 py-2.5 text-[13px] font-mono text-xs whitespace-nowrap border-r border-b border-slate-200 align-middle">
-                                            {order.trackingNumber && order.shippingProvider ? (
+                                            {order.trackingNumber && order.shippingProvider && order.shippingProvider !== 'ROYAL_EXPRESS' ? (
                                                 <a
                                                     href={getTrackingUrl(order.shippingProvider, order.trackingNumber)}
                                                     target="_blank"
@@ -521,12 +530,14 @@ export function ShippingList({ orders }: ShippingListProps) {
                                                     {order.trackingNumber}
                                                 </a>
                                             ) : (
-                                                <span className="text-slate-400">—</span>
+                                                <span className="text-muted-foreground">{order.trackingNumber || 'Not recorded'}</span>
                                             )}
                                         </td>
+                                        <td className="px-3 py-2.5 text-xs text-foreground border-r border-b border-slate-200">{formatProviderName(order.status)}</td>
                                         <td className="px-3 py-2.5 text-[13px] text-slate-600 whitespace-nowrap border-r border-b border-slate-200 align-middle">
-                                            {order.shippedAt ? format(new Date(order.shippedAt), 'yyyy-MM-dd HH:mm:ss') : '—'}
+                                            {order.shippedAt ? new Intl.DateTimeFormat('en-LK', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Colombo' }).format(new Date(order.shippedAt)) : '—'}
                                         </td>
+                                        <td className="px-3 py-2.5 text-xs text-foreground whitespace-nowrap border-r border-b border-slate-200">{order.deliveredAt ? new Intl.DateTimeFormat('en-LK', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Colombo' }).format(new Date(order.deliveredAt)) : 'Not recorded'}</td>
                                         <td className="px-3 py-2.5 text-[13px] text-slate-600 whitespace-nowrap border-b border-slate-200 align-middle">
                                             {order.assignedTo?.name || <span className="text-slate-400">Unassigned</span>}
                                         </td>

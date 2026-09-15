@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { Notifications } from './notifications';
+import { BillingBadge } from './billing-badge';
 import { Tenant } from '@prisma/client';
 import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -29,11 +30,12 @@ export function Header({ tenant, userName, onMenuClick, readOnly = false }: { te
     const couriers = [
         { id: 'FARDA_EXPRESS', name: 'Farda Express' },
         { id: 'TRANS_EXPRESS', name: 'Trans Express' },
-        { id: 'ROYAL_EXPRESS', name: 'Royal Express' },
         { id: 'SL_POST', name: 'SL Post' },
     ];
 
-    const currentCourierName = couriers.find(c => c.id === defaultCourier)?.name || 'Select Courier';
+    const currentCourierName = defaultCourier === 'ROYAL_EXPRESS'
+        ? 'Select active courier'
+        : couriers.find(c => c.id === defaultCourier)?.name || 'Select Courier';
 
     // Click outside handler for dropdowns
     useEffect(() => {
@@ -99,7 +101,7 @@ export function Header({ tenant, userName, onMenuClick, readOnly = false }: { te
     };
 
     return (
-        <header className="sticky top-0 z-30 flex h-[62px] items-center gap-4 border-b border-white/10 bg-[#17181c] px-4 shadow-sm sm:px-6 print:hidden">
+        <header className="sticky top-0 z-30 flex min-h-[62px] flex-wrap items-center gap-x-2 gap-y-2 py-2 sm:gap-x-4 border-b border-white/10 bg-[#17181c] px-4 shadow-sm sm:px-6 print:hidden">
             <button
                 onClick={onMenuClick}
                 className="lg:hidden p-2 -ml-2 text-gray-300 hover:text-white rounded-md transition-colors"
@@ -160,7 +162,7 @@ export function Header({ tenant, userName, onMenuClick, readOnly = false }: { te
                                                 className="flex w-full items-center justify-between rounded p-1.5 text-left text-xs transition-colors hover:bg-accent"
                                             >
                                                 <span className="font-medium text-foreground">
-                                                    #{order.id.slice(0, 8)} - {order.product?.name || 'Product'}
+                                                    #{order.number} - {order.product?.name || 'Product'}
                                                 </span>
                                                 <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
                                                     order.status === 'CONFIRMED'
@@ -181,7 +183,13 @@ export function Header({ tenant, userName, onMenuClick, readOnly = false }: { te
                 )}
             </div>
 
-            <div className="flex-1" />
+            <div className="hidden lg:block lg:flex-1" />
+
+            {session?.user?.role === 'ADMIN' && !readOnly && (
+                <div className="order-last w-full min-w-0 border-t border-white/10 pt-2 sm:order-none sm:w-auto sm:border-0 sm:pt-0">
+                    <BillingBadge key={tenant.id} billingMode={tenant.billingMode} />
+                </div>
+            )}
 
             {/* Courier Selector Dropdown */}
             <div className="courier-dropdown-container relative">
@@ -225,7 +233,7 @@ export function Header({ tenant, userName, onMenuClick, readOnly = false }: { te
                 <span>{userName || 'Profile'}</span>
             </div>
 
-            {!readOnly && <Notifications />}
+            {!readOnly && <Notifications key={`${tenant.id}:${session?.user?.id ?? "loading"}`} />}
             <ThemeToggle />
             <span className="hidden text-lg sm:inline">🇱🇰</span>
 

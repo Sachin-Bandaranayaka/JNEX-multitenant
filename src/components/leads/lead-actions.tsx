@@ -458,6 +458,8 @@ export function LeadActions({
                             price: lead.product.price,
                         },
                         quantity: lead.order.quantity,
+                        total: lead.order.total,
+                        codAmount: lead.order.codAmount,
                         discount: lead.order.discount || undefined,
                     }}
                     fardaExpressClientId={tenantConfig.fardaExpressClientId}

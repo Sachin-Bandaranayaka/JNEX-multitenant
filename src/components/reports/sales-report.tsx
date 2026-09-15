@@ -2,6 +2,7 @@
 
 'use client';
 
+import { salesChartData } from '@/lib/report-chart-data';
 import { useState, useEffect } from 'react';
 import {
     LineChart,
@@ -20,9 +21,11 @@ interface SalesReportProps {
     endDate: string;
     totalOrders: number;
     canExport?: boolean;
+    filterQuery?: string;
 }
 
 interface SalesData {
+    totalOrders: number;
     dailyRevenue: Array<{
         date: string;
         revenue: number;
@@ -31,7 +34,7 @@ interface SalesData {
     averageOrderValue: number;
 }
 
-export function SalesReport({ startDate, endDate, totalOrders, canExport }: SalesReportProps) {
+export function SalesReport({ startDate, endDate, filterQuery = '', totalOrders, canExport }: SalesReportProps) {
     const [data, setData] = useState<SalesData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -42,13 +45,13 @@ export function SalesReport({ startDate, endDate, totalOrders, canExport }: Sale
                 setIsLoading(true);
                 setError(null);
                 const response = await fetch(
-                    `/api/reports/sales?startDate=${startDate}&endDate=${endDate}`
+                    `/api/reports/sales?startDate=${startDate}&endDate=${endDate}&${filterQuery}`
                 );
                 if (!response.ok) {
                     throw new Error('Failed to fetch sales data');
                 }
                 const jsonData = await response.json();
-                setData(jsonData);
+                setData(salesChartData(jsonData));
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'An error occurred');
             } finally {
@@ -56,10 +59,10 @@ export function SalesReport({ startDate, endDate, totalOrders, canExport }: Sale
             }
         };
         fetchData();
-    }, [startDate, endDate]);
+    }, [startDate, endDate, filterQuery]);
 
     const handleExport = (format: 'excel' | 'csv' | 'pdf') => {
-        const url = `/api/reports/sales/export?startDate=${startDate}&endDate=${endDate}&format=${format}`;
+        const url = `/api/reports/sales/export?startDate=${startDate}&endDate=${endDate}&${filterQuery}&format=${format}`;
         window.open(url, '_blank');
     };
 
@@ -112,7 +115,7 @@ export function SalesReport({ startDate, endDate, totalOrders, canExport }: Sale
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
                 <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
                     <div className="text-sm font-medium text-muted-foreground">Total Orders</div>
-                    <div className="mt-2 text-3xl font-bold text-foreground">{totalOrders}</div>
+                    <div className="mt-2 text-3xl font-bold text-foreground">{data?.totalOrders ?? 0}</div>
                 </div>
                 <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
                     <div className="text-sm font-medium text-muted-foreground">Total Revenue</div>

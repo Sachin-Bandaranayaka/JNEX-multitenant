@@ -58,6 +58,15 @@ describe('team member API access', () => {
     }
   });
 
+  it('allows workload alerts only with lead or product access', async () => {
+    for (const permission of ['VIEW_LEADS', 'VIEW_PRODUCTS']) {
+      withPermissions([permission]);
+      expect((await middleware(request('/api/notifications/workload')))?.status).toBe(200);
+    }
+    withPermissions(['VIEW_ORDERS']);
+    expect((await middleware(request('/api/notifications/workload')))?.status).toBe(403);
+  });
+
   it('denies a feature API the member lacks permission for', async () => {
     withPermissions(['VIEW_ORDERS']);
     const response = await middleware(request('/api/reports/sales'));

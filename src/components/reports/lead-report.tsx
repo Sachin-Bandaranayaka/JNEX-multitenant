@@ -1,5 +1,6 @@
 'use client';
 
+import { leadChartData } from '@/lib/report-chart-data';
 import { useState, useEffect } from 'react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
@@ -12,9 +13,11 @@ interface LeadReportProps {
     endDate: string;
     totalLeads: number;
     canExport?: boolean;
+    filterQuery?: string;
 }
 
 interface LeadData {
+    totalLeads: number;
     dailyLeads: Array<{ date: string; count: number; converted: number; }>;
     leadsByStatus: Array<{ status: string; count: number; }>;
     conversionRate: number;
@@ -23,7 +26,7 @@ interface LeadData {
 
 const STATUS_COLORS = { NEW: '#6366F1', CONTACTED: '#8B5CF6', QUALIFIED: '#EC4899', PROPOSAL: '#F43F5E', CONVERTED: '#10B981', LOST: '#6B7280' };
 
-export function LeadReport({ startDate, endDate, totalLeads, canExport }: LeadReportProps) {
+export function LeadReport({ startDate, endDate, filterQuery = '', totalLeads, canExport }: LeadReportProps) {
     const [data, setData] = useState<LeadData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -34,11 +37,11 @@ export function LeadReport({ startDate, endDate, totalLeads, canExport }: LeadRe
                 setIsLoading(true);
                 setError(null);
                 const response = await fetch(
-                    `/api/reports/leads?startDate=${startDate}&endDate=${endDate}`
+                    `/api/reports/leads?startDate=${startDate}&endDate=${endDate}&${filterQuery}`
                 );
                 if (!response.ok) { throw new Error('Failed to fetch lead data'); }
                 const jsonData = await response.json();
-                setData(jsonData);
+                setData(leadChartData(jsonData));
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'An error occurred');
             } finally {
@@ -46,10 +49,10 @@ export function LeadReport({ startDate, endDate, totalLeads, canExport }: LeadRe
             }
         };
         fetchData();
-    }, [startDate, endDate]);
+    }, [startDate, endDate, filterQuery]);
 
     const handleExport = (format: 'excel' | 'pdf') => {
-        const url = `/api/reports/leads/export?startDate=${startDate}&endDate=${endDate}&format=${format}`;
+        const url = `/api/reports/leads/export?startDate=${startDate}&endDate=${endDate}&${filterQuery}&format=${format}`;
         window.open(url, '_blank');
     };
 
@@ -93,7 +96,7 @@ export function LeadReport({ startDate, endDate, totalLeads, canExport }: LeadRe
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
                 <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
                     <div className="text-sm font-medium text-muted-foreground">Total Leads</div>
-                    <div className="mt-2 text-3xl font-bold text-foreground">{totalLeads}</div>
+                    <div className="mt-2 text-3xl font-bold text-foreground">{data?.totalLeads ?? 0}</div>
                 </div>
                 <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
                     <div className="text-sm font-medium text-muted-foreground">Conversion Rate</div>
@@ -101,7 +104,7 @@ export function LeadReport({ startDate, endDate, totalLeads, canExport }: LeadRe
                 </div>
                 <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
                     <div className="text-sm font-medium text-muted-foreground">Avg. Response Time</div>
-                    <div className="mt-2 text-3xl font-bold text-foreground">{(data?.averageResponseTime || 0).toFixed(1)} hours</div>
+                    <div className="mt-2 text-3xl font-bold text-foreground">Not recorded</div>
                 </div>
             </div>
 

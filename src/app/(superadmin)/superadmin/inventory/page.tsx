@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { StockReceiptForm } from './stock-receipt-form';
 import { StockControlPanel } from './stock-control-panel';
@@ -55,6 +56,8 @@ export default async function SuperAdminInventoryPage() {
       <Stat label="Low stock" value={lowStock} tone={lowStock > 0 ? 'warn' : 'default'} hint="At or below the alert threshold" />
       <Stat label="Out of stock" value={outOfStock} tone={outOfStock > 0 ? 'bad' : 'default'} hint="Active products with zero units" />
     </div>
+
+    <Link href="/superadmin/inventory/requests" className="inline-flex rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Review tenant stock requests</Link>
 
     <StockControlPanel tenants={options} />
 

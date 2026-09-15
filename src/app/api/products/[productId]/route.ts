@@ -89,7 +89,7 @@ export async function PUT(
           { status: 403 },
         );
     }
-    if (detailsAreChanging && !hasProductEditPermission) {
+    if (!hasProductEditPermission) {
         return new NextResponse('Forbidden: You do not have permission to edit product details.', { status: 403 });
     }
     // --- END PERMISSION CHECKS ---

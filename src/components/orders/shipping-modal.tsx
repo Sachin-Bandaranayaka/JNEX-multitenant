@@ -22,6 +22,8 @@ interface ShippingModalProps {
             price: number;
         };
         quantity: number;
+        total: number;
+        codAmount?: number | null;
         discount?: number;
     };
     fardaExpressClientId?: string;

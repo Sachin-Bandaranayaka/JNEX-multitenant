@@ -2,6 +2,7 @@ import { getScopedPrismaClient, prisma as globalPrisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { notFound, redirect } from 'next/navigation';
+import { OrderDetailActions } from '@/components/orders/order-detail-actions';
 import { ShippingForm } from '@/components/orders/shipping-form';
 import { OrderJourneyHeader } from '@/components/orders/order-journey-header';
 import { OrderSummaryCard } from '@/components/orders/order-summary-card';
@@ -73,7 +74,7 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderDe
     const invoiceNumber = `${tenant.invoicePrefix || 'INV'}-${order.number}`;
     const isFulfillmentFlow = query.flow === 'fulfillment';
     const fulfillmentStage = order.invoicePrinted || query.stage === 'complete' ? 'complete' : order.trackingNumber || query.stage === 'print' ? 'print' : 'ship';
-    const hasCourierConfiguration = Boolean(tenant.fardaExpressApiKey || tenant.transExpressApiKey || tenant.royalExpressApiKey);
+    const hasCourierConfiguration = Boolean(tenant.fardaExpressApiKey || tenant.transExpressApiKey);
     const prerequisites = [
         { label: 'Customer phone', ready: Boolean(order.customerPhone?.trim()) },
         { label: 'Delivery address', ready: Boolean(order.customerAddress?.trim()) },
@@ -89,7 +90,7 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderDe
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-1 break-words">
                             <Link href={isFulfillmentFlow ? '/dashboard' : '/orders'} className="hover:text-primary transition-colors flex items-center gap-1">
                                 <ArrowLeftIcon className="h-3 w-3" />
                                 {isFulfillmentFlow ? 'Work queue' : 'Back to Pending Orders'}
@@ -105,10 +106,11 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderDe
                                 </>
                             )}
                         </div>
-                        <h1 className="text-3xl font-bold text-foreground tracking-tight">Order Details</h1>
+                        <h1 className="text-3xl font-bold text-foreground tracking-tight">Order #{order.number}</h1>
                     </div>
                     <div className="flex items-center gap-3">
                         <OrderStatusBadge status={order.status} />
+                        {['PENDING', 'CONFIRMED'].includes(order.status) && !order.shippedAt && !order.trackingNumber && <OrderDetailActions order={order} user={session.user} hasTransExpress={Boolean(tenant.transExpressApiKey)} />}
                         {!isFulfillmentFlow && <PrintButton />}
                     </div>
                 </div>
@@ -119,6 +121,7 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderDe
                 <div className={`grid grid-cols-1 lg:grid-cols-12 ${isFulfillmentFlow ? 'gap-4' : 'gap-8'}`}>
                     {/* Left Column: Invoice/Order Details */}
                     <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+                        <OrderSummaryCard order={order} />
                         <div id="invoice" className={`bg-card border shadow-sm overflow-hidden scroll-mt-6 ${isFulfillmentFlow ? 'rounded-lg' : 'rounded-3xl'} ${isFulfillmentFlow && fulfillmentStage === 'print' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-border'}`}>
                             <OrderDetailInvoiceSection
                                 order={order}
@@ -132,7 +135,7 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderDe
                     <div className="lg:col-span-5 xl:col-span-4 space-y-6">
 
                         {/* Shipping Information Card */}
-                        {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && canUpdateShipping && (
+                        {['PENDING', 'CONFIRMED'].includes(order.status) && !order.shippedAt && canUpdateShipping && (
                             <div id="shipping" className={`bg-card border shadow-sm overflow-visible scroll-mt-6 ${isFulfillmentFlow ? 'rounded-lg' : 'rounded-3xl'} ${isFulfillmentFlow && fulfillmentStage === 'ship' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-border'}`}>
                                 <div className={`px-6 py-4 border-b border-border bg-muted/30 ${isFulfillmentFlow ? 'rounded-t-lg' : 'rounded-t-3xl'}`}>
                                     <h3 className="text-lg font-bold text-foreground">{isFulfillmentFlow ? 'Next: arrange shipping' : 'Shipping Information'}</h3>
@@ -150,14 +153,13 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderDe
                                             customerCity: order.shippingCityName || order.customerCity,
                                             product: { name: order.product.name, price: order.product.price, },
                                             quantity: order.quantity,
+                                            total: order.total, codAmount: order.codAmount,
                                             discount: order.discount || undefined,
                                         }}
                                         fardaExpressClientId={tenant.fardaExpressClientId || undefined}
                                         fardaExpressApiKey={tenant.fardaExpressApiKey || undefined}
                                         transExpressApiKey={tenant.transExpressApiKey || undefined}
-                                        royalExpressApiKey={tenant.royalExpressApiKey || undefined}
                                         transExpressOrderPrefix={tenant.transExpressOrderPrefix || undefined}
-                                        royalExpressOrderPrefix={tenant.royalExpressOrderPrefix || undefined}
                                         tenantId={tenant.id}
                                         orderNumber={order.number}
                                         guided={isFulfillmentFlow}
@@ -166,8 +168,6 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderDe
                             </div>
                         )}
 
-                        {/* Order Summary Card (Replaces old Journey) */}
-                        <OrderSummaryCard order={order} />
 
                         {/* Cancel Order Card */}
                         {order.status === 'CONFIRMED' && canDeleteOrders && (

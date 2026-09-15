@@ -4,6 +4,7 @@ import { getScopedPrismaClient } from '@/lib/prisma'; // <-- Import our scoped c
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { orderSearchConditions } from '@/lib/order-search';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
         const prisma = getScopedPrismaClient(session.user.tenantId);
 
         const { searchParams } = new URL(request.url);
-        const query = searchParams.get('q');
+        const query = searchParams.get('q')?.trim();
 
         if (!query) {
             return NextResponse.json({ error: 'Search query is required' }, { status: 400 });
@@ -29,12 +30,7 @@ export async function GET(request: Request) {
         // 3. This query is now SECURE. It will only search for orders within the current tenant.
         const orders = await prisma.order.findMany({
             where: {
-                OR: [
-                    { customerName: { contains: query, mode: 'insensitive' } },
-                    { customerPhone: { contains: query, mode: 'insensitive' } },
-                    { id: { contains: query, mode: 'insensitive' } },
-                    { trackingNumber: { contains: query, mode: 'insensitive' } },
-                ],
+                OR: orderSearchConditions(query),
             },
             include: {
                 product: {
@@ -63,6 +59,8 @@ export async function GET(request: Request) {
             }
             customerMap.get(key).orders.push({
                 id: order.id,
+                number: order.number,
+                total: order.total,
                 createdAt: order.createdAt,
                 status: order.status,
                 product: order.product,

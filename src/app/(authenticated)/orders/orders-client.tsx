@@ -6,7 +6,6 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { PendingOrderActions } from '@/components/orders/pending-order-actions';
 import { OrderStatusBadge } from '@/components/orders/order-status-badge';
-import { SyncOrdersButton } from '@/components/orders/sync-orders-button';
 import { Prisma } from '@prisma/client';
 import { User } from 'next-auth';
 import { toast } from 'sonner';
@@ -597,6 +596,7 @@ function BulkShipModal({
 // --- Main Component ---
 export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClientProps) {
   const [orders, setOrders] = useState(initialOrders);
+  useEffect(() => setOrders(initialOrders), [initialOrders]);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [isBulkShipModalOpen, setIsBulkShipModalOpen] = useState(false);
   const [bulkShippedOrderIds, setBulkShippedOrderIds] = useState<string[]>([]);
@@ -662,7 +662,6 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
       {/* Action Bar */}
       <div className="flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center gap-3">
-          {user.role === 'ADMIN' && <SyncOrdersButton />}
 
           {/* Bulk Ship button — shown when Trans Express configured and CONFIRMED orders selected */}
           {tenantConfig?.hasTransExpress && canShip && selectedConfirmedCount > 0 && (

@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { getScopedPrismaClient } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { transformProduct } from "@/lib/products";
 import { InventoryClient } from "./inventory-client";
 import { User } from "next-auth"; // Import the User type
 
@@ -26,15 +27,11 @@ export default async function InventoryPage() {
     orderBy: {
       name: 'asc'
     },
-    select: {
-      id: true,
-      code: true,
-      name: true,
-      price: true,
-      stock: true,
-      lowStockAlert: true,
+    include: {
+      _count: { select: { orders: true, leads: true } },
+      stockAdjustments: { orderBy: { createdAt: 'desc' }, take: 1 },
     }
   });
 
-  return <InventoryClient initialProducts={products} user={session.user as User} />;
+  return <InventoryClient initialProducts={products.map(transformProduct)} user={session.user as User} />;
 }

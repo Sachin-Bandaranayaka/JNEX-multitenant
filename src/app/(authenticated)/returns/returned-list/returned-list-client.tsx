@@ -13,6 +13,8 @@ interface ReturnedOrder {
   customerPhone: string;
   customerAddress: string;
   trackingNumber: string | null;
+  shippingProvider: string | null;
+  userId: string;
   quantity: number;
   total: number;
   updatedAt: string;
@@ -23,15 +25,11 @@ interface ReturnedOrder {
 export function ReturnedListClient({ orders }: { orders: ReturnedOrder[] }) {
   const [search, setSearch] = useState('');
 
-  const filtered = search
-    ? orders.filter((o) => {
-        const s = search.toLowerCase();
-        return o.customerName.toLowerCase().includes(s) ||
-          o.customerPhone.includes(s) ||
-          (o.trackingNumber || '').includes(s) ||
-          o.product.name.toLowerCase().includes(s);
-      })
-    : orders;
+  const [courier,setCourier] = useState(''); const [staff,setStaff] = useState(''); const [fromDate,setFromDate] = useState(''); const [toDate,setToDate] = useState('');
+  const filtered = orders.filter(order => {
+    const query = search.trim().toLowerCase();
+    return (!query || `${order.number} ${order.customerName} ${order.customerPhone} ${order.trackingNumber || ''} ${order.product.name}`.toLowerCase().includes(query)) && (!courier || order.shippingProvider === courier) && (!staff || order.userId === staff) && (!fromDate || new Date(order.updatedAt).getTime() >= new Date(`${fromDate}T00:00:00+05:30`).getTime()) && (!toDate || new Date(order.updatedAt).getTime() < new Date(`${toDate}T00:00:00+05:30`).getTime()+86400000);
+  });
 
   const exportColumns = [
     { key: 'number', label: '#' },
@@ -41,7 +39,7 @@ export function ReturnedListClient({ orders }: { orders: ReturnedOrder[] }) {
     { key: 'tracking', label: 'Tracking No' },
     { key: 'price', label: 'Price' },
     { key: 'qty', label: 'Qty' },
-    { key: 'date', label: 'Return Date' },
+    { key: 'date', label: 'Last Updated' },
   ];
   const exportData = filtered.map((o) => ({
     number: o.number,
@@ -61,6 +59,12 @@ export function ReturnedListClient({ orders }: { orders: ReturnedOrder[] }) {
         <p className="text-sm text-muted-foreground">All orders that have been returned</p>
       </div>
 
+      <section aria-label="Return filters" className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
+        <label className="text-xs text-muted-foreground">Courier<select value={courier} onChange={e=>setCourier(e.target.value)} className="mt-1 block rounded-md border-border bg-background text-sm"><option value="">All couriers</option>{[...new Set(orders.map(order=>order.shippingProvider).filter(Boolean))].map(value=><option key={value} value={value!}>{value!.replace(/_/g,' ')}{value==='ROYAL_EXPRESS'?' (historical)':''}</option>)}</select></label>
+        <label className="text-xs text-muted-foreground">Staff<select value={staff} onChange={e=>setStaff(e.target.value)} className="mt-1 block rounded-md border-border bg-background text-sm"><option value="">All staff</option>{[...new Map(orders.map(order=>[order.userId,order.assignedTo?.name])).entries()].map(([id,name])=><option key={id} value={id}>{name || 'Unnamed staff'}</option>)}</select></label>
+        <label className="text-xs text-muted-foreground">Last updated from<input type="date" value={fromDate} onChange={e=>setFromDate(e.target.value)} className="mt-1 block rounded-md border-border bg-background text-sm" /></label><label className="text-xs text-muted-foreground">Last updated to<input type="date" value={toDate} onChange={e=>setToDate(e.target.value)} className="mt-1 block rounded-md border-border bg-background text-sm" /></label>
+        <button onClick={()=>{setSearch('');setCourier('');setStaff('');setFromDate('');setToDate('');}} className="rounded-md border border-border px-3 py-2 text-sm text-foreground">Clear filters</button><p className="text-xs text-muted-foreground">Returned orders only · Sri Lanka dates</p>
+      </section>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm text-muted-foreground">
           Showing {filtered.length} of {orders.length} entries
@@ -68,7 +72,7 @@ export function ReturnedListClient({ orders }: { orders: ReturnedOrder[] }) {
         <div className="flex items-center gap-3 flex-wrap">
           <div className="relative">
             <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)}
+            <input type="text" aria-label="Search returned orders" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)}
               className="h-8 pl-8 pr-3 w-48 rounded-lg border border-border bg-background text-sm focus:ring-2 focus:ring-primary/20 focus:outline-none" />
           </div>
           <DataExport data={exportData} columns={exportColumns} filename="returned_orders" />
@@ -88,7 +92,7 @@ export function ReturnedListClient({ orders }: { orders: ReturnedOrder[] }) {
                 <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px]">Price (Rs)</th>
                 <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px]">Qty</th>
                 <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px] hidden md:table-cell">Staff</th>
-                <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px] hidden lg:table-cell">Return Date</th>
+                <th className="text-left px-4 py-2.5 font-bold text-slate-600 text-[13px] hidden lg:table-cell">Last updated</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">

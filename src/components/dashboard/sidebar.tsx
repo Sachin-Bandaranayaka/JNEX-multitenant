@@ -20,6 +20,7 @@ import {
     ArrowUturnLeftIcon,
     UserGroupIcon,
     BanknotesIcon,
+    ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -116,6 +117,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
     const has = (perm: string) => userRole === 'ADMIN' || userPermissions.includes(perm);
 
     const getActiveGroup = (path: string) => {
+        if (path.startsWith('/shipping')) return 'Shipping';
         if (path.startsWith('/leads')) return 'Leads';
         if (path.startsWith('/orders') || path.startsWith('/search')) return 'Orders';
         if (path.startsWith('/returns')) return 'Return';
@@ -223,21 +225,19 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                             onToggle={() => handleToggleGroup('Stock')}
                             links={[
                                 { href: '/inventory', label: 'Stock List' },
-                                { href: '/products', label: 'Products' },
+                                { href: '/inventory/adjustments', label: 'Stock Adjustment' },
+                                { href: '/inventory/adjustment-summary', label: 'Adjustment Summary' },
+                                { href: '/inventory/waste', label: 'Stock Waste' },
                             ]}
                             pathname={pathname} onNavigate={closeMobileSidebar}
                         />
                     )}
 
                     {has('VIEW_SHIPPING') && (
-                        <NavLink
-                            href="/shipping"
-                            icon={<PaperAirplaneIcon className="h-5 w-5" />}
-                            isActive={pathname.startsWith('/shipping')}
-                            onClick={closeMobileSidebar}
-                        >
-                            Shipping
-                        </NavLink>
+                        <NavGroup icon={<PaperAirplaneIcon className="h-5 w-5" />} label="Shipping"
+                            isExpanded={expandedGroup === 'Shipping'} onToggle={() => handleToggleGroup('Shipping')}
+                            links={[{ href: '/shipping/ship', label: 'Ship' }, { href: '/shipping', label: 'Shipped List' }, { href: '/shipping/summary', label: 'Shipped Summary' }, { href: '/shipping/delivery', label: 'Delivery' }]}
+                            pathname={pathname} onNavigate={closeMobileSidebar} />
                     )}
 
                     {has('VIEW_LEADS') && (
@@ -298,6 +298,11 @@ export function Sidebar({ isOpen, setIsOpen, isMobile, tenant, userRole, userNam
                     {userRole === 'ADMIN' && (
                         <NavLink href="/billing" icon={<BanknotesIcon className="h-5 w-5" />}
                             isActive={pathname.startsWith('/billing')} onClick={closeMobileSidebar}>Billing</NavLink>
+                    )}
+
+                    {userRole === 'ADMIN' && (
+                        <NavLink href="/audit" icon={<ClipboardDocumentListIcon className="h-5 w-5" />}
+                            isActive={pathname.startsWith('/audit')} onClick={closeMobileSidebar}>Audit Log</NavLink>
                     )}
 
                     {has('MANAGE_SETTINGS') && (

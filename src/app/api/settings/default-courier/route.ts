@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { defaultShippingProvider } = body;
 
-    if (!defaultShippingProvider || !Object.values(ShippingProvider).includes(defaultShippingProvider)) {
+    if (!defaultShippingProvider || defaultShippingProvider === 'ROYAL_EXPRESS' || !Object.values(ShippingProvider).includes(defaultShippingProvider)) {
       return NextResponse.json({ error: 'Invalid shipping provider' }, { status: 400 });
     }
 

@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "Order" ADD COLUMN     "codAmount" DOUBLE PRECISION,
+ADD COLUMN     "deliveryFee" DOUBLE PRECISION,
+ADD COLUMN     "prepaidAmount" DOUBLE PRECISION,
+ADD COLUMN     "unitPrice" DOUBLE PRECISION;
+

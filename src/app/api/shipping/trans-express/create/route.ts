@@ -37,6 +37,10 @@ export async function POST(request: Request) {
 
     const tenantId = session.user.tenantId;
 
+    const savedOrder = await prisma.order.findFirst({ where: { id: orderId, tenantId } });
+    if (!savedOrder) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    if (!['PENDING', 'CONFIRMED'].includes(savedOrder.status) || savedOrder.shippedAt || savedOrder.trackingNumber) return NextResponse.json({ error: 'Order is already booked or cannot be shipped.' }, { status: 409 });
+
     // Get the tenant's Trans Express API key
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -74,7 +78,7 @@ export async function POST(request: Request) {
       },
       service || 'Standard',
       cityName,
-      orderTotal || 0,
+      savedOrder.codAmount ?? savedOrder.total,
       tenantId,
       orderId,
       orderPrefix,

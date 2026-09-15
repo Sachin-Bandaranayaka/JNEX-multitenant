@@ -1,3 +1,4 @@
+import { parseReportFilters } from '@/lib/report-filters';
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
@@ -26,6 +27,7 @@ export async function GET(request: Request) {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       tenantId: session.user.tenantId,
+      ...parseReportFilters(searchParams),
     });
 
     const fileBuffer = await exportProductReport(reportData, format);

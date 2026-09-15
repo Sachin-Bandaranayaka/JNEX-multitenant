@@ -1,5 +1,6 @@
 'use client';
 
+import { productChartData } from '@/lib/report-chart-data';
 import { useState, useEffect } from 'react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
@@ -12,9 +13,11 @@ interface ProductReportProps {
     endDate: string;
     totalProducts: number;
     canExport?: boolean;
+    filterQuery?: string;
 }
 
 interface ProductData {
+    totalProducts: number;
     topProducts: Array<{ name: string; sales: number; revenue: number; }>;
     stockLevels: Array<{ name: string; stock: number; lowStockAlert: number; }>;
     totalRevenue: number;
@@ -23,7 +26,7 @@ interface ProductData {
 
 const COLORS = ['#6366F1', '#8B5CF6', '#EC4899', '#F43F5E', '#F59E0B'];
 
-export function ProductReport({ startDate, endDate, totalProducts, canExport }: ProductReportProps) {
+export function ProductReport({ startDate, endDate, filterQuery = '', totalProducts, canExport }: ProductReportProps) {
     const [data, setData] = useState<ProductData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -34,11 +37,11 @@ export function ProductReport({ startDate, endDate, totalProducts, canExport }: 
                 setIsLoading(true);
                 setError(null);
                 const response = await fetch(
-                    `/api/reports/products?startDate=${startDate}&endDate=${endDate}`
+                    `/api/reports/products?startDate=${startDate}&endDate=${endDate}&${filterQuery}`
                 );
                 if (!response.ok) { throw new Error('Failed to fetch product data'); }
                 const jsonData = await response.json();
-                setData(jsonData);
+                setData(productChartData(jsonData));
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'An error occurred');
             } finally {
@@ -46,10 +49,10 @@ export function ProductReport({ startDate, endDate, totalProducts, canExport }: 
             }
         };
         fetchData();
-    }, [startDate, endDate]);
+    }, [startDate, endDate, filterQuery]);
 
     const handleExport = (format: 'excel' | 'pdf') => {
-        const url = `/api/reports/products/export?startDate=${startDate}&endDate=${endDate}&format=${format}`;
+        const url = `/api/reports/products/export?startDate=${startDate}&endDate=${endDate}&${filterQuery}&format=${format}`;
         window.open(url, '_blank');
     };
 
@@ -93,7 +96,7 @@ export function ProductReport({ startDate, endDate, totalProducts, canExport }: 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
                 <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
                     <div className="text-sm font-medium text-muted-foreground">Total Products</div>
-                    <div className="mt-2 text-3xl font-bold text-foreground">{totalProducts}</div>
+                    <div className="mt-2 text-3xl font-bold text-foreground">{data?.totalProducts ?? 0}</div>
                 </div>
                 <div className="rounded-3xl bg-card p-6 border border-border shadow-sm">
                     <div className="text-sm font-medium text-muted-foreground">Total Revenue</div>

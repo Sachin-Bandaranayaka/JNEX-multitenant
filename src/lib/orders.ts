@@ -66,6 +66,7 @@ export async function createOrderFromLead(data: CreateOrderData) {
           status: OrderStatus.CONFIRMED,
           quantity: data.quantity,
           total: total,
+          unitPrice: lead.product.price, deliveryFee: 0, prepaidAmount: 0, codAmount: total,
           discount: discount,
           customerName: csvData.name,
           customerPhone: csvData.phone,
@@ -79,7 +80,9 @@ export async function createOrderFromLead(data: CreateOrderData) {
           shippingCityName: data.shippingLocation?.cityName,
           customerEmail: csvData.email,
           notes: csvData.notes,
-          shippingProvider: tenant.defaultShippingProvider || ShippingProvider.FARDA_EXPRESS,
+          shippingProvider: tenant.defaultShippingProvider === ShippingProvider.ROYAL_EXPRESS
+            ? null
+            : tenant.defaultShippingProvider || ShippingProvider.FARDA_EXPRESS,
         },
       });
 

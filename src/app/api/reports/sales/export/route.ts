@@ -1,3 +1,4 @@
+import { parseReportFilters } from '@/lib/report-filters';
 export const dynamic = 'force-dynamic';
 
 // File: src/app/api/reports/sales/export/route.ts
@@ -35,6 +36,7 @@ export async function GET(request: Request) {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       tenantId: session.user.tenantId,
+      ...parseReportFilters(searchParams),
     });
 
     // 4. Convert the data into a file buffer

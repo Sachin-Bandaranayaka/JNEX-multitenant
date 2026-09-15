@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { SearchOrderTimeline } from '@/components/orders/search-order-timeline';
 import { MagnifyingGlassIcon, UserIcon, PhoneIcon, MapPinIcon } from '@heroicons/react/24/outline';
 
 interface SearchResult {
@@ -14,6 +15,8 @@ interface SearchResult {
     customerAddress: string;
     orders: Array<{
         id: string;
+        number: number;
+        total: number;
         createdAt: Date;
         status: string;
         product: {
@@ -68,9 +71,9 @@ export default function SearchPage() {
     return (
         <div className="max-w-5xl mx-auto space-y-8 p-4 sm:p-6 lg:p-8">
             <div className="text-center space-y-4">
-                <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">Customer Search</h1>
+                <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">Search Orders</h1>
                 <p className="text-muted-foreground max-w-lg mx-auto text-lg">
-                    Find customers and their order history by name or phone number
+                    Find orders by order number, customer, phone number, or tracking reference
                 </p>
             </div>
 
@@ -84,7 +87,7 @@ export default function SearchPage() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                            placeholder="Enter customer name or phone number..."
+                            placeholder="Order number, customer, phone, or tracking..."
                             className="w-full h-14 pl-12 pr-4 text-lg bg-card border border-border rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-muted-foreground/70"
                         />
                     </div>
@@ -167,7 +170,7 @@ export default function SearchPage() {
                                         <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Order History</h4>
                                         <div className="space-y-4">
                                             {result.orders.map((order) => (
-                                                <div key={order.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
+                                                <div key={order.id} className="group flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-muted/30 hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
                                                     <div className="flex items-start gap-4">
                                                         <div className="flex-1">
                                                             <div className="flex items-center gap-3 mb-1">
@@ -175,7 +178,7 @@ export default function SearchPage() {
                                                                     href={`/orders/${order.id}`}
                                                                     className="text-base font-bold text-foreground hover:text-primary transition-colors"
                                                                 >
-                                                                    Order #{order.id.slice(0, 8)}
+                                                                    Order #{order.number}
                                                                 </Link>
                                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1 inset-0 ${getStatusColor(order.status)}`}>
                                                                     {order.status}
@@ -197,10 +200,11 @@ export default function SearchPage() {
                                                                 {new Intl.NumberFormat('en-LK', {
                                                                     style: 'currency',
                                                                     currency: 'LKR'
-                                                                }).format(order.product.price * order.quantity)}
+                                                                }).format(order.total)}
                                                             </p>
                                                         </div>
                                                     </div>
+                                                    <SearchOrderTimeline orderId={order.id} number={order.number} />
                                                 </div>
                                             ))}
                                         </div>

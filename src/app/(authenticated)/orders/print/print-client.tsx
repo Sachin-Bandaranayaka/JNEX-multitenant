@@ -2,8 +2,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Invoice } from '@/components/orders/invoice';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,6 +31,13 @@ function chunk<T>(array: T[], size: number): T[][] {
 
 
 export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
+  const [layoutSize, setLayoutSize] = useState(8);
+  const [startingPrint, setStartingPrint] = useState(false);
+  const [fitCheckOrders, setFitCheckOrders] = useState<OrderWithProduct[]>([]);
+  const fitCheckRef = useRef<HTMLDivElement>(null);
+  const [fitError, setFitError] = useState<string | null>(null);
+  const columns = layoutSize <= 2 ? 1 : 2;
+  const rowsPerPage = layoutSize / columns;
   const [orders, setOrders] = useState(initialOrders);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
@@ -108,40 +114,55 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
     };
   }, [printBatchId]);
 
-  // --- FIX: Use useEffect to trigger print when ordersToPrint changes ---
   useEffect(() => {
-    if (ordersToPrint.length > 0) {
-      // Use requestAnimationFrame to ensure DOM has painted, then delay to be extra sure
-      requestAnimationFrame(() => {
-        const timer = setTimeout(() => {
-          window.print();
-        }, 1000); // Increased delay for safety
-        return () => clearTimeout(timer);
-      });
-    }
+    if (!ordersToPrint.length) return;
+    const timer = setTimeout(() => window.print(), 1000);
+    return () => clearTimeout(timer);
   }, [ordersToPrint]);
 
+  // Measure the same invoice component at the selected paper-cell dimensions
+  // before any print batch is created. Long content must never be silently cut.
+  const checkPrintFit = async (candidates: OrderWithProduct[]) => {
+    setFitError(null);
+    setFitCheckOrders(candidates);
+    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    await document.fonts.ready;
+    const cells = Array.from(fitCheckRef.current?.querySelectorAll<HTMLElement>('[data-fit-order]') ?? []);
+    if (cells.length !== candidates.length) throw new Error('Could not check invoice sizes. Please try again.');
+    const overflowing = cells.filter(cell => cell.scrollHeight > cell.clientHeight + 1 || cell.scrollWidth > cell.clientWidth + 1);
+    if (overflowing.length) {
+      const numbers = overflowing.slice(0, 5).map(cell => `#${cell.dataset.fitOrder}`).join(', ');
+      const message = `Invoice ${numbers}${overflowing.length > 5 ? ' and more' : ''} does not fit this layout. Choose fewer invoices per page${layoutSize === 1 ? ' or shorten the order notes/address before printing' : ''}.`;
+      setFitError(message);
+      throw new Error(message);
+    }
+  };
+
   const startPrintBatch = async (orderedIds: string[]) => {
+    const candidates = orderedIds.map(id => orders.find(order => order.id === id)).filter(Boolean) as OrderWithProduct[];
+    await checkPrintFit(candidates);
     const response = await fetch('/api/orders/print-batches', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderIds: orderedIds }),
     });
     if (!response.ok) throw new Error('Could not create print batch');
     const batch = await response.json();
     setPrintBatchId(batch.id);
-    setOrdersToPrint(orderedIds.map(id => orders.find(o => o.id === id)).filter(Boolean) as OrderWithProduct[]);
+    setOrdersToPrint(candidates);
   };
 
   const handlePrint = async () => {
+    if (startingPrint || printBatchId) return;
     if (selectedOrderIds.length === 0) {
       toast.warning('Please select at least one invoice to print.');
       return;
     }
+    setStartingPrint(true);
     try {
       // Preserve exactly the order currently visible to the operator.
       await startPrintBatch(currentList.filter(o => selectedOrderIds.includes(o.id)).map(o => o.id));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not start printing');
-    }
+    } finally { setStartingPrint(false); }
   };
 
   const confirmPrinted = async () => {
@@ -158,18 +179,56 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
   };
 
   const reprintLastBatch = async () => {
-    const response = await fetch('/api/orders/print-batches');
-    const batch = response.ok ? await response.json() : null;
-    if (!batch?.orderIds?.length) return toast.info('No previous print batch found.');
-    setPrintBatchId(batch.id);
-    setOrdersToPrint(batch.orderIds.map((id: string) => orders.find(o => o.id === id)).filter(Boolean));
+    if (startingPrint || printBatchId) return;
+    setStartingPrint(true);
+    try {
+      const response = await fetch('/api/orders/print-batches');
+      const batch = response.ok ? await response.json() : null;
+      if (!batch?.orderIds?.length) return toast.info('No previous print batch found.');
+      const candidates = batch.orderIds.map((id: string) => orders.find(order => order.id === id)).filter(Boolean) as OrderWithProduct[];
+      if (candidates.length !== batch.orderIds.length) throw new Error('Some invoices from the last batch are no longer available. Select the invoices to print again.');
+      await checkPrintFit(candidates);
+      setPrintBatchId(batch.id);
+      setOrdersToPrint(candidates);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not reprint the last batch');
+    } finally { setStartingPrint(false); }
   };
-
 
 
   return (
     <>
       <style jsx global>{`
+        /* Keep sender identity readable even when recipient addresses are long. */
+        .jnex-print-surface > .flex.justify-between:first-child {
+          display: grid;
+          grid-template-columns: minmax(0, 35fr) minmax(0, 65fr);
+          gap: 2mm;
+        }
+        .jnex-print-surface > .flex.justify-between:first-child > div {
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+        .jnex-print-surface > .flex.justify-between:first-child > .text-right > div {
+          font-size: var(--invoice-recipient-size);
+        }
+        /* Dashboard table spacing must not override physical invoice sizing. */
+        .jnex-print-surface table:not(.no-genzo-override) thead th,
+        .jnex-print-surface table:not(.no-genzo-override) tbody td {
+          padding: 0.5mm 0 !important;
+          font-size: inherit !important;
+          color: #000 !important;
+          white-space: normal !important;
+        }
+        .jnex-print-surface table:not(.no-genzo-override) .text-right {
+          text-align: right !important;
+        }
+        .jnex-print-surface table:not(.no-genzo-override) th:not(:first-child),
+        .jnex-print-surface table:not(.no-genzo-override) td:last-child,
+        .jnex-print-surface table:not(.no-genzo-override) tbody td:nth-child(2) {
+          white-space: nowrap !important;
+          padding-left: 1mm !important;
+        }
         @media screen {
           .print-only {
             display: none !important;
@@ -239,7 +298,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             height: 286mm;
             page-break-after: always;
             break-after: page;
-            overflow: hidden;
+            overflow: visible;
             position: relative;
           }
           .a4-page:last-child {
@@ -248,8 +307,9 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
           }
           .invoice-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-auto-rows: auto;
+            grid-template-columns: repeat(var(--invoice-columns, 2), minmax(0, 1fr));
+            grid-template-rows: repeat(var(--invoice-rows, 4), minmax(0, 1fr));
+            height: 100%;
             width: 100%;
             /* Use a physical stroke instead of a CSS-pixel hairline. Some
                Windows/Linux print pipelines round 1px borders away while
@@ -259,7 +319,7 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
           }
           .invoice-cell {
             box-sizing: border-box;
-            overflow: hidden;
+            overflow: visible;
             color: #000 !important;
             background-color: #fff !important;
             background: #fff !important;
@@ -296,6 +356,10 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
             padding: 0 !important;
             margin: 0 !important;
           }
+          /* Explicitly hide preview controls even when they are direct body children. */
+          [class~="print:hidden"] {
+            display: none !important;
+          }
           /* Remove main padding so invoices use full page area */
           main {
             padding: 0 !important;
@@ -307,22 +371,25 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
 
       <div className="print:hidden container mx-auto p-4 space-y-4 bg-background text-foreground min-h-screen">
         {/* On-screen UI with format selector */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap justify-between items-center gap-3">
           <h1 className="text-2xl font-bold">Print Invoices</h1>
-          <div className="flex items-center space-x-4">
-            <Button onClick={reprintLastBatch} variant="outline">Reprint Last Batch</Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={reprintLastBatch} disabled={startingPrint || Boolean(printBatchId)} variant="outline">Reprint Last Batch</Button>
+            <label className="text-xs text-muted-foreground">A4 invoice layout<select aria-label="A4 invoice layout" value={layoutSize} disabled={startingPrint || Boolean(printBatchId) || awaitingPrintConfirmation} onChange={event=>{ setLayoutSize(Number(event.target.value)); setFitError(null); }} className="ml-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground"><option value={1}>Full page · 1 invoice</option><option value={2}>Half page · 2 invoices</option><option value={4}>Quarter page · 4 invoices</option><option value={8}>Compact · 8 invoices</option></select></label>
             <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
-              <SelectTrigger className="w-[180px] bg-card border-border"><SelectValue /></SelectTrigger>
+              <SelectTrigger aria-label="Invoice sort order" className="w-[180px] bg-card border-border"><SelectValue /></SelectTrigger>
               <SelectContent><SelectItem value="newest">Newest First</SelectItem><SelectItem value="oldest">Oldest First</SelectItem></SelectContent>
             </Select>
 
-            <Button onClick={handlePrint} disabled={selectedOrderIds.length === 0} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={handlePrint} disabled={selectedOrderIds.length === 0 || startingPrint || Boolean(printBatchId)} className="bg-blue-600 hover:bg-blue-700">
               Print Selected ({selectedOrderIds.length})
             </Button>
           </div>
         </div>
 
 
+        <p className="text-xs text-muted-foreground">Preview width matches the selected paper layout. Scroll horizontally on smaller screens. Invoice fit is checked before printing; choose fewer invoices per sheet if content is too long.</p>
+        {fitError && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{fitError}</p>}
         <Tabs value={activeTab} onValueChange={value => setActiveTab(value as any)} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-muted text-muted-foreground">
             <TabsTrigger value="pending" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white">Pending ({pendingOrders.length})</TabsTrigger>
@@ -331,8 +398,8 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
           <div className="mt-4 rounded-lg bg-card ring-1 ring-border">
             <div className="flex justify-between items-center gap-4 px-4 py-3 border-b border-border">
               <div className="flex items-center gap-4">
-                <input type="checkbox" className="h-4 w-4 rounded bg-input border-border text-indigo-600 focus:ring-indigo-500" onChange={handleSelectAll} checked={currentList.length > 0 && selectedOrderIds.length === currentList.length} />
-                <label className="text-sm font-medium">Select All</label>
+                <input id="select-all-invoices" type="checkbox" className="h-4 w-4 rounded bg-input border-border text-indigo-600 focus:ring-indigo-500" onChange={handleSelectAll} checked={currentList.length > 0 && selectedOrderIds.length === currentList.length} />
+                <label htmlFor="select-all-invoices" className="text-sm font-medium">Select All</label>
               </div>
               {activeTab === 'printed' && (
                 <Button onClick={() => updatePrintStatus(selectedOrderIds, false)} disabled={selectedOrderIds.length === 0} variant="outline" size="sm">
@@ -340,26 +407,26 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
                 </Button>
               )}
             </div>
-            {/* Cards sized to fit the true-size (100mm wide) print preview below */}
-            <div className="grid [grid-template-columns:repeat(auto-fill,minmax(420px,1fr))] gap-4 p-4 max-h-[70vh] overflow-y-auto">
+            {/* Preview uses the selected layout width and scrolls on narrow screens. */}
+            <div className="grid grid-cols-1 gap-4 p-4 max-h-[70vh] overflow-auto">
               {currentList.map((order, index) => (
-                <div key={order.id} className={`rounded-lg bg-card p-1 shadow-md relative cursor-pointer transition-all ${selectedOrderIds.includes(order.id) ? 'ring-2 ring-indigo-500' : 'ring-1 ring-border'}`} onClick={() => handleSelectOrder(order.id)}>
+                <div key={order.id} style={{ minWidth: `${200 / columns + 4}mm` }} className={`rounded-lg bg-card p-1 shadow-md relative cursor-pointer transition-all ${selectedOrderIds.includes(order.id) ? 'ring-2 ring-indigo-500' : 'ring-1 ring-border'}`} onClick={() => handleSelectOrder(order.id)}>
                   <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
-                    <input type="checkbox" className="h-5 w-5 rounded bg-input border-border text-indigo-600 focus:ring-indigo-500 pointer-events-none" checked={selectedOrderIds.includes(order.id)} readOnly />
+                    <input type="checkbox" aria-label={`Select invoice for order #${order.number}`} className="h-5 w-5 rounded bg-input border-border text-indigo-600 focus:ring-indigo-500" checked={selectedOrderIds.includes(order.id)} onClick={event => event.stopPropagation()} onChange={() => handleSelectOrder(order.id)} />
                     <span className="bg-primary text-primary-foreground text-xs font-bold px-2 py-0.5 rounded-full shadow-sm">
                       #{index + 1}
                     </span>
                   </div>
                   <div className="flex justify-between items-start mb-1 pl-20 text-foreground">
-                    <h3 className="text-xs font-bold">Order ID: {order.id.substring(0, 8)}...</h3>
+                    <h3 className="text-xs font-bold">Order #{order.number}</h3>
                     <div className="text-right">
                       <p className="text-xs">{format(new Date(order.createdAt), 'dd/MM/yyyy')}</p>
                       <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block ${order.status === OrderStatus.SHIPPED ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100' : 'bg-muted text-muted-foreground'}`}>{order.status}</span>
                     </div>
                   </div>
-                  {/* True-width, content-height preview matching the compact print cell */}
-                  <div className="mx-auto w-[100mm] bg-white outline-dashed outline-1 outline-gray-300">
-                    <Invoice order={order} businessName={tenant.businessName} businessAddress={tenant.businessAddress} businessPhone={tenant.businessPhone} invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`} isMultiPrint={true} showPrintControls={false} printIndex={index + 1} />
+                  {/* Content height remains visible; fit is checked before printing. */}
+                  <div className="jnex-print-surface mx-auto bg-white outline-dashed outline-1 outline-gray-300" style={{ width: `${199.5 / columns - 0.25}mm`, overflowWrap: 'anywhere', '--invoice-recipient-size': layoutSize === 4 ? '10pt' : layoutSize === 8 ? '9pt' : '13pt' } as React.CSSProperties}>
+                    <Invoice order={order} businessName={tenant.businessName} businessAddress={tenant.businessAddress} businessPhone={tenant.businessPhone} invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`} isMultiPrint={layoutSize === 8} fullPage={layoutSize !== 8} showPrintControls={false} printIndex={index + 1} />
                   </div>
                 </div>
               ))}
@@ -382,25 +449,31 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
         </div>
       )}
 
-      {/* --- Fixed 2x4 grid: exactly 8 invoices per A4 sheet --- */}
+      <div ref={fitCheckRef} aria-hidden="true" className="jnex-print-surface print:hidden" style={{ position: 'fixed', left: '-100000px', top: 0, visibility: 'hidden', pointerEvents: 'none', width: '200mm' }}>
+        {fitCheckOrders.map(order => <div key={order.id} data-fit-order={order.number} style={{ width: `${199.5 / columns - 0.25}mm`, height: `${285.5 / rowsPerPage - 0.25}mm`, overflowWrap: 'anywhere', '--invoice-recipient-size': layoutSize === 4 ? '10pt' : layoutSize === 8 ? '9pt' : '13pt' } as React.CSSProperties}>
+          <Invoice order={order} businessName={tenant.businessName} businessAddress={tenant.businessAddress} businessPhone={tenant.businessPhone} invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`} isMultiPrint={layoutSize === 8} fullPage={layoutSize !== 8} showPrintControls={false} printIndex={1} />
+        </div>)}
+      </div>
+
+      {/* Selected A4 layout; content is measured before creating a print batch. */}
       <div className="jnex-print-surface print-only bg-white text-black">
-        {chunk(ordersToPrint, 8).map((pageOrders, pageIndex) => {
-          const totalRows = Math.ceil(pageOrders.length / 2);
+        {chunk(ordersToPrint, layoutSize).map((pageOrders, pageIndex) => {
+          const totalRows = rowsPerPage;
           return (
             <div key={pageIndex} className="a4-page">
-              <div className="invoice-grid">
+              <div className="invoice-grid" style={{ '--invoice-columns': columns, '--invoice-rows': rowsPerPage, '--invoice-recipient-size': layoutSize === 4 ? '10pt' : layoutSize === 8 ? '9pt' : '13pt' } as React.CSSProperties}>
                 {pageOrders.map((order, idx) => {
-                  const col = idx % 2;
-                  const row = Math.floor(idx / 2);
+                  const col = idx % columns;
+                  const row = Math.floor(idx / columns);
                   // A physical-width stroke survives browser/OS/printer DPI
                   // conversion more reliably than a 1px CSS hairline.
-                  const borderRight = col === 0 ? '0.25mm solid #000' : 'none';
+                  const borderRight = col < columns - 1 ? '0.25mm solid #000' : 'none';
                   const borderBottom = row === totalRows - 1 ? 'none' : '0.25mm solid #000';
                   return (
                     <div
                       key={order.id}
                       className="invoice-cell"
-                      style={{ borderRight, borderBottom }}
+                      style={{ borderRight, borderBottom, overflowWrap: 'anywhere' }}
                     >
                       <Invoice
                         order={order}
@@ -408,9 +481,9 @@ export function PrintClient({ initialOrders, tenant }: PrintClientProps) {
                         businessAddress={tenant.businessAddress}
                         businessPhone={tenant.businessPhone}
                         invoiceNumber={`${tenant.invoicePrefix || 'INV'}-${order.number}`}
-                        isMultiPrint={true}
+                        isMultiPrint={layoutSize === 8} fullPage={layoutSize !== 8}
                         showPrintControls={false}
-                        printIndex={pageIndex * 8 + idx + 1}
+                        printIndex={pageIndex * layoutSize + idx + 1}
                       />
                     </div>
                   );

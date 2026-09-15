@@ -1,7 +1,6 @@
 import { ShippingProvider } from './types';
 import { FardaExpressService } from './farda-express';
 import { TransExpressProvider } from './trans-express';
-import { RoyalExpressProvider } from './royal-express';
 
 interface TenantApiKeys {
   fardaExpressClientId?: string;
@@ -30,13 +29,8 @@ export class ShippingProviderFactory {
       );
     }
 
-    // Initialize Royal Express
-    if (tenantApiKeys.royalExpressApiKey) {
-      this.providers.set(
-        'royal_express',
-        new RoyalExpressProvider(tenantApiKeys.royalExpressApiKey)
-      );
-    }
+    // Royal Express credentials may exist on legacy tenants, but the provider
+    // is retired and must not be offered for new shipments.
   }
 
   getProvider(name: string): ShippingProvider {

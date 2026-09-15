@@ -47,6 +47,9 @@ export async function POST(request: Request) {
 
     const json = await request.json();
     const data = CreateShipmentSchema.parse(json);
+    if (data.provider === ShippingProvider.ROYAL_EXPRESS) {
+      return NextResponse.json({ error: 'Royal Express is retired. Select an active courier.' }, { status: 400 });
+    }
 
     // Get the shipping provider
     const tenantId = session.user.tenantId;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User } from 'next-auth';
 import { motion } from 'framer-motion';
 import { SalesReport } from './sales-report';
@@ -31,6 +31,11 @@ type TabType = 'sales' | 'products' | 'leads' | 'shipping' | 'financial';
 type TimeFilterType = 'daily' | 'weekly' | 'monthly' | 'custom';
 
 export function ReportTabs({ user, initialData }: ReportTabsProps) {
+    const [productId,setProductId] = useState(''); const [staffId,setStaffId] = useState(''); const [courier,setCourier] = useState('');
+    const [filterOptions,setFilterOptions] = useState<{products:Array<{id:string,name:string,code:string}>,staff:Array<{id:string,name:string|null}>}>({products:[],staff:[]});
+    const [optionsFailed,setOptionsFailed] = useState(false); const [optionsRetry,setOptionsRetry] = useState(0);
+    useEffect(()=>{const controller=new AbortController();setOptionsFailed(false);fetch('/api/reports/filter-options',{signal:controller.signal}).then(async response=>{if(!response.ok)throw new Error();const data=await response.json();if(!controller.signal.aborted)setFilterOptions(data);}).catch(()=>{if(!controller.signal.aborted)setOptionsFailed(true);});return()=>controller.abort();},[optionsRetry]);
+    const filterQuery = new URLSearchParams({productId,staffId,courier}).toString();
     const [activeTab, setActiveTab] = useState<TabType>('financial');
     const [dateRange, setDateRange] = useState({
         startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0],
@@ -154,15 +159,17 @@ export function ReportTabs({ user, initialData }: ReportTabsProps) {
                 </div>
             </div>
 
+            <section aria-label="Report filters" className="mx-6 mt-4 rounded-xl border border-border p-4"><div className="grid gap-3 sm:grid-cols-3"><label className="text-xs text-muted-foreground">Product<select value={productId} onChange={e=>setProductId(e.target.value)} className="mt-1 block w-full rounded-md border-border bg-background text-sm"><option value="">All products</option>{filterOptions.products.map(product=><option key={product.id} value={product.id}>{product.code} · {product.name}</option>)}</select></label><label className="text-xs text-muted-foreground">Assigned staff<select value={staffId} onChange={e=>setStaffId(e.target.value)} className="mt-1 block w-full rounded-md border-border bg-background text-sm"><option value="">All staff</option>{filterOptions.staff.map(person=><option key={person.id} value={person.id}>{person.name || 'Unnamed staff'}</option>)}</select></label><label className="text-xs text-muted-foreground">Courier<select value={courier} onChange={e=>setCourier(e.target.value)} className="mt-1 block w-full rounded-md border-border bg-background text-sm"><option value="">All couriers</option>{['TRANS_EXPRESS','FARDA_EXPRESS','SL_POST','ROYAL_EXPRESS'].map(value=><option key={value} value={value}>{value.replace(/_/g,' ')}{value==='ROYAL_EXPRESS'?' (historical)':''}</option>)}</select></label></div><div className="mt-3 flex flex-wrap justify-between gap-3"><p className="text-xs text-muted-foreground">Filters apply to report metrics, charts and exports. Courier filters on leads include only leads with a matching order.</p><button onClick={()=>{setProductId('');setStaffId('');setCourier('');}} className="text-sm text-primary">Clear report filters</button></div>{optionsFailed && <p role="alert" className="mt-2 text-sm text-destructive">Filter options could not load. <button onClick={()=>setOptionsRetry(value=>value+1)} className="underline">Retry</button></p>}</section>
             <div className="p-6">
                 <motion.div
-                    key={`${activeTab}-${dateRange.startDate}-${dateRange.endDate}`}
+                    key={`${activeTab}-${dateRange.startDate}-${dateRange.endDate}-${filterQuery}`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
                 >
                     {activeTab === 'financial' && (
                         <FinancialReport
+                            filterQuery={filterQuery}
                             startDate={dateRange.startDate}
                             endDate={dateRange.endDate}
                             canExport={canExport}
@@ -170,6 +177,7 @@ export function ReportTabs({ user, initialData }: ReportTabsProps) {
                     )}
                     {activeTab === 'sales' && (
                         <SalesReport
+                            filterQuery={filterQuery}
                             startDate={dateRange.startDate}
                             endDate={dateRange.endDate}
                             totalOrders={initialData.totalOrders}
@@ -178,6 +186,7 @@ export function ReportTabs({ user, initialData }: ReportTabsProps) {
                     )}
                     {activeTab === 'products' && (
                         <ProductReport
+                            filterQuery={filterQuery}
                             startDate={dateRange.startDate}
                             endDate={dateRange.endDate}
                             totalProducts={initialData.totalProducts}
@@ -186,6 +195,7 @@ export function ReportTabs({ user, initialData }: ReportTabsProps) {
                     )}
                     {activeTab === 'leads' && (
                         <LeadReport
+                            filterQuery={filterQuery}
                             startDate={dateRange.startDate}
                             endDate={dateRange.endDate}
                             totalLeads={initialData.totalLeads}
@@ -194,6 +204,7 @@ export function ReportTabs({ user, initialData }: ReportTabsProps) {
                     )}
                     {activeTab === 'shipping' && (
                         <ShippingReport
+                            filterQuery={filterQuery}
                             startDate={dateRange.startDate}
                             endDate={dateRange.endDate}
                             totalShipments={initialData.totalShipments}

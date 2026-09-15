@@ -5,6 +5,9 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { requirePermission, requireAnyPermission } from '@/lib/authz';
+import { transitionOrder } from '@/lib/order-workflow';
+import { ShippingProvider } from '@prisma/client';
+import { InsufficientCreditError } from '@/lib/billing/credits';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,25 +36,30 @@ export async function POST(
 
     const data = await request.json();
     const { shippingProvider, trackingNumber } = data;
+    if (shippingProvider === 'ROYAL_EXPRESS') {
+      return NextResponse.json({ error: 'Royal Express is retired. Select an active courier.' }, { status: 400 });
+    }
 
-    if (!shippingProvider || !trackingNumber) {
+    if (!Object.values(ShippingProvider).includes(shippingProvider) || typeof trackingNumber !== 'string' || !trackingNumber.trim()) {
       return NextResponse.json({ error: 'Shipping provider and tracking number are required' }, { status: 400 });
     }
 
     // 3. This update is now SECURE. It will only update the order if the ID matches
     // AND the order belongs to the current tenant.
-    const updatedOrder = await prisma.order.update({
-      where: { id: resolvedParams.orderId },
-      data: {
-        status: 'SHIPPED',
-        shippingProvider,
-        trackingNumber,
-        shippedAt: new Date(),
-      },
+    const updatedOrder = await transitionOrder({
+      orderId: resolvedParams.orderId,
+      tenantId: session.user.tenantId,
+      userId: session.user.id,
+      to: 'SHIPPED',
+      source: 'manual shipping details',
+      shipping: { provider: shippingProvider, trackingNumber: trackingNumber.trim() },
     });
 
     return NextResponse.json(updatedOrder);
   } catch (error) {
+    if (error instanceof InsufficientCreditError) {
+      return NextResponse.json({ error: error.message, code: 'INSUFFICIENT_CREDIT' }, { status: 402 });
+    }
     // Prisma's update will throw an error if the record is not found,
     // which protects against updating orders from other tenants.
     console.error('Error updating shipping information:', error);

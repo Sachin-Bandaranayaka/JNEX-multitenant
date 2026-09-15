@@ -35,6 +35,7 @@ const apiPermissionMap: Record<string, string[]> = {
   '/api/invoice': ['VIEW_ORDERS'],
   '/api/invoices': ['VIEW_ORDERS'],
   '/api/returns': ['VIEW_ORDERS'],
+  '/api/notifications/workload': ['VIEW_LEADS', 'VIEW_PRODUCTS'],
   '/api/leads': ['VIEW_LEADS'],
   '/api/lead-reminders': ['VIEW_LEADS'],
   '/api/products': ['VIEW_PRODUCTS'],

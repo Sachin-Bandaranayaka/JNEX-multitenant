@@ -197,6 +197,7 @@ export async function POST(request: Request) {
                     status: OrderStatus.PENDING,
                     quantity: validatedData.quantity,
                     total: total,
+                    unitPrice: product.price, deliveryFee: 0, prepaidAmount: 0, codAmount: total,
                     discount: 0,
                     customerName: csvData.name,
                     customerPhone: csvData.phone,
@@ -259,13 +260,14 @@ export async function POST(request: Request) {
                 }
 
                 // Calculate new stock level
-                const newStock = Math.max(0, currentProduct.stock - validatedData.quantity);
+                const newStock = currentProduct.stock - validatedData.quantity;
 
                 // Update product stock
-                await tx.product.update({
-                    where: { id: validatedData.productId },
-                    data: { stock: newStock }
+                const reserved = await tx.product.updateMany({
+                    where: { id: validatedData.productId, tenantId: session.user.tenantId, stock: { gte: validatedData.quantity } },
+                    data: { stock: { decrement: validatedData.quantity } }
                 });
+                if (reserved.count !== 1) throw new Error('Insufficient stock to create this order.');
 
                 // Record stock adjustment
                 await tx.stockAdjustment.create({

@@ -1,3 +1,4 @@
+import { parseReportFilters, reportOrderFilter } from '@/lib/report-filters';
 // src/app/api/reports/financial/route.ts
 
 import { getServerSession } from 'next-auth';
@@ -16,6 +17,7 @@ export async function GET(request: Request) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
 
+        if (session.user.role !== 'ADMIN' && !session.user.permissions?.includes('VIEW_REPORTS')) return new NextResponse('Forbidden', {status:403});
         const { searchParams } = new URL(request.url);
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
@@ -34,6 +36,7 @@ export async function GET(request: Request) {
         // Get all orders in date range
         const orders = await prisma.order.findMany({
             where: {
+                ...reportOrderFilter(session.user.tenantId, parseReportFilters(searchParams)),
                 createdAt: { gte: start, lte: end },
             },
             include: {

@@ -4,7 +4,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { FardaExpressService } from '@/lib/shipping/farda-express';
 import { TransExpressProvider } from '@/lib/shipping/trans-express';
-import { RoyalExpressProvider } from '@/lib/shipping/royal-express';
 import { ShipmentStatus } from '@/lib/shipping/types';
 import { applyCourierStatus, type CourierStatusOrder } from '@/lib/courier-status-sync';
 
@@ -187,74 +186,7 @@ export async function GET(
                 );
             }
         } else if (order.shippingProvider === 'ROYAL_EXPRESS') {
-            try {
-                
-    const resolvedParams = await params;const royalApiKey = order.tenant?.royalExpressApiKey;
-
-                if (!royalApiKey) {
-                    console.error(`Royal Express API key missing for tenant ${order.tenantId}`);
-                    return NextResponse.json(
-                        { error: 'Royal Express API key missing' },
-                        { status: 500 }
-                    );
-                }
-
-                const [royalEmail, royalPassword] = royalApiKey.split(':');
-                if (!royalEmail || !royalPassword) {
-                    console.error(`Royal Express API key format invalid for tenant ${order.tenantId}`);
-                    return NextResponse.json(
-                        { error: 'Royal Express API key format invalid (expected email:password)' },
-                        { status: 500 }
-                    );
-                }
-
-                const royalExpressService = new RoyalExpressProvider(royalApiKey, 'royalexpress');
-                console.log('Tracking Royal Express shipment:', order.trackingNumber);
-
-                // Get the raw tracking data from Curfox DMS API
-                const rawTrackingData = await royalExpressService.makeApiRequest(
-                    `/merchant/order/tracking-info?waybill_number=${encodeURIComponent(order.trackingNumber)}`,
-                    'GET'
-                );
-                console.log('Royal Express raw tracking data received:', rawTrackingData);
-
-                // Also get basic status for order update
-                const shipmentStatus = await royalExpressService.trackShipment(order.trackingNumber);
-                console.log('Royal Express basic status:', shipmentStatus);
-
-                await recordTrackingUpdate(prisma, order, shipmentStatus);
-                await applyCourierStatus(order, shipmentStatus, 'Royal Express tracking', session.user.id);
-
-                console.log('Order updated with tracking info, returning raw tracking data');
-                // Return the raw tracking data that the frontend component expects
-                return NextResponse.json(rawTrackingData);
-            } catch (trackingError) {
-                console.error('Error during tracking operation:', trackingError);
-
-                // Still update the order with pending status
-                const updatedOrder = await prisma.order.update({
-                    where: { id: order.id },
-                    data: {
-                        trackingUpdates: {
-                            create: {
-                                status: ShipmentStatus.PENDING,
-                                timestamp: new Date(),
-                                description: 'Tracking information not available yet',
-                                tenantId: order.tenantId,
-                            },
-                        },
-                    },
-                    include: {
-                        trackingUpdates: {
-                            orderBy: {
-                                timestamp: 'desc',
-                            },
-                        },
-                    },
-                });
-
-                return NextResponse.json(updatedOrder);
-            }
+            return NextResponse.json({ error: 'Royal Express is retired. View the saved order timeline for history.' }, { status: 410 });
         }
 
         // Handle other shipping providers here

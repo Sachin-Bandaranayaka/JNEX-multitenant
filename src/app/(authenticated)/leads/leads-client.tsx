@@ -176,6 +176,9 @@ export function LeadsClient({
   const buildUrl = (overrides: Record<string, string | number | null | undefined> = {}) => {
     const params = new URLSearchParams();
     const base: Record<string, string | number | null | undefined> = {
+      staff: typeof searchParams.staff === 'string' ? searchParams.staff : undefined,
+      product: typeof searchParams.product === 'string' ? searchParams.product : undefined,
+      query: typeof searchParams.query === 'string' ? searchParams.query : undefined,
       status: statusFilter,
       startDate,
       endDate,

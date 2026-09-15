@@ -31,10 +31,17 @@ export function UsersClient({
     currentUserPermissions: string[];
 }) {
 
+    const [query, setQuery] = useState('');
+    const [roleFilter,setRoleFilter] = useState('');
+    const [activeFilter,setActiveFilter] = useState('');
+    const [permissionFilter,setPermissionFilter] = useState('');
     const [users, setUsers] = useState<User[]>(initialUsers);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
+    const filteredUsers = users.filter(person => (!query || `${person.name || ''} ${person.email}`.toLowerCase().includes(query.toLowerCase())) && (!roleFilter || person.role === roleFilter) && (!activeFilter || person.isActive === (activeFilter === 'active')) && (!permissionFilter || person.role === 'ADMIN' || person.permissions.includes(permissionFilter)));
+    const permissionOptions = [...new Set(users.flatMap(person => person.permissions))].sort();
+    const filterClass = 'mt-1 block w-full rounded-md border-border bg-background text-sm text-foreground';
     const handleUserChange = async () => {
         const response = await fetch('/api/users');
         if (response.ok) {
@@ -89,9 +96,10 @@ export function UsersClient({
                 <AddUserButton onAddUser={openFormForCreate} />
             </div>
 
+            <section aria-label="Staff filters" className="rounded-xl border border-border bg-card p-4"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><label className="text-xs text-muted-foreground">Name or email<input value={query} onChange={e=>setQuery(e.target.value)} className={filterClass} /></label><label className="text-xs text-muted-foreground">Role<select value={roleFilter} onChange={e=>setRoleFilter(e.target.value)} className={filterClass}><option value="">All roles</option>{[...new Set(users.map(person=>person.role))].map(role=><option key={role}>{role}</option>)}</select></label><label className="text-xs text-muted-foreground">Account status<select value={activeFilter} onChange={e=>setActiveFilter(e.target.value)} className={filterClass}><option value="">All accounts</option><option value="active">Active</option><option value="inactive">Inactive</option></select></label><label className="text-xs text-muted-foreground">Permission<select value={permissionFilter} onChange={e=>setPermissionFilter(e.target.value)} className={filterClass}><option value="">Any permission</option>{permissionOptions.map(permission=><option key={permission} value={permission}>{permission.replace(/_/g,' ').toLowerCase()}</option>)}</select></label></div><div className="mt-3 flex items-center justify-between"><p className="text-xs text-muted-foreground" aria-live="polite">{filteredUsers.length} of {users.length} staff</p><button onClick={()=>{setQuery('');setRoleFilter('');setActiveFilter('');setPermissionFilter('');}} className="rounded-md border border-border px-3 py-2 text-sm text-foreground">Clear filters</button></div></section>
             <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
                 <UserList
-                    users={users}
+                    users={filteredUsers}
                     currentUserId={currentUserId}
                     onEdit={openFormForEdit}
                     onDelete={handleDelete}

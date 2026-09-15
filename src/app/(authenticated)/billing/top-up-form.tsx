@@ -59,6 +59,7 @@ export function TopUpForm({
       if (!response.ok) throw new Error(payload.error || 'Could not submit the top-up.');
       setOpen(false);
       setForm({ bankReceiptNumber: '', whatsappNumber: '', transferTime: '' });
+      window.dispatchEvent(new Event('jnex:billing-updated'));
       router.refresh();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Could not submit the top-up.');

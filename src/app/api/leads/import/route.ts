@@ -5,7 +5,7 @@ import { LeadSchema } from '@/lib/csv-parser'; // This is the schema for a singl
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
-import { requirePermission } from '@/lib/authz';
+import { requirePermission, requireTenantAdmin } from '@/lib/authz';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +17,8 @@ const PreviewPayloadSchema = z.object({
 
 const ImportPayloadSchema = z.object({
   action: z.literal('import'),
-  leads: z.array(LeadSchema), // The frontend will send only the valid leads for the final import
+  leads: z.array(LeadSchema).min(1).max(5000),
+  assigneeIds: z.array(z.string().uuid()).max(100).optional(),
 });
 
 // Create a union schema to validate the request body
@@ -32,25 +33,7 @@ export async function POST(request: Request) {
     const prisma = getScopedPrismaClient(tenantId);
     const json = await request.json();
 
-    // Validate the incoming request to see if it's a 'preview' or 'import' action
-    let payload;
-    try {
-      payload = RequestSchema.parse(json);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        console.log('Lead import validation error:', JSON.stringify(error.issues, null, 2));
-        console.log('Problematic data at error path:', JSON.stringify(json, null, 2));
-        
-        // Extract the specific row that failed
-        const issue = error.issues[0];
-        if (issue.path.includes('leads') && issue.path.length >= 2) {
-          const rowIndex = issue.path[1];
-          const fieldName = issue.path[2];
-          console.log(`Row ${rowIndex} (${fieldName}):`, json.leads?.[rowIndex]);
-        }
-      }
-      throw error;
-    }
+    const payload = RequestSchema.parse(json);
 
     // --- ACTION 1: PREVIEW THE CSV DATA ---
     if (payload.action === 'preview') {
@@ -77,7 +60,7 @@ export async function POST(request: Request) {
       );
 
       // 4. Analyze each lead and assign a stock status.
-      const previewResults = leads.map(lead => {
+      const previewResults = leads.map((lead, index) => {
         const productCodeUpper = lead.product_code?.toUpperCase();
         const product = productCodeUpper ? productMap.get(productCodeUpper) : undefined;
 
@@ -102,7 +85,23 @@ export async function POST(request: Request) {
 
     // --- ACTION 2: IMPORT THE CONFIRMED LEADS ---
     if (payload.action === 'import') {
-      const { leads } = payload; // These leads are pre-filtered by the frontend.
+      const { leads } = payload;
+      const selectedIds = [...new Set(payload.assigneeIds ?? [])];
+      if (selectedIds.length > 0) {
+        const adminGuard = await requireTenantAdmin();
+        if (!adminGuard.ok) return adminGuard.response;
+        if (adminGuard.tenantId !== tenantId) {
+          return NextResponse.json({ error: 'Tenant access changed. Please reload.' }, { status: 403 });
+        }
+        const staff = await prisma.user.findMany({
+          where: { id: { in: selectedIds }, tenantId, isActive: true, role: { not: 'SUPER_ADMIN' } },
+          select: { id: true },
+        });
+        if (staff.length !== selectedIds.length) {
+          return NextResponse.json({ error: 'One or more selected staff members are no longer available. Refresh the staff list.' }, { status: 400 });
+        }
+      }
+      const assigneeIds = selectedIds.length ? selectedIds : [session.user.id];
 
       // Re-validate on the server: never trust the frontend-supplied list.
       // Only allow connecting to products that exist for THIS tenant and are active.
@@ -114,7 +113,8 @@ export async function POST(request: Request) {
         },
         select: { code: true },
       });
-      const activeCodeSet = new Set(activeProducts.map(p => p.code.toUpperCase()));
+      const productCodes = new Map(activeProducts.map(p => [p.code.toUpperCase(), p.code]));
+      const activeCodeSet = new Set(productCodes.keys());
 
       const invalidCodes = requestedCodes.filter(code => !activeCodeSet.has(code));
       if (invalidCodes.length > 0) {
@@ -127,8 +127,8 @@ export async function POST(request: Request) {
         );
       }
 
-      const createdLeads = await prisma.$transaction(
-        leads.map(lead => {
+      await prisma.$transaction([
+        ...leads.map((lead, index) => {
           const csvData = { 
             ...lead, 
             name: lead.customer_name,
@@ -139,27 +139,37 @@ export async function POST(request: Request) {
             data: {
               csvData: csvData as unknown as Prisma.JsonObject,
               status: 'PENDING',
-              assignedTo: { connect: { id: session.user.id } },
+              assignedTo: { connect: { id: assigneeIds[index % assigneeIds.length] } },
               tenant: { connect: { id: tenantId } },
               product: {
                 connect: {
                   code_tenantId: {
-                    code: lead.product_code,
+                    code: productCodes.get(lead.product_code.toUpperCase())!,
                     tenantId: tenantId,
                   },
                 },
               },
             }
           });
-        })
-      );
+        }),
+        prisma.auditEvent.create({
+          data: {
+            tenantId,
+            actorId: session.user.id,
+            action: 'LEADS_IMPORTED',
+            entityType: 'Lead',
+            metadata: { leadCount: leads.length, assigneeIds },
+          },
+        }),
+      ]);
 
       return NextResponse.json({
-        message: `Successfully imported ${createdLeads.length} leads.`,
-        count: createdLeads.length
+        message: `Successfully imported ${leads.length} leads.`,
+        count: leads.length
       });
     }
 
+    return NextResponse.json({ error: 'Unsupported import action' }, { status: 400 });
   } catch (error) {
     console.error('Lead import error:', error);
     if (error instanceof z.ZodError) {

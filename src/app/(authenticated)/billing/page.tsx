@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { BillingMode, ChargeStatus, CreditTxType, TenantInvoiceStatus } from '@prisma/client';
@@ -31,7 +32,45 @@ function money(amount: string | number, currency = 'LKR') {
   return `${currency} ${value.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export default async function BillingPage() {
+type BillingFilters = { status?: string; activity?: string; from?: string; to?: string; invoicePage?: string; creditPage?: string };
+
+function localDay(value?: string) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const day = new Date(`${value}T00:00:00+05:30`);
+  if (!Number.isFinite(day.getTime()) || new Date(day.getTime() + 19800000).toISOString().slice(0, 10) !== value) return undefined;
+  return day;
+}
+
+function pageNumber(value?: string) {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? Math.min(parsed, 100000) : 1;
+}
+
+function historyLink(filters: BillingFilters, key: 'invoicePage' | 'creditPage', page: number) {
+  const params = new URLSearchParams();
+  for (const [name, value] of Object.entries(filters)) if (value) params.set(name, value);
+  params.set(key, String(page));
+  return `/billing?${params.toString()}#${key === 'invoicePage' ? 'invoice-history' : 'credit-history'}`;
+}
+
+function HistoryFilters({ filters, prepaid }: { filters: BillingFilters; prepaid: boolean }) {
+  const field = 'mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm';
+  return <form action="/billing" className="grid gap-3 rounded-lg border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-5">
+    <label className="text-sm font-medium">Invoice status<select name="status" defaultValue={filters.status ?? ''} className={field}>
+      <option value="">All statuses</option><option value="ISSUED">Awaiting payment</option><option value="PAID">Paid</option><option value="VOID">Voided</option>
+    </select></label>
+    {prepaid && <label className="text-sm font-medium">Credit activity<select name="activity" defaultValue={filters.activity ?? ''} className={field}>
+      <option value="">All activity</option>{Object.entries(CREDIT_ACTIVITY).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+    </select></label>}
+    <label className="text-sm font-medium">From date<input type="date" name="from" defaultValue={filters.from} className={field} /></label>
+    <label className="text-sm font-medium">To date<input type="date" name="to" defaultValue={filters.to} className={field} /></label>
+    <div className="flex items-end gap-3"><button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">Apply</button><Link href="/billing" className="py-2 text-sm underline underline-offset-4">Clear</Link></div>
+    <p className="text-xs text-muted-foreground sm:col-span-2 lg:col-span-5">Dates use Sri Lanka time. Filters apply to history; balances and invoices to pay always include all outstanding amounts.</p>
+  </form>;
+}
+
+export default async function BillingPage({ searchParams: query }: { searchParams: Promise<BillingFilters> }) {
+  const searchParams = await query;
   const session = await getServerSession(authOptions);
   if (!session?.user?.tenantId) redirect('/auth/signin');
   if (session.user.role !== 'ADMIN') redirect('/unauthorized');
@@ -39,21 +78,28 @@ export default async function BillingPage() {
   const tenantId = session.user.tenantId;
   const periodKey = periodKeyFor(new Date());
 
-  const [tenant, wallet, creditPrice, topUps, ledger] = await Promise.all([
-    prisma.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { billingMode: true } }),
-    getWalletSummary(tenantId),
-    currentCreditPrice(tenantId),
-    listTopUps(tenantId, 10),
-    prisma.creditTransaction.findMany({
-      where: { tenantId },
-      orderBy: { seq: 'desc' },
-      take: 25,
-      include: { order: { select: { number: true, customerName: true } } },
-    }),
-  ]);
+  const tenant = await prisma.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { billingMode: true } });
   const prepaid = tenant.billingMode === BillingMode.PREPAID;
+  const from = localDay(searchParams.from);
+  const to = localDay(searchParams.to);
+  const createdAt = { ...(from ? { gte: from } : {}), ...(to ? { lt: new Date(to.getTime() + 86400000) } : {}) };
+  const invoicePage = pageNumber(searchParams.invoicePage);
+  const creditPage = pageNumber(searchParams.creditPage);
+  const invoiceStatus = [TenantInvoiceStatus.ISSUED, TenantInvoiceStatus.PAID, TenantInvoiceStatus.VOID].find((status) => status === searchParams.status);
+  const activity = Object.values(CreditTxType).find((type) => type === searchParams.activity);
+  const [wallet, creditPrice, topUps, ledgerRows] = await Promise.all([
+    prepaid ? getWalletSummary(tenantId).catch(() => null) : null,
+    prepaid ? currentCreditPrice(tenantId) : null,
+    prepaid ? listTopUps(tenantId, 10) : [],
+    prepaid ? prisma.creditTransaction.findMany({
+      where: { tenantId, createdAt, ...(activity ? { type: activity } : {}) },
+      orderBy: { seq: 'desc' }, skip: (creditPage - 1) * 25, take: 26,
+      include: { order: { select: { number: true, customerName: true } } },
+    }) : [],
+  ]);
+  const ledger = ledgerRows.slice(0, 25);
 
-  const [rate, thisMonth, reversedCount, invoices, recentCharges] = await Promise.all([
+  const [rate, thisMonth, reversedCount, invoiceRows, recentCharges, outstanding] = await Promise.all([
     prisma.tenantFeeRate.findFirst({
       where: { tenantId, effectiveTo: null },
       orderBy: { effectiveFrom: 'desc' },
@@ -67,9 +113,9 @@ export default async function BillingPage() {
       where: { tenantId, periodKey, status: ChargeStatus.REVERSED },
     }),
     prisma.tenantInvoice.findMany({
-      where: { tenantId, status: { not: TenantInvoiceStatus.DRAFT } },
-      orderBy: { periodKey: 'desc' },
-      take: 12,
+      where: { tenantId, createdAt, status: invoiceStatus ?? { not: TenantInvoiceStatus.DRAFT } },
+      orderBy: [{ periodKey: 'desc' }, { id: 'desc' }],
+      skip: (invoicePage - 1) * 12, take: 13,
       include: { payments: { orderBy: { createdAt: 'desc' }, take: 1 } },
     }),
     prisma.deliveryCharge.findMany({
@@ -78,25 +124,45 @@ export default async function BillingPage() {
       take: 25,
       include: { order: { select: { number: true, customerName: true } } },
     }),
+    prisma.tenantInvoice.findMany({
+      where: { tenantId, status: TenantInvoiceStatus.ISSUED },
+      orderBy: { periodKey: 'asc' },
+      include: { payments: { orderBy: { createdAt: 'desc' }, take: 1 } },
+    }),
   ]);
 
+  const invoices = invoiceRows.slice(0, 12);
   const currency = rate?.currency ?? recentCharges[0]?.currency ?? 'LKR';
-  const outstanding = invoices.filter((invoice) => invoice.status === TenantInvoiceStatus.ISSUED);
+  const outstandingTotals = outstanding.reduce<Record<string, number>>((totals, invoice) => {
+    totals[invoice.currency] = (totals[invoice.currency] ?? 0) + Number(invoice.total);
+    return totals;
+  }, {});
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Platform billing</h1>
+        <h1 className="text-2xl font-bold text-foreground">Billing</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {prepaid
-            ? 'You ship against prepaid credit. Credit is reserved when an order ships and charged when it delivers — returns give it straight back.'
+            ? 'Manage your shipping credits and payments.'
             : `You are charged per delivered order. ${formatPeriod(periodKey)} is still running and will be invoiced at the start of next month.`}
         </p>
       </div>
 
+      {!prepaid && <section className="rounded-lg border border-border border-t-4 border-t-primary bg-card p-5 sm:p-6" aria-label="Billing overview">
+        <div className="flex flex-wrap items-start justify-between gap-5">
+          <div><p className="text-sm font-medium text-muted-foreground">Awaiting payment</p>
+            <div className="mt-2 text-3xl font-semibold tabular-nums">{Object.keys(outstandingTotals).length ? Object.entries(outstandingTotals).map(([unit, amount]) => <p key={unit}>{money(amount, unit)}</p>) : money(0, currency)}</div>
+            <p className="mt-2 text-sm text-muted-foreground">{outstanding.length} unpaid invoice{outstanding.length === 1 ? '' : 's'}</p>
+          </div>
+          {outstanding.length > 0 && <a href="#invoices-to-pay" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">Review & pay invoices</a>}
+        </div>
+        <div className="mt-5 border-t border-border pt-4"><span className="text-sm text-muted-foreground">{formatPeriod(periodKey)} so far</span><p className="mt-1 text-xl font-semibold tabular-nums">{money(Number(thisMonth._sum.amount ?? 0), currency)}</p><p className="mt-1 text-sm text-muted-foreground">{thisMonth._count} delivered orders{reversedCount > 0 && ` · ${reversedCount} returned and credited`}</p></div>
+      </section>}
+
       {prepaid && (
         <>
-          {wallet.spendable <= 0 && (
+          {wallet && wallet.spendable <= 0 && (
             <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4">
               <p className="font-semibold text-red-600 dark:text-red-400">Shipping is paused</p>
               <p className="mt-1 text-sm text-red-600/90 dark:text-red-400/90">
@@ -106,7 +172,8 @@ export default async function BillingPage() {
             </div>
           )}
 
-          <section className="space-y-3">
+          {!wallet && <p role="alert" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">Your credit balance is temporarily unavailable. Refresh the page to try again.</p>}
+          <section className="space-y-3 rounded-lg border border-border border-t-4 border-t-primary bg-card p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-foreground">Shipping credit</h2>
               {creditPrice && (
@@ -118,52 +185,41 @@ export default async function BillingPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border border-border bg-card p-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="py-3">
                 <div className="text-sm font-medium text-muted-foreground">Available</div>
                 <div
                   className={`mt-2 text-3xl font-semibold tabular-nums ${
-                    wallet.spendable <= 0 ? 'text-red-600 dark:text-red-400' : 'text-foreground'
+                    wallet && wallet.spendable <= 0 ? 'text-red-600 dark:text-red-400' : 'text-foreground'
                   }`}
                 >
-                  {formatCredits(wallet.available)}
+                  {wallet ? formatCredits(wallet.available) : 'Unavailable'}
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">
                   credits
-                  {wallet.shipmentsRemaining != null &&
+                  {wallet && wallet.shipmentsRemaining != null &&
                     ` · about ${wallet.shipmentsRemaining.toLocaleString('en-LK')} more order${
                       wallet.shipmentsRemaining === 1 ? '' : 's'
                     }`}
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-card p-5">
+              <div className="py-3">
                 <div className="text-sm font-medium text-muted-foreground">Reserved</div>
                 <div className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
-                  {formatCredits(wallet.held)}
+                  {wallet ? formatCredits(wallet.held) : 'Unavailable'}
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">
                   held against orders in transit — returned to you if they do not deliver
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-card p-5">
-                <div className="text-sm font-medium text-muted-foreground">Credit price</div>
-                <div className="mt-2 text-lg font-semibold text-foreground">
-                  {creditPrice
-                    ? `${creditPrice.currency} ${Number(creditPrice.unitPrice).toFixed(2)} each`
-                    : 'Not set'}
-                </div>
-                {creditPrice && (
-                  <div className="mt-1 text-sm text-muted-foreground">
-                    minimum {formatCredits(creditPrice.minimumPurchaseCredits)} credits per purchase
-                  </div>
-                )}
-              </div>
             </div>
+            <p className="text-sm text-muted-foreground">Credits are reserved when you ship, charged on delivery, and returned if an order does not deliver.</p>
+            {!creditPrice && <p className="text-sm text-muted-foreground">Credit purchases are unavailable until a credit price is set. Contact your administrator.</p>}
 
             {topUps.length > 0 && (
-              <div className="overflow-x-auto rounded-lg border border-border">
+              <details className="border-t border-border pt-3"><summary className="cursor-pointer text-sm font-medium">Recent credit purchases · {topUps.length}</summary><p className="my-3 text-xs text-muted-foreground">Your latest 10 purchase requests.</p><div className="overflow-x-auto rounded-lg border border-border">
                 <table className="min-w-full divide-y divide-border">
                   <thead className="bg-muted/50">
                     <tr>
@@ -179,7 +235,7 @@ export default async function BillingPage() {
                       <tr key={topUp.id}>
                         <td className="px-4 py-3 font-mono text-sm text-muted-foreground">{topUpReference(topUp)}</td>
                         <td className="px-4 py-3 text-sm text-foreground">
-                          {topUp.createdAt.toLocaleDateString('en-LK')}
+                          {topUp.createdAt.toLocaleDateString('en-LK', { timeZone: 'Asia/Colombo' })}
                         </td>
                         <td className="px-4 py-3 text-right text-sm tabular-nums text-foreground">
                           {formatCredits(topUp.creditedCredits ?? topUp.credits)}
@@ -198,12 +254,13 @@ export default async function BillingPage() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </div></details>
             )}
           </section>
 
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-foreground">Credit activity</h2>
+          <HistoryFilters filters={searchParams} prepaid={prepaid} />
+          <details id="credit-history" className="space-y-3 rounded-lg border border-border p-4" open={Boolean(searchParams.activity || searchParams.from || searchParams.to || searchParams.creditPage)}>
+            <summary className="cursor-pointer font-semibold text-foreground">Credit activity</summary>
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="min-w-full divide-y divide-border">
                 <thead className="bg-muted/50">
@@ -218,14 +275,14 @@ export default async function BillingPage() {
                   {ledger.length === 0 && (
                     <tr>
                       <td colSpan={4} className="px-4 py-6 text-center text-sm text-muted-foreground">
-                        Nothing yet. Buy credits to start shipping.
+                        No credit activity matches these filters.
                       </td>
                     </tr>
                   )}
                   {ledger.map((entry) => (
                     <tr key={entry.id}>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {entry.createdAt.toLocaleString('en-LK')}
+                        {entry.createdAt.toLocaleString('en-LK', { timeZone: 'Asia/Colombo' })}
                       </td>
                       <td className="px-4 py-3 text-sm text-foreground">
                         {CREDIT_ACTIVITY[entry.type]}
@@ -247,43 +304,24 @@ export default async function BillingPage() {
                 </tbody>
               </table>
             </div>
-          </section>
+            <nav aria-label="Credit activity pages" className="flex items-center justify-between gap-3 text-sm">
+              {creditPage > 1 ? <Link className="underline underline-offset-4" href={historyLink(searchParams, 'creditPage', creditPage - 1)}>Previous</Link> : <span />}
+              <span>Page {creditPage}</span>{ledgerRows.length > 25 ? <Link className="underline underline-offset-4" href={historyLink(searchParams, 'creditPage', creditPage + 1)}>Next</Link> : <span />}
+            </nav>
+          </details>
         </>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-border bg-card p-5">
-          <div className="text-sm font-medium text-muted-foreground">{formatPeriod(periodKey)} so far</div>
-          <div className="mt-2 text-3xl font-semibold text-foreground tabular-nums">
-            {money(Number(thisMonth._sum.amount ?? 0), currency)}
-          </div>
-          <div className="mt-1 text-sm text-muted-foreground">
-            {thisMonth._count} delivered order{thisMonth._count === 1 ? '' : 's'}
-            {reversedCount > 0 && ` · ${reversedCount} returned and credited`}
-          </div>
+      <details className="rounded-lg border border-border bg-card p-4">
+        <summary className="cursor-pointer text-sm font-semibold">Rates & billing details</summary>
+        <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+          <p><span className="font-medium text-foreground">Your delivery rate:</span> {rate ? describeRate(rate) : 'No rate set yet'}{rate?.note && ` · ${rate.note}`}</p>
+          {prepaid && <><p><span className="font-medium text-foreground">Credit price:</span> {creditPrice ? `${money(Number(creditPrice.unitPrice), creditPrice.currency)} each · minimum ${formatCredits(creditPrice.minimumPurchaseCredits)} credits per purchase` : 'Not set'}</p><p><span className="font-medium text-foreground">Available to spend:</span> {wallet ? `${formatCredits(wallet.spendable)} credits` : 'Unavailable'}</p><p>{formatPeriod(periodKey)} delivery charges: {money(Number(thisMonth._sum.amount ?? 0), currency)} · {thisMonth._count} delivered orders{reversedCount > 0 && ` · ${reversedCount} returned and credited`}</p></>}
         </div>
-
-        <div className="rounded-lg border border-border bg-card p-5">
-          <div className="text-sm font-medium text-muted-foreground">Your rate</div>
-          <div className="mt-2 text-lg font-semibold text-foreground">
-            {rate ? describeRate(rate) : 'No rate set yet'}
-          </div>
-          {rate?.note && <div className="mt-1 text-sm text-muted-foreground">{rate.note}</div>}
-        </div>
-
-        <div className="rounded-lg border border-border bg-card p-5">
-          <div className="text-sm font-medium text-muted-foreground">Awaiting payment</div>
-          <div className="mt-2 text-3xl font-semibold tabular-nums text-amber-600 dark:text-amber-400">
-            {money(outstanding.reduce((sum, invoice) => sum + Number(invoice.total), 0), currency)}
-          </div>
-          <div className="mt-1 text-sm text-muted-foreground">
-            {outstanding.length} unpaid invoice{outstanding.length === 1 ? '' : 's'}
-          </div>
-        </div>
-      </div>
+      </details>
 
       {outstanding.length > 0 && (
-        <section className="space-y-3">
+        <section id="invoices-to-pay" className="space-y-3">
           <h2 className="text-lg font-semibold text-foreground">Invoices to pay</h2>
           {outstanding.map((invoice) => {
             const pendingPayment = invoice.payments[0]?.status === 'PENDING' ? invoice.payments[0] : null;
@@ -299,7 +337,7 @@ export default async function BillingPage() {
                       {invoice.chargeCount} delivered orders
                       {Number(invoice.adjustments) !== 0 &&
                         ` · ${money(invoice.adjustments.toFixed(2), invoice.currency)} in credits`}
-                      {invoice.dueAt && ` · due ${invoice.dueAt.toLocaleDateString('en-LK')}`}
+                      {invoice.dueAt && ` · due ${invoice.dueAt.toLocaleDateString('en-LK', { timeZone: 'Asia/Colombo' })}`}
                     </div>
                     <div className="mt-2 text-2xl font-semibold tabular-nums text-foreground">
                       {money(invoice.total.toFixed(2), invoice.currency)}
@@ -328,7 +366,8 @@ export default async function BillingPage() {
         </section>
       )}
 
-      <section className="space-y-3">
+      {!prepaid && <HistoryFilters filters={searchParams} prepaid={prepaid} />}
+      <section id="invoice-history" className="space-y-3">
         <h2 className="text-lg font-semibold text-foreground">Invoice history</h2>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="min-w-full divide-y divide-border">
@@ -345,7 +384,7 @@ export default async function BillingPage() {
               {invoices.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-6 text-center text-sm text-muted-foreground">
-                    No invoices yet.
+                    No invoices match these filters.
                   </td>
                 </tr>
               )}
@@ -357,16 +396,20 @@ export default async function BillingPage() {
                   <td className="px-4 py-3 text-right text-sm tabular-nums text-foreground">
                     {money(invoice.total.toFixed(2), invoice.currency)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{invoice.status}</td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{invoice.status === 'ISSUED' ? 'Awaiting payment' : invoice.status === 'PAID' ? 'Paid' : 'Voided'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        <nav aria-label="Invoice history pages" className="flex items-center justify-between gap-3 text-sm">
+          {invoicePage > 1 ? <Link className="underline underline-offset-4" href={historyLink(searchParams, 'invoicePage', invoicePage - 1)}>Previous</Link> : <span />}
+          <span>Page {invoicePage}</span>{invoiceRows.length > 12 ? <Link className="underline underline-offset-4" href={historyLink(searchParams, 'invoicePage', invoicePage + 1)}>Next</Link> : <span />}
+        </nav>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-foreground">This month&apos;s charges</h2>
+      <details className="space-y-3 rounded-lg border border-border p-4">
+        <summary className="cursor-pointer font-semibold text-foreground">This month&apos;s charges</summary><p className="text-xs text-muted-foreground">Latest 25 charges for {formatPeriod(periodKey)}.</p>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="min-w-full divide-y divide-border">
             <thead className="bg-muted/50">
@@ -388,7 +431,7 @@ export default async function BillingPage() {
               {recentCharges.map((charge) => (
                 <tr key={charge.id}>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {charge.deliveredAt.toLocaleDateString('en-LK')}
+                    {charge.deliveredAt.toLocaleDateString('en-LK', { timeZone: 'Asia/Colombo' })}
                   </td>
                   <td className="px-4 py-3 text-sm text-foreground">
                     #{charge.order.number} · {charge.order.customerName}
@@ -404,7 +447,7 @@ export default async function BillingPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </details>
     </div>
   );
 }

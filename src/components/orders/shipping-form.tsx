@@ -34,6 +34,8 @@ interface ShippingFormProps {
             price: number;
         };
         quantity: number;
+        total: number;
+        codAmount?: number | null;
         discount?: number;
     };
     fardaExpressClientId?: string;
@@ -68,7 +70,7 @@ export function ShippingForm({
     const searchParams = useSearchParams();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [provider, setProvider] = useState(currentProvider || '');
+    const [provider, setProvider] = useState(currentProvider === 'ROYAL_EXPRESS' ? '' : currentProvider || '');
     const [trackingNumber, setTrackingNumber] = useState(currentTrackingNumber || '');
     const [weight, setWeight] = useState('1'); // Default weight in kg
     const [city, setCity] = useState('');
@@ -283,7 +285,7 @@ export function ShippingForm({
                 const timestamp = new Date().getTime().toString().slice(-6);
                 const uniqueId = orderId.slice(0, 4).toUpperCase();
                 const formattedOrderId = `JH${timestamp}${uniqueId}`;
-                const codAmount = (order.product.price * order.quantity) - (order.discount || 0);
+                const codAmount = order.codAmount ?? order.total;
 
                 const result = await fardaService.createShipment(
                     {
@@ -319,7 +321,7 @@ export function ShippingForm({
                 await updateShippingInfo(provider, result.trackingNumber);
 
             } else if (provider === ShippingProvider.TRANS_EXPRESS) {
-                const codAmount = (order.product.price * order.quantity) - (order.discount || 0);
+                const codAmount = order.codAmount ?? order.total;
                 const cityNameToUse = transExpressCityName || order.customerCity || 'Colombo';
 
                 const response = await fetch('/api/shipping/trans-express/create', {
@@ -354,7 +356,7 @@ export function ShippingForm({
                     throw new Error('Royal Express API key not provided.');
                 }
                 const royalExpressService = new RoyalExpressProvider(royalExpressApiKey);
-                const codAmount = (order.product.price * order.quantity) - (order.discount || 0);
+                const codAmount = order.codAmount ?? order.total;
                 const originState = "Colombo";
                 // Get the state from the selected city
                 const selectedCityData = allRoyalCities.find(c => c.id === selectedRoyalCity);
@@ -400,6 +402,7 @@ export function ShippingForm({
                 await updateShippingInfo(provider, trackingNumber);
             }
 
+            window.dispatchEvent(new Event('jnex:billing-updated'));
             if (onSuccess) {
                 onSuccess();
             } else {
@@ -459,7 +462,6 @@ export function ShippingForm({
     const providers = [
         { id: ShippingProvider.FARDA_EXPRESS, name: 'Farda Express', logo: 'FE' },
         { id: ShippingProvider.TRANS_EXPRESS, name: 'Trans Express', logo: 'TE' },
-        { id: ShippingProvider.ROYAL_EXPRESS, name: 'Royal Express', logo: 'RE' },
         { id: ShippingProvider.SL_POST, name: 'SL Post', logo: 'SL' },
     ];
 

@@ -182,6 +182,9 @@ export function RemindLeadsClient({ reminders, leads }: RemindLeadsClientProps) 
   const [items, setItems] = useState<RemindLeadReminder[]>(reminders ?? leads ?? []);
   const [activeFilter, setActiveFilter] = useState<QueueFilter>('due');
   const [search, setSearch] = useState('');
+  const [productFilter,setProductFilter] = useState('');
+  const [fromDate,setFromDate] = useState('');
+  const [toDate,setToDate] = useState('');
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [editingReminder, setEditingReminder] = useState<RemindLeadReminder | null>(null);
@@ -260,6 +263,10 @@ export function RemindLeadsClient({ reminders, leads }: RemindLeadsClientProps) 
         return true;
       })
       .filter((item) => {
+        if (productFilter && item.lead.product.code !== productFilter) return false;
+        const time = new Date(item.remindAt).getTime();
+        if (fromDate && time < new Date(`${fromDate}T00:00:00+05:30`).getTime()) return false;
+        if (toDate && time >= new Date(`${toDate}T00:00:00+05:30`).getTime()+86400000) return false;
         if (!query) return true;
         const csv = getCsvData(item.lead.csvData);
         return [
@@ -276,7 +283,7 @@ export function RemindLeadsClient({ reminders, leads }: RemindLeadsClientProps) 
         ].some((value) => String(value ?? '').toLowerCase().includes(query));
       })
       .sort((a, b) => new Date(a.remindAt).getTime() - new Date(b.remindAt).getTime());
-  }, [activeFilter, items, search]);
+  }, [activeFilter, items, search, productFilter, fromDate, toDate]);
 
   const completeReminder = async (reminder: RemindLeadReminder) => {
     setPendingId(reminder.id);
@@ -492,6 +499,11 @@ export function RemindLeadsClient({ reminders, leads }: RemindLeadsClientProps) 
             ))}
           </div>
 
+          <div className="flex flex-wrap gap-3">
+            <label className="text-xs text-muted-foreground">Product<select value={productFilter} onChange={e=>setProductFilter(e.target.value)} className="mt-1 block rounded-md border-border bg-background text-sm"><option value="">All products</option>{[...new Map(items.map(item=>[item.lead.product.code,item.lead.product.name])).entries()].map(([code,name])=><option key={code} value={code}>{code} · {name}</option>)}</select></label>
+            <label className="text-xs text-muted-foreground">Reminder from<input type="date" value={fromDate} onChange={e=>setFromDate(e.target.value)} className="mt-1 block rounded-md border-border bg-background text-sm" /></label><label className="text-xs text-muted-foreground">Reminder to<input type="date" value={toDate} onChange={e=>setToDate(e.target.value)} className="mt-1 block rounded-md border-border bg-background text-sm" /></label>
+            <button onClick={()=>{setSearch('');setProductFilter('');setFromDate('');setToDate('');setActiveFilter('all');}} className="self-end rounded-md border border-border px-3 py-2 text-sm text-foreground">Clear filters</button>
+          </div>
           <label className="relative block w-full shrink-0 lg:w-72">
             <span className="sr-only">Search reminders</span>
             <MagnifyingGlassIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

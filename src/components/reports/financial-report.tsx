@@ -21,6 +21,7 @@ interface FinancialReportProps {
     startDate: string;
     endDate: string;
     canExport?: boolean;
+    filterQuery?: string;
 }
 
 interface FinancialData {
@@ -63,7 +64,7 @@ const COLORS = {
     pending: '#f59e0b',
 };
 
-export function FinancialReport({ startDate, endDate, canExport }: FinancialReportProps) {
+export function FinancialReport({ startDate, endDate, filterQuery = '', canExport }: FinancialReportProps) {
     const [data, setData] = useState<FinancialData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -74,7 +75,7 @@ export function FinancialReport({ startDate, endDate, canExport }: FinancialRepo
                 setIsLoading(true);
                 setError(null);
                 const response = await fetch(
-                    `/api/reports/financial?startDate=${startDate}&endDate=${endDate}`
+                    `/api/reports/financial?startDate=${startDate}&endDate=${endDate}&${filterQuery}`
                 );
                 if (!response.ok) {
                     throw new Error('Failed to fetch financial data');
@@ -88,10 +89,10 @@ export function FinancialReport({ startDate, endDate, canExport }: FinancialRepo
             }
         };
         fetchData();
-    }, [startDate, endDate]);
+    }, [startDate, endDate, filterQuery]);
 
     const handleExport = () => {
-        const url = `/api/reports/financial/export?startDate=${startDate}&endDate=${endDate}&format=excel`;
+        const url = `/api/reports/financial/export?startDate=${startDate}&endDate=${endDate}&${filterQuery}&format=excel`;
         window.open(url, '_blank');
     };
 

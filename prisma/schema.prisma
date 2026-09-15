@@ -57,6 +57,7 @@ enum ShippingProvider {
 }
 
 model Tenant {
+  stockChangeRequests StockChangeRequest[]
   id        String   @id @default(cuid())
   name      String   @unique
   isActive  Boolean  @default(true)
@@ -140,6 +141,8 @@ model Tenant {
 }
 
 model User {
+  requestedStockChanges StockChangeRequest[] @relation("StockRequester")
+  reviewedStockChanges StockChangeRequest[] @relation("StockReviewer")
   id                     String              @id @default(uuid())
   email                  String              @unique
   name                   String?
@@ -231,6 +234,7 @@ model AuditEvent {
 }
 
 model Product {
+  stockChangeRequests StockChangeRequest[]
   id            String   @id @default(uuid())
   code          String
   name          String
@@ -308,6 +312,10 @@ model LeadReminder {
 }
 
 model Order {
+  unitPrice Float?
+  deliveryFee Float?
+  prepaidAmount Float?
+  codAmount Float?
   id                       String                      @id
   number                   Int                         @default(autoincrement())
   createdAt                DateTime                    @default(now())
@@ -363,6 +371,7 @@ model Order {
 }
 
 model StockAdjustment {
+  request StockChangeRequest?
   id            String   @id @default(uuid())
   product       Product  @relation(fields: [productId], references: [id])
   productId     String
@@ -1042,4 +1051,27 @@ model AuthCode {
 
   @@index([email, purpose, createdAt])
   @@index([expiresAt])
+}
+
+model StockChangeRequest {
+  id String @id @default(uuid())
+  tenantId String
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  productId String
+  product Product @relation(fields: [productId], references: [id])
+  requestedById String
+  requestedBy User @relation("StockRequester", fields: [requestedById], references: [id])
+  reviewedById String?
+  reviewedBy User? @relation("StockReviewer", fields: [reviewedById], references: [id])
+  kind String
+  quantity Int
+  reason String
+  status String @default("PENDING")
+  reviewNote String?
+  createdAt DateTime @default(now())
+  reviewedAt DateTime?
+  stockAdjustmentId String? @unique
+  stockAdjustment StockAdjustment? @relation(fields: [stockAdjustmentId], references: [id])
+  @@index([tenantId, status, createdAt])
+  @@index([productId])
 }

@@ -1,3 +1,4 @@
+import { parseReportFilters } from '@/lib/report-filters';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -32,6 +33,7 @@ export async function GET(request: Request) {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       tenantId: session.user.tenantId,
+      ...parseReportFilters(searchParams),
     });
 
     return NextResponse.json(reportData);

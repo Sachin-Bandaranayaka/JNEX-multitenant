@@ -1,3 +1,4 @@
+import { ReportFilters, reportOrderFilter, reportLeadFilter } from './report-filters';
 import { getScopedPrismaClient } from './prisma';
 import ExcelJS from 'exceljs';
 import jsPDF from 'jspdf'; // --- FIX: Changed to a default import
@@ -7,7 +8,7 @@ import { ShippingProvider } from '@prisma/client';
 
 // --- INTERFACES (No changes) ---
 
-interface ReportOptions {
+interface ReportOptions extends ReportFilters {
     startDate: Date;
     endDate: Date;
     tenantId: string;
@@ -19,10 +20,10 @@ interface ShippingReportOptions extends ReportOptions {
 
 // --- DATA GENERATION FUNCTIONS (No changes) ---
 
-export async function generateSalesReport({ startDate, endDate, tenantId }: ReportOptions) {
+export async function generateSalesReport({ startDate, endDate, tenantId, ...filters }: ReportOptions) {
     const prisma = getScopedPrismaClient(tenantId);
     const orders = await prisma.order.findMany({
-        where: { createdAt: { gte: startDate, lte: endDate } },
+        where: { ...reportOrderFilter(tenantId,filters), createdAt: { gte: startDate, lte: endDate } },
         include: {
             product: { select: { name: true } },
             assignedTo: { select: { name: true } },
@@ -32,7 +33,7 @@ export async function generateSalesReport({ startDate, endDate, tenantId }: Repo
 
     const mappedOrders = orders.map((order) => ({
         id: order.id,
-        date: order.createdAt.toLocaleDateString(),
+        date: order.createdAt.toISOString().slice(0,10),
         customer: order.customerName,
         total: order.total,
         product: order.product.name,
@@ -49,12 +50,13 @@ export async function generateSalesReport({ startDate, endDate, tenantId }: Repo
     };
 }
 
-export async function generateProductReport({ startDate, endDate, tenantId }: ReportOptions) {
+export async function generateProductReport({ startDate, endDate, tenantId, ...filters }: ReportOptions) {
     const prisma = getScopedPrismaClient(tenantId);
     const products = await prisma.product.findMany({
+        where: {tenantId, ...(filters.productId ? {id:filters.productId} : {}), ...((filters.staffId || filters.courier) ? {OR:[{orders:{some:reportOrderFilter(tenantId,filters)}},{leads:{some:reportLeadFilter(tenantId,filters)}}]} : {})},
         include: {
-            orders: { where: { createdAt: { gte: startDate, lte: endDate } } },
-            leads: { where: { createdAt: { gte: startDate, lte: endDate } } },
+            orders: { where: { ...reportOrderFilter(tenantId,filters), createdAt: { gte: startDate, lte: endDate } } },
+            leads: { where: { ...reportLeadFilter(tenantId,filters), createdAt: { gte: startDate, lte: endDate } } },
         },
     });
 
@@ -62,16 +64,17 @@ export async function generateProductReport({ startDate, endDate, tenantId }: Re
         code: product.code,
         name: product.name,
         currentStock: product.stock,
+        lowStockAlert: product.lowStockAlert,
         totalSold: product.orders.reduce((sum, order) => sum + order.quantity, 0),
         revenue: product.orders.reduce((sum, order) => sum + order.total, 0),
         leads: product.leads.length,
     }));
 }
 
-export async function generateLeadReport({ startDate, endDate, tenantId }: ReportOptions) {
+export async function generateLeadReport({ startDate, endDate, tenantId, ...filters }: ReportOptions) {
     const prisma = getScopedPrismaClient(tenantId);
     const leads = await prisma.lead.findMany({
-        where: { createdAt: { gte: startDate, lte: endDate } },
+        where: { ...reportLeadFilter(tenantId,filters), createdAt: { gte: startDate, lte: endDate } },
         include: {
             product: { select: { name: true } },
             assignedTo: { select: { name: true } },
@@ -81,7 +84,7 @@ export async function generateLeadReport({ startDate, endDate, tenantId }: Repor
     
     const mappedLeads = leads.map((lead) => ({
         id: lead.id,
-        date: lead.createdAt.toLocaleDateString(),
+        date: lead.createdAt.toISOString().slice(0,10),
         customerName: (lead.csvData as any)?.name || 'N/A',
         customerPhone: (lead.csvData as any)?.phone || 'N/A',
         product: lead.product.name,
@@ -96,10 +99,11 @@ export async function generateLeadReport({ startDate, endDate, tenantId }: Repor
     };
 }
 
-export async function generateShippingReport({ startDate, endDate, provider, tenantId }: ShippingReportOptions) {
+export async function generateShippingReport({ startDate, endDate, provider, tenantId, ...filters }: ShippingReportOptions) {
     const prisma = getScopedPrismaClient(tenantId);
     const orders = await prisma.order.findMany({
         where: {
+            ...reportOrderFilter(tenantId, filters),
             createdAt: { gte: startDate, lte: endDate },
             status: { in: ['SHIPPED', 'DELIVERED', 'RETURNED'] },
             ...(provider && { shippingProvider: provider }),
@@ -110,7 +114,7 @@ export async function generateShippingReport({ startDate, endDate, provider, ten
 
     return orders.map(order => ({
         id: order.id,
-        date: order.createdAt.toLocaleDateString(),
+        date: order.createdAt.toISOString().slice(0,10),
         customer: order.customerName,
         status: order.status,
         provider: order.shippingProvider,

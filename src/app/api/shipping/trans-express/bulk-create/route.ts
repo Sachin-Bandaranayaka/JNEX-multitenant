@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     // Fetch all requested orders (scoped to tenant)
     const scopedPrisma = getScopedPrismaClient(tenantId);
     const ordersFromDb = await scopedPrisma.order.findMany({
-      where: { id: { in: idsToFetch }, status: 'CONFIRMED' },
+      where: { id: { in: idsToFetch }, status: { in: ['PENDING', 'CONFIRMED'] }, shippedAt: null, trackingNumber: null },
       select: {
         id: true,
         number: true,
@@ -64,6 +64,7 @@ export async function POST(request: Request) {
         customerPhone: true,
         customerSecondPhone: true,
         total: true,
+        codAmount: true,
         lead: { select: { csvData: true } },
       },
     });
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
           cityId,
           customerPhone: o.customerPhone,
           customerSecondPhone: o.customerSecondPhone || undefined,
-          orderTotal: o.total,
+          orderTotal: o.codAmount ?? o.total,
           weight: manualOrder?.weight ?? weight ?? 1,
         }];
     });

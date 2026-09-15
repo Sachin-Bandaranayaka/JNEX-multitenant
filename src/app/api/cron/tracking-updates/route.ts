@@ -38,7 +38,7 @@ export async function GET(request: Request) {
         const orders = await prisma.order.findMany({
             where: {
                 status: OrderStatus.SHIPPED,
-                shippingProvider: { not: null },
+                shippingProvider: { in: [ShippingProvider.FARDA_EXPRESS, ShippingProvider.TRANS_EXPRESS, ShippingProvider.SL_POST] },
                 trackingNumber: { not: null },
                 deliveredAt: null,
                 OR: [{ lastTrackingCheckedAt: null }, { lastTrackingCheckedAt: { lt: staleBefore } }],

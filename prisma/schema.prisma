@@ -110,6 +110,7 @@ model Tenant {
   // Store relations
   storePurchases StorePurchase[]
   printBatches   InvoicePrintBatch[]
+  shipmentBatches ShipmentBatch[]
 
   // --- Prepaid credit policy ---
   // POSTPAID tenants are billed by monthly invoice exactly as before; PREPAID
@@ -160,6 +161,7 @@ model User {
   leads                  Lead[]
   stockAdjustments       StockAdjustment[]
   printBatches           InvoicePrintBatch[]
+  shipmentBatches        ShipmentBatch[]
   assignedLeadReminders  LeadReminder[]      @relation("LeadReminderAssignee")
   createdLeadReminders   LeadReminder[]      @relation("LeadReminderCreator")
   completedLeadReminders LeadReminder[]      @relation("LeadReminderCompleter")
@@ -356,6 +358,7 @@ model Order {
   trackingFailureCount     Int                         @default(0)
   trackingLastError        String?
   printBatchItems          InvoicePrintBatchItem[]
+  shipmentBatchItem        ShipmentBatchItem?
   deliveryCharge           DeliveryCharge?
   creditTransactions       CreditTransaction[]
 
@@ -546,6 +549,30 @@ model InvoicePrintBatchItem {
   @@unique([batchId, orderId])
   @@unique([batchId, position])
   @@index([orderId])
+}
+
+model ShipmentBatch {
+  id        String           @id @default(cuid())
+  createdAt DateTime         @default(now())
+  provider  ShippingProvider
+  tenantId  String
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  items     ShipmentBatchItem[]
+
+  @@index([tenantId, createdAt])
+}
+
+model ShipmentBatchItem {
+  id       String        @id @default(cuid())
+  batchId  String
+  batch    ShipmentBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  orderId  String        @unique
+  order    Order         @relation(fields: [orderId], references: [id])
+  position Int
+
+  @@unique([batchId, position])
 }
 
 // ============================================

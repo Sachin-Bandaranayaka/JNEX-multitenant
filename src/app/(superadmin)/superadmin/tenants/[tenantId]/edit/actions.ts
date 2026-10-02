@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { requireSuperAdmin } from '@/lib/superadmin-auth';
 
 // --- UPDATED AND MORE ROBUST SCHEMA ---
 const UpdateTenantSchema = z.object({
@@ -35,6 +36,7 @@ const UpdateTenantSchema = z.object({
 
 
 export async function updateTenant(tenantId: string, adminUserId: string, formData: FormData): Promise<void> {
+  await requireSuperAdmin();
   const validatedFields = UpdateTenantSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) {
@@ -113,6 +115,7 @@ const ApiKeysSchema = z.object({
 });
 
 export async function updateTenantApiKeys(tenantId: string, formData: FormData): Promise<void> {
+  await requireSuperAdmin();
   const validatedFields = ApiKeysSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) {

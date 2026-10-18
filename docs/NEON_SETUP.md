@@ -1,6 +1,82 @@
 # Neon setup and RDS migration
 
-## Verified status — 18 October 2026
+## Production cutover — 18 October 2026
+
+The migration is complete. The live application at `https://jnex.lk` is connected
+to the fresh `neondb` database on Neon's `production` branch. The final deployment
+succeeded, maintenance mode is off, and the live service tests passed again
+after reopening normal requests.
+
+The final RDS snapshot contains **33 tables and 10,664 rows**, including Prisma
+migration history. Every table's row count and sorted content hash matched the
+restored Neon copy, both before and after live test cleanup. All five
+auto-increment sequences are safe for new inserts. A separate verification
+confirmed that frozen RDS still matches the final backup.
+
+Live checks used the real `https://jnex.lk` application: password login, the
+authenticated store page, product create/read/update/delete, signed image
+uploads, browser CORS preflight, anonymous image downloads, and rendering the
+new image on the store page. Temporary accounts, products, and images were
+removed afterward. The protected diagnostic confirmed the application uses
+Neon `neondb`, with database writes enabled.
+
+| Amplify job | Purpose | Result |
+| --- | --- | --- |
+| 88 | Deploy maintenance mode while still on RDS | Succeeded |
+| 89 | Deploy Neon settings while maintenance remains enabled | Succeeded |
+| 90 | Reopen normal requests on Neon | Succeeded |
+
+All three releases built application commit
+`37de0b2d83dd4a43dba9963f2fc77aeec28a515a`. Job 90 reported `SUCCEED` for
+`BUILD`, `DEPLOY`, and `VERIFY`. Automatic builds were temporarily disabled for
+these controlled releases; the original setting is restored after publishing
+this verification report.
+
+Final production verification output:
+
+```text
+PASS: live open checks: {"provider":"neon","database":"neondb","readOnly":false,"maintenance":false}
+
+$ NEON_E2E_BASE_URL=https://jnex.lk NEON_E2E_ALLOW_PRODUCTION=1 NEON_E2E_MIGRATION_TOKEN_FILE=<private-token-file> npm run test:neon
+PASS: live app connects to the exact Neon migration target.
+PASS: running app is healthy; anonymous uploads are denied.
+PASS: real credentials login and authenticated store page use Neon Postgres.
+PASS: image upload API, browser CORS, signed PUT and anonymous image GET work end to end.
+PASS: the newly uploaded Neon image renders on the store page.
+PASS: authenticated product create/read/update/delete persists correctly in Neon.
+PASS: temporary database records and uploaded object cleaned up.
+[exit code 0]
+```
+
+The final public probe also verified the normal unauthenticated page redirect,
+HTTP 200 health check, and HTTP 401 rejection of an unauthenticated cron request.
+The initial post-interruption diagnostic returned HTTP 404 because its temporary
+operator token had expired. Refreshing that token resolved it; the public checks
+and full live tests then passed. No deployment or data restore was needed.
+
+Recovery copies retained:
+
+- Original RDS instance `jnex-app-db`, with database and application-role
+  read-only defaults enabled. Old application connections were terminated and
+  a fresh write probe confirmed writes are rejected.
+- Manual RDS snapshot `jnex-pre-neon-20261018`.
+- Fresh dump, manifest, source settings, deployment records, and recovery
+  helpers in `~/.local/share/jnex-migration/live-cutover/`, outside Git.
+- Earlier Neon copy preserved as `neondb_rehearsal_20261018` on the production
+  branch. The fresh restore was promoted to the canonical `neondb` name.
+
+Neon's default `env pull` was verified to select the promoted `neondb`.
+For `neon connection-string`, specify `--database-name neondb` explicitly
+because multiple retained databases make that CLI command require a choice.
+
+Existing S3 image URLs remain intact. New images use Neon's `assets` bucket.
+Amplify's database and storage settings were changed while preserving the
+existing authentication secret, site URL, mail settings, courier settings,
+and cron secret. Normal Neon traffic is open; recover by fixing forward
+or transferring new writes back; switching directly to stale RDS would lose
+those new writes. The private recovery helper refuses that unsafe rollback.
+
+## Initial rehearsal — 18 October 2026
 
 Neon's `production` branch contains the verified RDS snapshot: 33 application
 and migration-history tables, 10,664 rows total. All per-table row counts and
@@ -12,9 +88,8 @@ branch using the standalone Next.js runtime. Temporary test records and the
 uploaded image were removed, and the local test server was stopped afterward.
 The full table-count and content-hash comparison was repeated after cleanup
 and passed again.
-The live Amplify application at `https://jnex.lk` still uses RDS. This is a
-validated point-in-time copy, not a completed live cutover; writes made on RDS
-after the snapshot still need to be transferred during final cutover.
+At this earlier rehearsal stage, the live Amplify application still used RDS.
+The fresh, frozen-source copy and live cutover are recorded above.
 
 Selected command output:
 
@@ -145,12 +220,21 @@ This uses the app's existing `output: 'standalone'` packaging. The original
 `npm run start -- --port 3011` also served the rehearsal smoke test, but Next.js
 emitted its standalone-mode warning; the packaged runtime avoids that warning.
 
-The smoke test refuses RDS connections and non-local app URLs. It creates a
+The smoke test refuses RDS connections. It defaults to a local app; live
+testing accepts only `https://jnex.lk`, requires
+`NEON_E2E_ALLOW_PRODUCTION=1` and a short-lived operator-token file, and checks
+the running app's target database before creating fixtures. It creates a
 temporary tenant and super admin, signs in through the real credentials flow,
 loads the store page, requests a signed upload, verifies browser CORS, uploads
 and downloads an image, and checks product create/read/update/delete through
 the authenticated API. A `finally` block removes its database fixtures and
 uploaded object. Test credentials and signed URLs are never printed.
+
+`MAINTENANCE_MODE=1` blocks pages, auth actions, cron calls, API mutations, and
+server actions before ordinary public-route exemptions. The health endpoint
+stays available. An encrypted, expiring operator token signed with the existing
+NextAuth secret enables migration verification; ordinary route permissions
+remain enforced. `MAINTENANCE_MODE=0` is compiled into the final normal release.
 
 ## Preserving data and final cutover
 

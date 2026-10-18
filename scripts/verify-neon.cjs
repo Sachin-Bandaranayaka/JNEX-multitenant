@@ -127,6 +127,10 @@ async function main() {
       name: 'Temporary Neon smoke product', sku: `neon-${id}`, price: 1, stock: 1, imageUrl: upload.publicUrl,
     });
     assert.equal((await db.storeProduct.findUniqueOrThrow({ where: { id: product.id } })).imageUrl, upload.publicUrl);
+    const storePage = await request('/superadmin/store');
+    assert.equal(storePage.status, 200);
+    assert.ok((await storePage.text()).includes(upload.publicUrl), 'The uploaded image must render on the store page');
+    console.log('PASS: the newly uploaded Neon image renders on the store page.');
     await jsonRequest(`/api/store/products/${product.id}`, 'PUT', { stock: 2 });
     const read = await jsonRequest(`/api/store/products/${product.id}`, 'GET');
     assert.equal(read.stock, 2);

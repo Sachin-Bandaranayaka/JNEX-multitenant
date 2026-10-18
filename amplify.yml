@@ -8,8 +8,15 @@ frontend:
       commands:
         - echo "NEXTAUTH_SECRET=$NEXTAUTH_SECRET" >> .env.production
         - echo "NEXTAUTH_URL=$NEXTAUTH_URL" >> .env.production
+        - echo "MAINTENANCE_MODE=${MAINTENANCE_MODE:-0}" >> .env.production
         - echo "DATABASE_URL=$DATABASE_URL" >> .env.production
         - echo "DIRECT_URL=$DIRECT_URL" >> .env.production
+        - echo "DATABASE_URL_UNPOOLED=${DATABASE_URL_UNPOOLED:-$DIRECT_URL}" >> .env.production
+        - echo "NEON_STORAGE_ENDPOINT=$NEON_STORAGE_ENDPOINT" >> .env.production
+        - echo "NEON_STORAGE_REGION=$NEON_STORAGE_REGION" >> .env.production
+        - echo "NEON_STORAGE_BUCKET=$NEON_STORAGE_BUCKET" >> .env.production
+        - echo "NEON_STORAGE_ACCESS_KEY_ID=$NEON_STORAGE_ACCESS_KEY_ID" >> .env.production
+        - echo "NEON_STORAGE_SECRET_ACCESS_KEY=$NEON_STORAGE_SECRET_ACCESS_KEY" >> .env.production
         - echo "CRON_SECRET_KEY=$CRON_SECRET_KEY" >> .env.production
         # Outbound email. Without these the app builds fine but silently
         # cannot send sign-in codes or password resets, which locks users out

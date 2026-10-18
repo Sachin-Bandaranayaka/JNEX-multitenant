@@ -3,14 +3,52 @@ import { NextRequest } from 'next/server';
 import { middleware } from '@/middleware';
 
 const getToken = vi.fn();
-vi.mock('next-auth/jwt', () => ({ getToken: (...args: unknown[]) => getToken(...args) }));
+const decode = vi.fn();
+vi.mock('next-auth/jwt', () => ({ getToken: (...args: unknown[]) => getToken(...args), decode: (...args: unknown[]) => decode(...args) }));
 
 
 function request(pathname: string, method = 'GET') {
   return new NextRequest(new URL(`https://app.example.com${pathname}`), { method });
 }
 
-beforeEach(() => getToken.mockReset());
+beforeEach(() => { getToken.mockReset(); decode.mockReset(); vi.unstubAllEnvs(); });
+
+describe('database migration maintenance', () => {
+  beforeEach(() => vi.stubEnv('MAINTENANCE_MODE', '1'));
+
+  it.each([
+    ['/api/cron/tracking-updates', 'GET'],
+    ['/api/auth/code/request', 'POST'],
+    ['/api/orders', 'POST'],
+    ['/superadmin/create', 'POST'],
+    ['/orders', 'GET'],
+  ])('blocks %s including normally public writers', async (path, method) => {
+    const response = await middleware(request(path, method));
+    expect(response?.status).toBe(503);
+    expect(response?.headers.get('retry-after')).toBe('60');
+    expect(response?.headers.get('cache-control')).toBe('no-store');
+    expect(getToken).not.toHaveBeenCalled();
+  });
+
+  it('keeps the health endpoint available', async () => {
+    expect((await middleware(request('/api/health')))?.status).toBe(200);
+  });
+
+  it('rejects an invalid bypass token', async () => {
+    vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
+    decode.mockRejectedValue(new Error('invalid token'));
+    const req = new NextRequest('https://app.example.com/api/orders', { headers: { 'x-migration-token': 'invalid' } });
+    expect((await middleware(req))?.status).toBe(503);
+  });
+
+  it('keeps route authentication required after a valid maintenance bypass', async () => {
+    vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
+    decode.mockResolvedValue({ purpose: 'rds-neon-cutover' });
+    getToken.mockResolvedValue(null);
+    const req = new NextRequest('https://app.example.com/api/orders', { headers: { 'x-migration-token': 'operator-token' } });
+    expect((await middleware(req))?.status).toBe(401);
+  });
+});
 
 describe('super admin API access', () => {
   beforeEach(() => getToken.mockResolvedValue({ role: 'SUPER_ADMIN' }));

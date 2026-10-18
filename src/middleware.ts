@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { Role } from '@prisma/client';
 import { isAllowedImpersonationRequest, isImpersonationExpired } from '@/lib/impersonation-policy';
+import { hasMigrationBypass, isMigrationMaintenance } from '@/lib/migration-maintenance';
 
 const permissionMap: Record<string, string[]> = {
   '/dashboard': ['VIEW_DASHBOARD'],
@@ -82,6 +83,21 @@ function isPublicAsset(pathname: string) {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Run before public auth/cron exemptions and before server-action requests.
+  if (isMigrationMaintenance() && pathname !== '/api/health' && !isPublicAsset(pathname) &&
+      !(await hasMigrationBypass(request.headers))) {
+    const headers = { 'Retry-After': '60', 'Cache-Control': 'no-store' };
+    if (pathname.startsWith('/api/') || !['GET', 'HEAD'].includes(request.method)) {
+      return NextResponse.json({ error: 'JNEX is undergoing database maintenance. Please try again shortly.' }, { status: 503, headers });
+    }
+    return new NextResponse('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>JNEX maintenance</title></head><body style="font-family:system-ui;max-width:36rem;margin:15vh auto;padding:2rem"><h1>JNEX is undergoing maintenance</h1><p>We are upgrading the database. Please try again shortly.</p></body></html>', {
+      status: 503, headers: { ...headers, 'Content-Type': 'text/html; charset=utf-8' },
+    });
+  }
+
+  // This operator-only diagnostic authenticates its own short-lived token.
+  if (pathname === '/api/migration/verify') return NextResponse.next();
 
   // Public files must remain available before authentication (sign-in branding,
   // PWA metadata, icons, and downloadable templates).

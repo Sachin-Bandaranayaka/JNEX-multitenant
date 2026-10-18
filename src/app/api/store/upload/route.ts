@@ -37,9 +37,9 @@ export async function POST(request: Request) {
     const fileExtension = fileName.split('.').pop();
     const key = `store-products/${uuidv4()}.${fileExtension}`;
 
-    const { uploadUrl, publicUrl } = await getPresignedUploadUrl(key, contentType);
+    const { uploadUrl, publicUrl, uploadHeaders } = await getPresignedUploadUrl(key, contentType);
 
-    return NextResponse.json({ uploadUrl, publicUrl });
+    return NextResponse.json({ uploadUrl, publicUrl, uploadHeaders });
   } catch (error) {
     console.error('Error generating presigned URL:', error);
     return NextResponse.json(

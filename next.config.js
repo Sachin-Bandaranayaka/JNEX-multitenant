@@ -10,6 +10,7 @@ const nextConfig = {
   output: 'standalone',
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+    MAINTENANCE_MODE: process.env.MAINTENANCE_MODE || '0',
   },
   images: {
     domains: ['avatars.githubusercontent.com', 'lh3.googleusercontent.com', 'jnex-images.s3.eu-north-1.amazonaws.com'],

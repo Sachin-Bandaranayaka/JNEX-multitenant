@@ -63,6 +63,7 @@ Create a `.env.local` file in the root directory with the following variables:
 ```
 # Database
 DATABASE_URL="your_database_url_here"
+DATABASE_URL_UNPOOLED="your_direct_database_url_here"
 
 # Farda Express
 FARDA_EXPRESS_API_KEY=your_farda_api_key
@@ -85,6 +86,9 @@ CRON_SECRET_KEY=your_cron_secret_key_here
 ```
 
 **Note:** See [docs/CRON_SETUP.md](./docs/CRON_SETUP.md) for complete cron job configuration instructions.
+
+For Neon provisioning, object storage, verification, and the RDS cutover process,
+see [docs/NEON_SETUP.md](./docs/NEON_SETUP.md).
 
 
 ## Cron Jobs

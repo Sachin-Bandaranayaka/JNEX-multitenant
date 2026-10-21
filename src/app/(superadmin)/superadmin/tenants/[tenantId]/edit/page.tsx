@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
-import { updateTenant, updateTenantApiKeys } from './actions';
+import { updateTenant, updateTenantApiKeys, updateTenantOrderCode } from './actions';
 import { Role, ShippingProvider } from '@prisma/client';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Card, PageHeader, saBtnDark, saBtnPrimary, saInput, saLabel } from '../../../ui';
@@ -25,6 +25,7 @@ export default async function EditTenantPage({ params }: { params: Promise<{ ten
   const adminUser = tenant.users[0];
   const updateTenantWithIds = updateTenant.bind(null, tenant.id, adminUser.id);
   const updateApiKeysWithId = updateTenantApiKeys.bind(null, tenant.id);
+  const updateOrderCodeWithId = updateTenantOrderCode.bind(null, tenant.id);
 
   return (
     <div className="space-y-8">
@@ -45,6 +46,29 @@ export default async function EditTenantPage({ params }: { params: Promise<{ ten
           </div>
           <div className="flex items-center justify-end border-t border-slate-200 pt-4">
             <button type="submit" className={saBtnDark}>Save changes</button>
+          </div>
+        </form>
+      </Card>
+
+      <Card title="Order numbers" description="Short order code sent to couriers as the order no., e.g. DC-1622">
+        <form action={updateOrderCodeWithId} className="max-w-xl space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="orderCodePrefix" className={saLabel}>Prefix</label>
+              <input type="text" name="orderCodePrefix" id="orderCodePrefix" defaultValue={tenant.orderCodePrefix || ''} placeholder="DC" maxLength={10} pattern="[A-Za-z0-9]{1,10}" className={`mt-1.5 ${saInput}`} />
+            </div>
+            <div>
+              <label htmlFor="orderCodeNextNumber" className={saLabel}>Next number</label>
+              <input type="number" name="orderCodeNextNumber" id="orderCodeNextNumber" defaultValue={tenant.orderCodeNextNumber} min={1} required className={`mt-1.5 ${saInput}`} />
+            </div>
+          </div>
+          <p className="text-xs text-slate-500">
+            {tenant.orderCodePrefix
+              ? <>The next order will be <span className="font-semibold text-slate-700">{tenant.orderCodePrefix}-{tenant.orderCodeNextNumber}</span>.</>
+              : <>Leave the prefix empty to keep the courier order prefix format below.</>}
+          </p>
+          <div className="flex items-center justify-end border-t border-slate-200 pt-4">
+            <button type="submit" className={saBtnDark}>Save order numbers</button>
           </div>
         </form>
       </Card>

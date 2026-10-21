@@ -5,6 +5,7 @@ import { LeadStatus, OrderStatus, Prisma, ShippingProvider } from '@prisma/clien
 import { createNotification } from '@/lib/notifications';
 import { CreateOrderData } from '@/types/orders';
 import { transitionOrder } from '@/lib/order-workflow';
+import { claimOrderCode } from '@/lib/order-code';
 
 const sendOrderConfirmationEmail = typeof window === 'undefined' ? require('./email').sendOrderConfirmationEmail : null;
 
@@ -55,10 +56,12 @@ export async function createOrderFromLead(data: CreateOrderData) {
 
       const discount = (lead.csvData as any).discount || 0;
       const total = (lead.product.price * data.quantity) - discount;
+      const orderCode = await claimOrderCode(tx, data.tenantId);
 
       const order = await tx.order.create({
         data: {
           id: orderId, // Use the new, dynamic ID
+          orderCode,
           tenant: { connect: { id: data.tenantId } },
           lead: { connect: { id: data.leadId } },
           product: { connect: { id: lead.product.id } },

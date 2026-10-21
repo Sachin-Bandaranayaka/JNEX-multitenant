@@ -15,6 +15,7 @@ export type LeadWithDetails = PrismaLead & {
   order: {
     id: string;
     number: number;
+    orderCode: string | null;
     status: string;
     customerName: string;
     customerPhone: string;
@@ -172,6 +173,7 @@ export default async function LeadsPage({
           select: {
             id: true,
             number: true,
+            orderCode: true,
             status: true,
             customerName: true,
             customerPhone: true,

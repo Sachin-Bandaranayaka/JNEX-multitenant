@@ -82,7 +82,8 @@ export async function POST(request: Request) {
       tenantId,
       orderId,
       orderPrefix,
-      orderNumber
+      orderNumber,
+      savedOrder.orderCode
     );
 
     return NextResponse.json({

@@ -86,6 +86,10 @@ model Tenant {
   transExpressOrderPrefix String? @default("JNEX")
   royalExpressOrderPrefix String? @default("JNEX")
 
+  // Short per-tenant order code (e.g. "DC-1622") sent to couriers as the order no.
+  orderCodePrefix     String?
+  orderCodeNextNumber Int     @default(1)
+
   // --- NEW: Default Shipping Provider Field ---
   defaultShippingProvider ShippingProvider? @default(FARDA_EXPRESS)
 
@@ -320,6 +324,7 @@ model Order {
   codAmount Float?
   id                       String                      @id
   number                   Int                         @default(autoincrement())
+  orderCode                String?
   createdAt                DateTime                    @default(now())
   updatedAt                DateTime                    @updatedAt
   status                   OrderStatus                 @default(PENDING)
@@ -371,6 +376,7 @@ model Order {
   @@index([status])
   @@index([tenantId])
   @@index([status, lastTrackingCheckedAt])
+  @@unique([tenantId, orderCode])
 }
 
 model StockAdjustment {

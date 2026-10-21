@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   const orderIds = [...new Set(parsed.data.orderIds)];
   const orders = await prisma.order.findMany({
     where: { tenantId: guard.tenantId, id: { in: orderIds } },
-    select: { id: true, number: true, status: true, total: true, codAmount: true, customerName: true, customerAddress: true, customerPhone: true, customerSecondPhone: true, shippingLocationProvider: true, shippingCityId: true, shippedAt: true, trackingNumber: true, shipmentBatchItem: { select: { id: true } } },
+    select: { id: true, number: true, orderCode: true, status: true, total: true, codAmount: true, customerName: true, customerAddress: true, customerPhone: true, customerSecondPhone: true, shippingLocationProvider: true, shippingCityId: true, shippedAt: true, trackingNumber: true, shipmentBatchItem: { select: { id: true } } },
   });
   if (orders.length !== orderIds.length) return NextResponse.json({ error: 'Some selected orders are unavailable.' }, { status: 404 });
   const byId = new Map(orders.map(order => [order.id, order]));
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     const suffix = `${String(date.getDate()).padStart(2, '0')}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getFullYear()).slice(-2)}`;
     const results = withCity.length ? await new TransExpressProvider(tenant.transExpressApiKey).createBulkShipmentsWithCityIds(withCity.map(order => ({
       orderId: order.id,
-      orderNo: `${tenant.transExpressOrderPrefix || 'JNEX'}-${order.number}-${suffix}`,
+      orderNo: order.orderCode || `${tenant.transExpressOrderPrefix || 'JNEX'}-${order.number}-${suffix}`,
       customerName: order.customerName,
       customerAddress: order.customerAddress,
       cityId: order.shippingCityId!,

@@ -37,6 +37,7 @@ interface ShippingFormProps {
         total: number;
         codAmount?: number | null;
         discount?: number;
+        orderCode?: string | null;
     };
     fardaExpressClientId?: string;
     fardaExpressApiKey?: string;
@@ -392,7 +393,8 @@ export function ShippingForm({
                     selectedRoyalCity,
                     states.find(s => s.name === destinationState)?.id,
                     codAmount,
-                    royalExpressOrderPrefix
+                    royalExpressOrderPrefix,
+                    order.orderCode
                 );
 
                 setTrackingNumber(result.trackingNumber);

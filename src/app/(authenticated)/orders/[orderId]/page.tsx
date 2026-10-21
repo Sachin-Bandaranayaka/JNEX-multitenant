@@ -155,6 +155,7 @@ export default async function OrderDetailsPage({ params, searchParams }: OrderDe
                                             quantity: order.quantity,
                                             total: order.total, codAmount: order.codAmount,
                                             discount: order.discount || undefined,
+                                            orderCode: order.orderCode,
                                         }}
                                         fardaExpressClientId={tenant.fardaExpressClientId || undefined}
                                         fardaExpressApiKey={tenant.fardaExpressApiKey || undefined}

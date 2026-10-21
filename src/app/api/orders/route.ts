@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { z } from 'zod';
 import { LeadStatus, OrderStatus, Prisma } from '@prisma/client';
+import { claimOrderCode } from '@/lib/order-code';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -192,8 +193,10 @@ export async function POST(request: Request) {
                 const total = product.price * validatedData.quantity;
 
                 // Create order
+                const orderCode = await claimOrderCode(tx, session.user.tenantId);
                 const orderData = {
                     id: orderId,
+                    orderCode,
                     status: OrderStatus.PENDING,
                     quantity: validatedData.quantity,
                     total: total,

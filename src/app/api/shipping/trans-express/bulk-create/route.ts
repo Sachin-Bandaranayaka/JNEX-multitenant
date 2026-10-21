@@ -53,6 +53,7 @@ export async function POST(request: Request) {
       select: {
         id: true,
         number: true,
+        orderCode: true,
         customerName: true,
         customerAddress: true,
         customerCity: true,
@@ -98,7 +99,7 @@ export async function POST(request: Request) {
       error: string;
     }> = plan.blocked.map((blocked) => ({
       orderId: blocked.orderId,
-      orderNo: String(ordersFromDb.find((o) => o.id === blocked.orderId)?.number ?? blocked.orderId),
+      orderNo: (() => { const o = ordersFromDb.find((x) => x.id === blocked.orderId); return o?.orderCode || String(o?.number ?? blocked.orderId); })(),
       error: `Not enough credit — this order needs ${blocked.required} credit(s). Top up and try again.`,
     }));
 
@@ -109,7 +110,7 @@ export async function POST(request: Request) {
         const cityId = manualOrder?.cityId || (
           o.shippingLocationProvider === 'TRANS_EXPRESS' ? o.shippingCityId : null
         );
-        const orderNo = `${prefix || 'ORD'}-${o.number}-${datePart}`;
+        const orderNo = o.orderCode || `${prefix || 'ORD'}-${o.number}-${datePart}`;
 
         if (!cityId) {
           locationErrors.push({

@@ -112,8 +112,10 @@ export class TransExpressProvider implements ShippingProvider {
    * - DDMMYY: date stamp for additional uniqueness
    *
    * If no prefix/orderNumber, falls back to prefix + random.
+   * A tenant order code (e.g. "DC-1622") takes precedence over all of this.
    */
-  private generateOrderNo(tenantId?: string, orderId?: string, orderPrefix?: string, orderNumber?: number): string {
+  private generateOrderNo(tenantId?: string, orderId?: string, orderPrefix?: string, orderNumber?: number, orderCode?: string | null): string {
+    if (orderCode) return orderCode;
     const prefix = orderPrefix || (tenantId ? tenantId.substring(0, 6).toUpperCase() : 'ORD');
     const now = new Date();
     const dd = String(now.getDate()).padStart(2, '0');
@@ -146,11 +148,12 @@ export class TransExpressProvider implements ShippingProvider {
     tenantId?: string,
     orderId?: string,
     orderPrefix?: string,
-    orderNumber?: number
+    orderNumber?: number,
+    orderCode?: string | null
   ): Promise<ShippingLabel> {
     // Map our data to Trans Express API format
     const data: any = {
-      order_no: this.generateOrderNo(tenantId, orderId, orderPrefix, orderNumber),
+      order_no: this.generateOrderNo(tenantId, orderId, orderPrefix, orderNumber, orderCode),
       customer_name: destination.name,
       address: destination.street,
       description: `${packageDetails.weight}kg package - ${service}`,
@@ -203,10 +206,11 @@ export class TransExpressProvider implements ShippingProvider {
     tenantId?: string,
     orderId?: string,
     orderPrefix?: string,
-    orderNumber?: number
+    orderNumber?: number,
+    orderCode?: string | null
   ): Promise<ShippingLabel> {
     const data = {
-      order_no: this.generateOrderNo(tenantId, orderId, orderPrefix, orderNumber),
+      order_no: this.generateOrderNo(tenantId, orderId, orderPrefix, orderNumber, orderCode),
       customer_name: destination.name,
       address: destination.street,
       city: cityName,

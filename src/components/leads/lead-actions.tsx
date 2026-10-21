@@ -461,6 +461,7 @@ export function LeadActions({
                         total: lead.order.total,
                         codAmount: lead.order.codAmount,
                         discount: lead.order.discount || undefined,
+                        orderCode: lead.order.orderCode,
                     }}
                     fardaExpressClientId={tenantConfig.fardaExpressClientId}
                     fardaExpressApiKey={tenantConfig.fardaExpressApiKey}

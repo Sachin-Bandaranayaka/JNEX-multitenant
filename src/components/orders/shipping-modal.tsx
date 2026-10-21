@@ -25,6 +25,7 @@ interface ShippingModalProps {
         total: number;
         codAmount?: number | null;
         discount?: number;
+        orderCode?: string | null;
     };
     fardaExpressClientId?: string;
     fardaExpressApiKey?: string;

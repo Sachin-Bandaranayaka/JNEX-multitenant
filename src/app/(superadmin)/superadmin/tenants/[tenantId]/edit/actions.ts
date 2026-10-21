@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { requireSuperAdmin } from '@/lib/superadmin-auth';
+import { formatOrderCode, highestUsedOrderCode, ORDER_CODE_PREFIX_PATTERN } from '@/lib/order-code';
 
 // --- UPDATED AND MORE ROBUST SCHEMA ---
 const UpdateTenantSchema = z.object({
@@ -166,6 +167,44 @@ export async function updateTenantApiKeys(tenantId: string, formData: FormData):
     console.error(error);
     throw new Error('Database Error: Failed to update API keys.');
   }
+
+  revalidatePath(`/superadmin/tenants/${tenantId}/edit`);
+  redirect(`/superadmin/tenants/${tenantId}/edit`);
+}
+
+// --- PER-TENANT ORDER CODE (e.g. "DC-1622") ---
+const OrderCodeSchema = z.object({
+  orderCodePrefix: z.preprocess(
+    (val) => (typeof val === 'string' ? val.trim().toUpperCase() : val),
+    z.string().regex(ORDER_CODE_PREFIX_PATTERN, 'Use 1–10 letters or digits.').or(z.literal('')),
+  ),
+  orderCodeNextNumber: z.coerce.number().int().min(1, 'Next number must be at least 1.'),
+});
+
+export async function updateTenantOrderCode(tenantId: string, formData: FormData): Promise<void> {
+  await requireSuperAdmin();
+  const validatedFields = OrderCodeSchema.safeParse(Object.fromEntries(formData.entries()));
+
+  if (!validatedFields.success) {
+    console.error("Validation Errors:", validatedFields.error.flatten().fieldErrors);
+    throw new Error('Validation failed');
+  }
+
+  const { orderCodePrefix, orderCodeNextNumber } = validatedFields.data;
+
+  // Setting the counter behind a number this prefix already used would make
+  // the next order collide with an existing one.
+  if (orderCodePrefix) {
+    const highest = await highestUsedOrderCode(prisma, tenantId, orderCodePrefix);
+    if (orderCodeNextNumber <= highest) {
+      throw new Error(`${formatOrderCode(orderCodePrefix, highest)} is already used. Next number must be above ${highest}.`);
+    }
+  }
+
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: { orderCodePrefix: orderCodePrefix || null, orderCodeNextNumber },
+  });
 
   revalidatePath(`/superadmin/tenants/${tenantId}/edit`);
   redirect(`/superadmin/tenants/${tenantId}/edit`);

@@ -11,7 +11,7 @@ import { ImpersonationBanner } from '@/components/superadmin/impersonation-banne
 
 export default function AuthenticatedUI({ children, tenant }: { children: React.ReactNode; tenant: Tenant; }) {
   useSessionStatus();
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Default closed on mobile
   const [isMobile, setIsMobile] = useState(false);
 
@@ -47,7 +47,11 @@ export default function AuthenticatedUI({ children, tenant }: { children: React.
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobile, isSidebarOpen]);
 
-  if (status === 'loading' || !session) {
+  // Only block on the first load. `update()` (the idle keep-alive and the
+  // stale-permission refresh) flips status back to 'loading' while it re-mints
+  // the token; swapping the tree for the loader then would unmount the page and
+  // wipe whatever the user was in the middle of.
+  if (!session) {
     return <LogoLoader fullScreen label="Loading your JNEX workspace" />;
   }
 

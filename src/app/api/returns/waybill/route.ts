@@ -83,7 +83,15 @@ export async function POST(request: Request) {
             description: `Return via waybill ${waybill}`,
         });
 
-        return NextResponse.json(result);
+        // Tell the operator what came back to the wallet. Orders that shipped
+        // before the tenant had a fee rate were never held, so they return 0 —
+        // which looks like a bug unless it is said out loud.
+        const credited = await prisma.creditTransaction.findUnique({
+            where: { idempotencyKey: order.status === OrderStatus.DELIVERED ? `refund:${order.id}` : `release:${order.id}` },
+            select: { credits: true },
+        });
+
+        return NextResponse.json({ ...result, creditsReturned: credited ? Number(credited.credits) : 0 });
     } catch (error) {
         console.error('Error processing waybill return:', error);
         return NextResponse.json({ error: 'Failed to process return' }, { status: 500 });

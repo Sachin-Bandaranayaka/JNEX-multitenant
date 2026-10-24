@@ -39,7 +39,10 @@ export default function AddReturnPage() {
       const res = await fetch('/api/returns/waybill', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ waybill: match.trackingNumber }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Return failed');
-      setRecent(prev => [{ ...match, status: 'RETURNED' }, ...prev]); playSuccessSound(); toast.success(`Order #${match.number} added to returns`); reset();
+      setRecent(prev => [{ ...match, status: 'RETURNED' }, ...prev]); playSuccessSound();
+      const credits = Number(data.creditsReturned) || 0;
+      toast.success(`Order #${match.number} added to returns`, { description: credits > 0 ? `${credits} credit${credits === 1 ? '' : 's'} returned to your balance` : 'No credit was reserved for this order, so none was returned' });
+      window.dispatchEvent(new Event('jnex:billing-updated')); reset();
     } catch (error) { playErrorSound(); toast.error(error instanceof Error ? error.message : 'Return failed'); }
     finally { setLoading(false); }
   };

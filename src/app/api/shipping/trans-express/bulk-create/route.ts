@@ -140,23 +140,28 @@ export async function POST(request: Request) {
     const results = [...shipmentResults, ...locationErrors];
 
     // Persist successful shipments through the state machine rather than
-    // writing `status` directly. Going straight to the column skipped status
-    // history, the transition rules, and — now — the credit hold, so a bulk
-    // shipment could leave with no reservation against it at all.
-    await Promise.allSettled(
-      results
-        .filter((r) => r.trackingNumber)
-        .map((r) =>
-          transitionOrder({
-            orderId: r.orderId,
-            tenantId,
-            userId: session.user.id,
-            to: OrderStatus.SHIPPED,
-            source: 'Trans Express bulk shipment',
-            shipping: { provider: 'TRANS_EXPRESS', trackingNumber: r.trackingNumber as string },
-          }),
-        ),
-    );
+    // writing `status` directly, so status history, transition rules and the
+    // credit hold all apply. One at a time: each transition takes the tenant's
+    // credit-ledger lock, and running them together made all but the first few
+    // time out while the parcels were already booked.
+    for (const result of results) {
+      if (!result.trackingNumber) continue;
+      try {
+        await transitionOrder({
+          orderId: result.orderId,
+          tenantId,
+          userId: session.user.id,
+          to: OrderStatus.SHIPPED,
+          source: 'Trans Express bulk shipment',
+          shipping: { provider: 'TRANS_EXPRESS', trackingNumber: result.trackingNumber },
+        });
+      } catch (error) {
+        // Report it as failed so the order stays in the list, with the waybill
+        // so staff record it instead of booking the parcel again.
+        result.error = `Booked as ${result.trackingNumber} but not recorded: ${error instanceof Error ? error.message : 'unknown error'} Record this waybill on the order instead of shipping it again.`;
+        delete result.trackingNumber;
+      }
+    }
 
     return NextResponse.json({ results });
   } catch (error) {

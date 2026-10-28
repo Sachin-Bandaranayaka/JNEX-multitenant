@@ -5,8 +5,8 @@ describe('shipping workspace scopes', () => {
     expect(normalizeShippingFilters('ship', { status: 'DELIVERED', courier: 'ROYAL_EXPRESS', view: 'exceptions', q: '#269' })).toEqual({ q: '#269' });
     expect(normalizeShippingFilters('delivery', { status: 'CONFIRMED', courier: 'TRANS_EXPRESS' })).toEqual({ courier: 'TRANS_EXPRESS' });
   });
-  it('limits ship queue to unbooked pending or confirmed orders', () => {
-    expect(shippingWhere('tenant-a', 'ship', {})).toEqual({ tenantId: 'tenant-a', AND: [{ status: { in: ['PENDING', 'CONFIRMED'] }, shippedAt: null, trackingNumber: null }] });
+  it('limits ship queue to unbooked or unfinished pending or confirmed orders', () => {
+    expect(shippingWhere('tenant-a', 'ship', {})).toEqual({ tenantId: 'tenant-a', AND: [{ status: { in: ['PENDING', 'CONFIRMED'] }, shippedAt: null, OR: [{ trackingNumber: null }, { shipmentBatchItem: { isNot: null } }] }] });
   });
   it('preserves delivered and returned shipments in history including legacy dates', () => {
     expect(shippingWhere('tenant-a', 'shipped', {}).AND).toContainEqual({ OR: [{ shippedAt: { not: null } }, { status: { in: ['SHIPPED', 'DELIVERED', 'RETURNED', 'RESCHEDULED'] } }] });

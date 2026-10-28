@@ -17,7 +17,9 @@ export function shippingWhere(tenantId: string, section: ShippingSection, input:
   const filters = normalizeShippingFilters(section, input);
   const conditions: Prisma.OrderWhereInput[] = [];
   if (section === 'ship') {
-    conditions.push({ status: { in: ['PENDING', 'CONFIRMED'] }, shippedAt: null, trackingNumber: null });
+    // A booked order whose recording did not finish stays in the queue so it can be
+    // shipped again; the batches API records it without booking a second parcel.
+    conditions.push({ status: { in: ['PENDING', 'CONFIRMED'] }, shippedAt: null, OR: [{ trackingNumber: null }, { shipmentBatchItem: { isNot: null } }] });
   } else {
     conditions.push({ OR: [{ shippedAt: { not: null } }, { status: { in: ['SHIPPED', 'DELIVERED', 'RETURNED', 'RESCHEDULED'] } }] });
     if (section === 'delivery') conditions.push({ status: { in: ['SHIPPED', 'DELIVERED', 'RETURNED', 'RESCHEDULED'] } });

@@ -59,10 +59,15 @@ export async function POST(request: Request) {
     // tenant-scoped client to avoid cross-tenant shipment creation.
     const scopedPrisma = getScopedPrismaClient(tenantId);
 
-    const order = await scopedPrisma.order.findFirst({ where: { id: data.orderId } });
+    const order = await scopedPrisma.order.findFirst({ where: { id: data.orderId }, include: { shipmentBatchItem: { select: { id: true } } } });
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     if (!['PENDING', 'CONFIRMED', 'RESCHEDULED'].includes(order.status)) {
       return NextResponse.json({ error: `Order cannot be shipped from ${order.status}` }, { status: 409 });
+    }
+    // A rescheduled parcel is legitimately booked again; anything else that
+    // already has a waybill or a batch claim would be a second booking.
+    if (order.status !== 'RESCHEDULED' && (order.trackingNumber || order.shipmentBatchItem)) {
+      return NextResponse.json({ error: 'Order is already booked. Finish it from the Ship page.' }, { status: 409 });
     }
 
     // Checked before the courier is called, not after. The hold inside

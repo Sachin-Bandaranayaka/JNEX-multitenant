@@ -11,7 +11,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Shi
   const filters = await searchParams;
   const prisma = getScopedPrismaClient(guard.tenantId);
   const [orders, staff] = await Promise.all([
-    prisma.order.findMany({ where: shippingWhere(guard.tenantId, 'ship', filters), include: { product: { select: { name: true } }, assignedTo: { select: { name: true } } }, orderBy: { createdAt: 'desc' }, take: 500 }),
+    prisma.order.findMany({ where: shippingWhere(guard.tenantId, 'ship', filters), include: { product: { select: { name: true } }, assignedTo: { select: { name: true } }, shipmentBatchItem: { select: { id: true } } }, orderBy: { createdAt: 'desc' }, take: 500 }),
     prisma.user.findMany({ where: { tenantId: guard.tenantId, isActive: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
   ]);
   return <div className="space-y-5"><header><h1 className="text-2xl font-bold">Ship</h1><p className="text-sm text-muted-foreground">Select ready orders, choose a courier, and create a shipment batch.</p></header>

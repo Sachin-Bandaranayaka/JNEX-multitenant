@@ -105,7 +105,10 @@ interface BulkShipResult {
   trackingNumber?: string;
   labelUrl?: string;
   error?: string;
+  code?: 'BOOKING_UNCONFIRMED';
 }
+
+const BULK_SHIP_CHUNK_SIZE = 3;
 
 interface OrderMapping {
   provinceId?: number;
@@ -129,6 +132,8 @@ function BulkShipModal({
   const [weight, setWeight] = useState('1');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [results, setResults] = useState<BulkShipResult[] | null>(null);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [confirmedUnbooked, setConfirmedUnbooked] = useState<string[]>([]);
 
   // Manual mode states
   const [provinces, setProvinces] = useState<any[]>([]);
@@ -271,62 +276,53 @@ function BulkShipModal({
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      let bodyData;
-
-      if (mode === 'manual') {
-        const payload = confirmedOrders.map((o) => {
-          const m = mappings[o.id];
-          return {
-            orderId: o.id,
-            cityId: m?.cityId || 864, // Fallback to Colombo 1 if missing
-            weight: parseFloat(m?.weight || weight) || 1,
-          };
-        });
-        bodyData = { orders: payload };
-      } else {
-        bodyData = {
-          orderIds: confirmedOrders.map((o) => o.id),
-          weight: parseFloat(weight) || 1,
-        };
-      }
-
-      const response = await fetch('/api/shipping/trans-express/bulk-create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyData),
+    const payload = confirmedOrders
+      .filter((o) => !results?.some((r) => r.orderId === o.id && r.trackingNumber))
+      .map((o) => {
+        const m = mappings[o.id];
+        // No fallback city: an order without one is reported, never sent somewhere wrong.
+        return mode === 'manual'
+          ? { orderId: o.id, ...(m?.cityId ? { cityId: m.cityId } : {}), weight: parseFloat(m?.weight || weight) || 1 }
+          : { orderId: o.id };
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast.error(data.error || 'Failed to create bulk shipments');
-        return;
+    const collected: BulkShipResult[] = [];
+    let batchId: string | undefined;
+    let stopped: string | null = null;
+    setIsSubmitting(true);
+    // Small requests keep each one inside the hosting timeout; every chunk joins one batch.
+    for (let sent = 0; sent < payload.length; sent += BULK_SHIP_CHUNK_SIZE) {
+      const chunk = payload.slice(sent, sent + BULK_SHIP_CHUNK_SIZE);
+      setProgress({ done: sent, total: payload.length });
+      try {
+        const response = await fetch('/api/shipping/trans-express/bulk-create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orders: chunk,
+            weight: parseFloat(weight) || 1,
+            batchId,
+            confirmedUnbooked: chunk.map((item) => item.orderId).filter((id) => confirmedUnbooked.includes(id)),
+          }),
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.results) { stopped = data?.error || `The server did not respond (HTTP ${response.status}).`; break; }
+        if (data.id) batchId = data.id;
+        collected.push(...data.results);
+      } catch {
+        stopped = 'The connection was lost.';
+        break;
       }
-
-      setResults(data.results);
-      const succeeded = data.results.filter((r: BulkShipResult) => r.trackingNumber).length;
-      const failed = data.results.filter((r: BulkShipResult) => r.error).length;
-      if (succeeded > 0)
-        toast.success(
-          `${succeeded} order${succeeded > 1 ? 's' : ''} shipped${
-            failed > 0 ? `, ${failed} failed` : ''
-          }`
-        );
-      if (failed > 0 && succeeded === 0) toast.error(`All ${failed} shipments failed`);
-      if (succeeded > 0) {
-        onSuccess(
-          data.results
-            .filter((result: BulkShipResult) => Boolean(result.trackingNumber))
-            .map((result: BulkShipResult) => result.orderId)
-        );
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsSubmitting(false);
     }
+    setIsSubmitting(false);
+    // Earlier successes stay listed when only the failures are retried.
+    const merged = [...(results ?? []).filter((r) => r.trackingNumber), ...collected];
+    setResults(merged);
+    const succeeded = collected.filter((r) => r.trackingNumber).length;
+    const failed = collected.filter((r) => r.error).length;
+    if (succeeded > 0) toast.success(`${succeeded} order${succeeded > 1 ? 's' : ''} shipped${failed > 0 ? `, ${failed} failed` : ''}`);
+    if (failed > 0 && succeeded === 0) toast.error(`All ${failed} shipments failed`);
+    if (stopped) toast.error(`Stopped: ${stopped} Ship again to continue; booked orders will not be booked twice.`);
+    if (succeeded > 0) onSuccess(merged.filter((r) => r.trackingNumber).map((r) => r.orderId));
   };
 
   const isManualReady = confirmedOrders.every((o) => mappings[o.id]?.cityId);
@@ -379,7 +375,19 @@ function BulkShipModal({
                                 {r.trackingNumber}
                               </span>
                             ) : (
-                              <span className="text-red-600 dark:text-red-400 text-xs">{r.error}</span>
+                              <span className="text-red-600 dark:text-red-400 text-xs">
+                                {r.error}
+                                {r.code === 'BOOKING_UNCONFIRMED' && (
+                                  <label className="mt-1 flex items-center gap-1.5 text-foreground">
+                                    <input
+                                      type="checkbox"
+                                      checked={confirmedUnbooked.includes(r.orderId)}
+                                      onChange={(event) => setConfirmedUnbooked((current) => event.target.checked ? [...current, r.orderId] : current.filter((id) => id !== r.orderId))}
+                                    />
+                                    I checked Trans Express: it is not booked
+                                  </label>
+                                )}
+                              </span>
                             )}
                           </td>
                         </tr>
@@ -401,6 +409,15 @@ function BulkShipModal({
                     <PrinterIcon className="h-4 w-4" />
                     Print successful invoices
                   </Link>
+                )}
+                {results.some((result) => result.error) && (
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                  >
+                    {isSubmitting ? `Shipping ${progress.done} of ${progress.total}…` : 'Ship failed orders again'}
+                  </button>
                 )}
                 <button
                   onClick={onClose}
@@ -582,7 +599,7 @@ function BulkShipModal({
                   disabled={isSubmitting || confirmedOrders.length === 0 || (mode === 'manual' && !isManualReady)}
                   className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Shipping...' : `Ship ${confirmedOrders.length} Order${confirmedOrders.length !== 1 ? 's' : ''}`}
+                  {isSubmitting ? `Shipping ${progress.done} of ${progress.total}…` : `Ship ${confirmedOrders.length} Order${confirmedOrders.length !== 1 ? 's' : ''}`}
                 </button>
               </div>
             </>
@@ -804,12 +821,15 @@ export function OrdersClient({ initialOrders, user, tenantConfig }: OrdersClient
         )}
       </div>
 
-      <BulkShipModal
-        isOpen={isBulkShipModalOpen}
-        onClose={closeBulkShipModal}
-        selectedOrders={selectedOrderObjects}
-        onSuccess={handleBulkShipSuccess}
-      />
+      {/* Mounted only while open so each opening starts without the last run's results. */}
+      {isBulkShipModalOpen && (
+        <BulkShipModal
+          isOpen
+          onClose={closeBulkShipModal}
+          selectedOrders={selectedOrderObjects}
+          onSuccess={handleBulkShipSuccess}
+        />
+      )}
     </div>
   );
 }

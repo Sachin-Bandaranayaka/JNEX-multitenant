@@ -70,11 +70,23 @@ describe('shipment batches', () => {
     expect(mocks.batchCreate).not.toHaveBeenCalled();
   });
 
-  it('takes over a stale claim that never got a waybill', async () => {
-    mocks.orders.mockResolvedValue([order('o1', { shipmentBatchItem: { id: 'item-1', batchId: 'batch-dead', batch: { createdAt: new Date(Date.now() - 60 * 60 * 1000) } } })]);
-    expect((await post({ orderIds: ['o1'] })).status).toBe(201);
+  it('does not re-book an old claim without a waybill until a person confirms it', async () => {
+    const dead = { id: 'item-1', batchId: 'batch-dead', batch: { createdAt: new Date(Date.now() - 60 * 60 * 1000) } };
+    mocks.orders.mockResolvedValue([order('o1', { orderCode: 'DC1628', shipmentBatchItem: dead })]);
+    const refused = await post({ orderIds: ['o1'] });
+    expect(refused.status).toBe(422);
+    expect((await refused.json()).errors[0]).toMatchObject({ code: 'BOOKING_UNCONFIRMED', error: expect.stringContaining('order no. DC1628') });
+    expect(mocks.book).not.toHaveBeenCalled();
+
+    expect((await post({ orderIds: ['o1'], confirmedUnbooked: ['o1'] })).status).toBe(201);
     expect(mocks.itemDelete.mock.calls[0][0].where).toEqual({ id: { in: ['item-1'] }, order: { trackingNumber: null } });
     expect(mocks.book).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a confirmation for a claim that is still in progress', async () => {
+    mocks.orders.mockResolvedValue([order('o1', { shipmentBatchItem: { id: 'item-1', batchId: 'batch-other', batch: { createdAt: new Date() } } })]);
+    expect((await post({ orderIds: ['o1'], confirmedUnbooked: ['o1'] })).status).toBe(422);
+    expect(mocks.book).not.toHaveBeenCalled();
   });
 
   it('skips an order whose claim was lost to a concurrent request', async () => {

@@ -37,9 +37,11 @@ export async function POST(request: Request) {
 
     const tenantId = session.user.tenantId;
 
-    const savedOrder = await prisma.order.findFirst({ where: { id: orderId, tenantId } });
+    const savedOrder = await prisma.order.findFirst({ where: { id: orderId, tenantId }, include: { shipmentBatchItem: { select: { id: true } } } });
     if (!savedOrder) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     if (!['PENDING', 'CONFIRMED'].includes(savedOrder.status) || savedOrder.shippedAt || savedOrder.trackingNumber) return NextResponse.json({ error: 'Order is already booked or cannot be shipped.' }, { status: 409 });
+    // Claimed by a shipment batch: it may be mid-booking, so only the Ship page may finish it.
+    if (savedOrder.shipmentBatchItem) return NextResponse.json({ error: 'This order is in a shipment batch. Finish it from the Ship page.' }, { status: 409 });
 
     // Get the tenant's Trans Express API key
     const tenant = await prisma.tenant.findUnique({

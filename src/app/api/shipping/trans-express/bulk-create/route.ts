@@ -1,174 +1,44 @@
-import { TransExpressProvider } from '@/lib/shipping/trans-express';
-import { getScopedPrismaClient, prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-import { OrderStatus } from '@prisma/client';
-import { transitionOrder } from '@/lib/order-workflow';
-import { planBulkShipment } from '@/lib/billing/credits';
+import { z } from 'zod';
 import { requireAnyPermission } from '@/lib/authz';
+import { shipBatch } from '@/lib/shipping/ship-batch';
 
 export const dynamic = 'force-dynamic';
 
-interface BulkOrderInput {
-  orderId: string;
-  weight?: number;
-}
+// The Orders-page Bulk Ship modal. It goes through the same claim-first batch
+// flow as the Ship page, so a double click or a retry cannot book an order twice,
+// and its shipments appear in the Shipped List like any other batch.
+const schema = z.object({
+  orderIds: z.array(z.string().min(1)).min(1).max(100).optional(),
+  orders: z.array(z.object({ orderId: z.string().min(1), cityId: z.number().int().positive().optional(), weight: z.number().positive().optional() })).min(1).max(100).optional(),
+  weight: z.number().positive().optional(),
+  batchId: z.string().min(1).optional(),
+  confirmedUnbooked: z.array(z.string().min(1)).optional(),
+});
 
 export async function POST(request: Request) {
-  try {
-    const guard = await requireAnyPermission(['UPDATE_SHIPPING_STATUS', 'EDIT_ORDERS']);
-    if (!guard.ok) return guard.response;
-    const session = guard.session;
+  const guard = await requireAnyPermission(['UPDATE_SHIPPING_STATUS', 'EDIT_ORDERS']);
+  if (!guard.ok) return guard.response;
+  const parsed = schema.safeParse(await request.json().catch(() => null));
+  const orderIds = parsed.success ? parsed.data.orders?.map(order => order.orderId) ?? parsed.data.orderIds : undefined;
+  if (!parsed.success || !orderIds?.length) return NextResponse.json({ error: 'orderIds or orders array must be provided' }, { status: 400 });
 
-    const tenantId = session.user.tenantId;
-    const body = await request.json();
-    const { orderIds, orders, weight }: { 
-      orderIds?: string[]; 
-      orders?: Array<{ orderId: string; cityId: number; weight?: number }>; 
-      weight?: number 
-    } = body;
-
-    const idsToFetch = orders ? orders.map(o => o.orderId) : orderIds;
-
-    if (!Array.isArray(idsToFetch) || idsToFetch.length === 0) {
-      return NextResponse.json({ error: 'orderIds or orders array must be provided' }, { status: 400 });
-    }
-
-    // Get tenant API key
-    const tenant = await prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { transExpressApiKey: true, transExpressOrderPrefix: true },
-    });
-
-    if (!tenant?.transExpressApiKey) {
-      return NextResponse.json(
-        { error: 'Trans Express API key not configured for this tenant' },
-        { status: 400 }
-      );
-    }
-
-    // Fetch all requested orders (scoped to tenant)
-    const scopedPrisma = getScopedPrismaClient(tenantId);
-    const ordersFromDb = await scopedPrisma.order.findMany({
-      where: { id: { in: idsToFetch }, status: { in: ['PENDING', 'CONFIRMED'] }, shippedAt: null, trackingNumber: null },
-      select: {
-        id: true,
-        number: true,
-        orderCode: true,
-        customerName: true,
-        customerAddress: true,
-        customerCity: true,
-        shippingLocationProvider: true,
-        shippingDistrictId: true,
-        shippingDistrictName: true,
-        shippingCityId: true,
-        shippingCityName: true,
-        customerPhone: true,
-        customerSecondPhone: true,
-        total: true,
-        codAmount: true,
-        lead: { select: { csvData: true } },
-      },
-    });
-
-    if (ordersFromDb.length === 0) {
-      return NextResponse.json({ error: 'No eligible CONFIRMED orders found' }, { status: 400 });
-    }
-
-    const provider = new TransExpressProvider(tenant.transExpressApiKey);
-    const prefix = tenant.transExpressOrderPrefix || undefined;
-
-    const now = new Date();
-    const dd = String(now.getDate()).padStart(2, '0');
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const yy = String(now.getFullYear()).slice(-2);
-    const datePart = `${dd}${mm}${yy}`;
-
-    // Budgeted across the whole batch: ten orders that each pass on their own
-    // can still overdraw the wallet together. Orders that do not fit are
-    // reported alongside the ones that shipped rather than failing the batch.
-    const plan = await planBulkShipment(
-      tenantId,
-      ordersFromDb.map((o) => ({ orderId: o.id, orderTotal: o.total })),
-    );
-    const fundable = new Set(plan.allowed);
-
-    const locationErrors: Array<{
-      orderId: string;
-      orderNo: string;
-      trackingNumber?: string;
-      error: string;
-    }> = plan.blocked.map((blocked) => ({
-      orderId: blocked.orderId,
-      orderNo: (() => { const o = ordersFromDb.find((x) => x.id === blocked.orderId); return o?.orderCode || String(o?.number ?? blocked.orderId); })(),
-      error: `Not enough credit — this order needs ${blocked.required} credit(s). Top up and try again.`,
-    }));
-
-    const shipmentInputs = ordersFromDb.filter((o) => fundable.has(o.id)).flatMap((o) => {
-        // Keep accepting explicit city IDs for backwards compatibility, but the
-        // normal queue flow now uses the location saved during confirmation.
-        const manualOrder = orders?.find((item) => item.orderId === o.id);
-        const cityId = manualOrder?.cityId || (
-          o.shippingLocationProvider === 'TRANS_EXPRESS' ? o.shippingCityId : null
-        );
-        const orderNo = o.orderCode || `${prefix || 'ORD'}-${o.number}-${datePart}`;
-
-        if (!cityId) {
-          locationErrors.push({
-            orderId: o.id,
-            orderNo,
-            error: 'This older order has no saved Trans Express location. Ship it individually and select the city once.',
-          });
-          return [];
-        }
-
-        return [{
-          orderId: o.id,
-          orderNo,
-          customerName: o.customerName,
-          customerAddress: o.customerAddress,
-          cityId,
-          customerPhone: o.customerPhone,
-          customerSecondPhone: o.customerSecondPhone || undefined,
-          orderTotal: o.codAmount ?? o.total,
-          weight: manualOrder?.weight ?? weight ?? 1,
-        }];
-    });
-
-    const shipmentResults = shipmentInputs.length > 0
-      ? await provider.createBulkShipmentsWithCityIds(shipmentInputs)
-      : [];
-    const results = [...shipmentResults, ...locationErrors];
-
-    // Persist successful shipments through the state machine rather than
-    // writing `status` directly, so status history, transition rules and the
-    // credit hold all apply. One at a time: each transition takes the tenant's
-    // credit-ledger lock, and running them together made all but the first few
-    // time out while the parcels were already booked.
-    for (const result of results) {
-      if (!result.trackingNumber) continue;
-      try {
-        await transitionOrder({
-          orderId: result.orderId,
-          tenantId,
-          userId: session.user.id,
-          to: OrderStatus.SHIPPED,
-          source: 'Trans Express bulk shipment',
-          shipping: { provider: 'TRANS_EXPRESS', trackingNumber: result.trackingNumber },
-        });
-      } catch (error) {
-        // Report it as failed so the order stays in the list, with the waybill
-        // so staff record it instead of booking the parcel again.
-        result.error = `Booked as ${result.trackingNumber} but not recorded: ${error instanceof Error ? error.message : 'unknown error'} Record this waybill on the order instead of shipping it again.`;
-        delete result.trackingNumber;
-      }
-    }
-
-    return NextResponse.json({ results });
-  } catch (error) {
-    console.error('Trans Express bulk create error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create bulk shipments' },
-      { status: 500 }
-    );
-  }
+  const result = await shipBatch({
+    tenantId: guard.tenantId,
+    userId: guard.session.user.id,
+    provider: 'TRANS_EXPRESS',
+    orderIds,
+    overrides: Object.fromEntries((parsed.data.orders ?? []).map(order => [order.orderId, { cityId: order.cityId, weight: order.weight }])),
+    weight: parsed.data.weight,
+    batchId: parsed.data.batchId,
+    confirmedUnbooked: parsed.data.confirmedUnbooked,
+  });
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
+  return NextResponse.json({
+    id: result.id,
+    results: [
+      ...result.shipped.map(item => ({ orderId: item.orderId, orderNo: `#${item.number}`, trackingNumber: item.trackingNumber })),
+      ...result.errors.map(item => ({ orderId: item.orderId, orderNo: `#${item.number}`, error: item.error, code: item.code })),
+    ],
+  });
 }

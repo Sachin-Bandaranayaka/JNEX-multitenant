@@ -1,3 +1,6 @@
+# LEGACY: production is moving to Vercel (see docs/VERCEL_DEPLOYMENT.md).
+# Keep this until the Vercel cutover is confirmed, then delete it and
+# disconnect the Amplify app.
 version: 1
 frontend:
   phases:

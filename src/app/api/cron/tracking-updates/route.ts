@@ -1,6 +1,7 @@
 import { OrderStatus, ShippingProvider } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import { isAuthorizedCronRequest } from '@/lib/cron-auth';
 import { FardaExpressService } from '@/lib/shipping/farda-express';
 import { RoyalExpressProvider } from '@/lib/shipping/royal-express';
 import { ShipmentStatus } from '@/lib/shipping/types';
@@ -11,6 +12,7 @@ import { applyCourierStatus } from '@/lib/courier-status-sync';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
+export const maxDuration = 300;
 
 // This endpoint will be called by a cron job every hour
 export async function GET(request: Request) {
@@ -28,8 +30,7 @@ export async function GET(request: Request) {
 
     try {
         // Verify the request is from our cron service
-        const authHeader = request.headers.get('authorization');
-        if (authHeader !== `Bearer ${process.env.CRON_SECRET_KEY}`) {
+        if (!isAuthorizedCronRequest(request)) {
             return createResponse({ error: 'Unauthorized' }, 401);
         }
 

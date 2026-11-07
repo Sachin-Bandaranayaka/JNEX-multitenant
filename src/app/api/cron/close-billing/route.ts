@@ -5,6 +5,7 @@
 // or a manual re-run is harmless.
 
 import { NextResponse } from 'next/server';
+import { isAuthorizedCronRequest } from '@/lib/cron-auth';
 import { closePreviousPeriodForAllTenants } from '@/lib/billing/invoicing';
 
 export const dynamic = 'force-dynamic';
@@ -13,9 +14,7 @@ export const fetchCache = 'force-no-store';
 export const maxDuration = 300;
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET_KEY;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!isAuthorizedCronRequest(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

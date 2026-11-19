@@ -7,10 +7,6 @@
     {
       "path": "/api/cron/credit-maintenance",
       "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/tracking-updates",
-      "schedule": "0 * * * *"
     }
   ]
 }

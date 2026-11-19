@@ -12,8 +12,12 @@ before `next build`.
 - In the Vercel dashboard, open the linked project → Settings → Git. If it is
   still connected to GitHub, every push to `main` builds there **and runs
   migrations against whatever `DATABASE_URL` it holds**. Confirm what that is.
-- Use the **Pro** plan. Hobby is for non-commercial use, only allows daily
-  crons (the tracking cron is hourly), and limits function duration.
+- There are two Vercel projects, both named `jnex` and both on the
+  production database: `janith-bhs-projects` (https://jnex-phi.vercel.app)
+  and `mjelectricals` (https://jnex-two.vercel.app). **Crons run from the
+  J-nex project only**; they are disabled on `mjelectricals` (Settings →
+  Cron Jobs), and cron-job.org should call `jnex-phi` only. Both are on Hobby. Hobby is for non-commercial use and only allows daily
+  crons; see section 3 for how the hourly job runs.
 
 ## 2. Environment variables
 
@@ -42,18 +46,27 @@ The cron routes accept either `CRON_SECRET` or `CRON_SECRET_KEY`
 
 ## 3. Crons
 
-`vercel.json` schedules all three jobs (times are UTC):
+The project is on the Vercel Hobby plan, which only allows daily crons, so
+the jobs are split (times are UTC):
 
-| Route | Schedule |
-| --- | --- |
-| `/api/cron/close-billing` | 02:00 on the 1st |
-| `/api/cron/credit-maintenance` | 03:00 daily |
-| `/api/cron/tracking-updates` | hourly |
+| Route | Runs from | Schedule |
+| --- | --- | --- |
+| `/api/cron/close-billing` | `vercel.json` | 02:00 on the 1st |
+| `/api/cron/credit-maintenance` | `vercel.json` | 03:00 daily |
+| `/api/cron/tracking-updates` | cron-job.org | hourly |
 
-Vercel only runs crons on **production** deployments. Once the Vercel
-production deployment is live, **disable the cron-job.org / EventBridge jobs**
-that call the Amplify domain. Billing close and credit maintenance are
-idempotent, but there is no reason to run them twice.
+Vercel only runs crons on **production** deployments.
+
+Once the Vercel production deployment is live, in cron-job.org:
+
+- Point the tracking job at `https://<vercel-domain>/api/cron/tracking-updates`
+  (header `Authorization: Bearer <CRON_SECRET_KEY>`). See `CRON_SETUP.md`.
+- **Disable** any job calling `close-billing` or `credit-maintenance`, since
+  Vercel now runs those. They are idempotent, but there is no reason to run
+  them twice.
+
+On the Pro plan, `tracking-updates` can move into `vercel.json` with
+`"schedule": "0 * * * *"` and the cron-job.org job can be retired.
 
 ## 4. Cutover
 

@@ -1,8 +1,8 @@
 # AWS Amplify Cron Setup
 
-> **Legacy.** On Vercel, crons are defined in `vercel.json` and need no
-> external scheduler. See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md).
-> Disable any cron-job.org / EventBridge jobs once Vercel is live.
+> **Legacy.** On Vercel, billing and credit crons run from `vercel.json`;
+> the hourly tracking job stays on cron-job.org (Hobby plan limit), pointed
+> at the Vercel domain. See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md).
 
 Since AWS Amplify doesn't have built-in cron jobs like Vercel, you have two options:
 

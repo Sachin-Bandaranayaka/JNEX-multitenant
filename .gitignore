@@ -39,3 +39,7 @@ next-env.d.ts
 
 # Neon workspace selection
 .neon
+
+# Env files prepared for import into Vercel
+.env*.local
+.env*

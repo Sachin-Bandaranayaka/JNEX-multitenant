@@ -49,16 +49,15 @@ export const LeadSchema = z.object({
     const primaryNumbers = extractAndNormalizePhoneNumbers(data.phone);
     const secondaryNumbers = extractAndNormalizePhoneNumbers(data.second_phone);
 
-    // Combine all found numbers into a single list.
-    // Use a Set here to handle cases where the same number might be in both columns,
-    // but allow duplicates if they come from the same field.
+    // Combine all found numbers (primary first) and drop duplicates. Numbers are
+    // already normalized, so "+94771234567" and "0771234567" collapse to one.
+    // Customers often repeat their primary number as the secondary one.
     const allNumbers = [...new Set([...primaryNumbers, ...secondaryNumbers])];
 
     return {
         ...data,
-        // Assign the first number to 'phone' and the second to 'second_phone'
-        phone: primaryNumbers[0] || secondaryNumbers[0] || '',
-        second_phone: primaryNumbers[1] || secondaryNumbers[0] || '',
+        phone: allNumbers[0] || '',
+        second_phone: allNumbers[1] || '',
     };
 });
 

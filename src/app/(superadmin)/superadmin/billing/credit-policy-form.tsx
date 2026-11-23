@@ -127,10 +127,18 @@ export function CreditPolicyForm({
 }
 
 /** Manual wallet correction. Always requires a reason — the ledger is evidence. */
-export function AdjustCreditsForm({ tenantId }: { tenantId: string }) {
+export function AdjustCreditsForm({ tenantId, balance }: { tenantId: string; balance: number }) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [direction, setDirection] = useState<'add' | 'remove'>('add');
+  const [amount, setAmount] = useState('');
+
+  const parsed = Number(amount);
+  const validAmount = amount.trim() !== '' && Number.isFinite(parsed) && parsed > 0;
+  const signed = validAmount ? (direction === 'remove' ? -parsed : parsed) : 0;
+  const after = Math.round((balance + signed) * 1e4) / 1e4;
+  const fmt = (value: number) => value.toLocaleString('en-LK', { maximumFractionDigits: 4 });
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -141,24 +149,67 @@ export function AdjustCreditsForm({ tenantId }: { tenantId: string }) {
     startTransition(async () => {
       try {
         await adjustCreditsAction(formData);
-        setSaved('Adjustment posted.');
+        setSaved(`${direction === 'remove' ? 'Removed' : 'Added'} ${fmt(Math.abs(signed))} credit(s).`);
         form.reset();
+        setAmount('');
+        setDirection('add');
       } catch (actionError) {
         setError(actionError instanceof Error ? actionError.message : 'Could not post the adjustment.');
       }
     });
   };
 
+  const toggle = (value: 'add' | 'remove', label: string) => (
+    <button
+      type="button"
+      onClick={() => setDirection(value)}
+      aria-pressed={direction === value}
+      className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold transition ${
+        direction === value
+          ? value === 'remove'
+            ? 'bg-red-600 text-white'
+            : 'bg-emerald-600 text-white'
+          : 'bg-white text-slate-600 hover:bg-slate-50'
+      }`}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <form onSubmit={submit} className="space-y-4">
       <input type="hidden" name="tenantId" value={tenantId} />
+      <input type="hidden" name="direction" value={direction} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
-          <label className={saLabel} htmlFor="adjust-credits">Credits</label>
-          <input id="adjust-credits" name="credits" type="number" step="0.0001" required className={saInput} />
-          <p className={saHelp}>Negative takes credit back.</p>
+          <span className={saLabel}>Action</span>
+          <div className="flex gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1" role="group" aria-label="Adjustment direction">
+            {toggle('add', 'Add credits')}
+            {toggle('remove', 'Remove credits')}
+          </div>
         </div>
-        <div className="sm:col-span-2">
+        <div>
+          <label className={saLabel} htmlFor="adjust-credits">Credits</label>
+          <input
+            id="adjust-credits"
+            name="credits"
+            type="number"
+            inputMode="decimal"
+            step="0.0001"
+            min="0.0001"
+            required
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            className={saInput}
+          />
+          <p className={saHelp}>
+            Balance {fmt(balance)} →{' '}
+            <span className={after < 0 ? 'font-semibold text-red-600' : 'font-semibold text-slate-900'}>
+              {fmt(after)}
+            </span>
+          </p>
+        </div>
+        <div>
           <label className={saLabel} htmlFor="adjust-reason">Reason</label>
           <input id="adjust-reason" name="reason" required className={saInput} />
           <p className={saHelp}>Shown on the ledger and recorded against your account.</p>
@@ -168,8 +219,12 @@ export function AdjustCreditsForm({ tenantId }: { tenantId: string }) {
       {error && <p role="alert" className={saError}>{error}</p>}
       {saved && <p className={saSuccess}>{saved}</p>}
 
-      <button type="submit" disabled={pending} className={saBtnDark}>
-        {pending ? 'Posting…' : 'Post adjustment'}
+      <button type="submit" disabled={pending || !validAmount} className={saBtnDark}>
+        {pending
+          ? 'Posting…'
+          : validAmount
+            ? `${direction === 'remove' ? 'Remove' : 'Add'} ${fmt(parsed)} credit(s)`
+            : 'Post adjustment'}
       </button>
     </form>
   );

@@ -240,7 +240,7 @@ export default async function TenantBillingPage({ params }: { params: Promise<{ 
           )}
 
           <Card title="Adjust credits" description="Goodwill, a bank error, or an opening balance on migration">
-            <AdjustCreditsForm tenantId={tenant.id} />
+            <AdjustCreditsForm tenantId={tenant.id} balance={wallet.available} />
           </Card>
         </>
       )}

@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/superadmin-auth';
 import { adjustCredits } from '@/lib/billing/credits';
+import { parseCreditAdjustment } from '@/lib/billing/adjustment';
 import { currentCreditPrice, supersedeCreditPrice } from '@/lib/billing/credit-price';
 import { confirmTopUp, rejectTopUp } from '@/lib/billing/topups';
 import { supersedeRate } from '@/lib/billing/rates';
@@ -315,12 +316,12 @@ export async function adjustCreditsAction(formData: FormData): Promise<void> {
   const { actor: user } = await requireSuperAdmin();
 
   const tenantId = String(formData.get('tenantId') || '');
-  const credits = Number(String(formData.get('credits') || ''));
   const reason = String(formData.get('reason') || '').trim();
   if (!tenantId) throw new Error('Tenant is required.');
-  if (!Number.isFinite(credits) || credits === 0) {
-    throw new Error('Enter a non-zero number of credits — negative to take credit back.');
-  }
+  const { direction, signedCredits: credits } = parseCreditAdjustment({
+    direction: formData.get('direction'),
+    credits: formData.get('credits'),
+  });
   if (!reason) throw new Error('A reason is required so the ledger stays auditable.');
 
   const result = await adjustCredits({ tenantId, credits, reason, createdByUserId: user.id });
@@ -332,7 +333,7 @@ export async function adjustCreditsAction(formData: FormData): Promise<void> {
       action: 'CREDIT_ADJUSTED',
       entityType: 'Tenant',
       entityId: tenantId,
-      metadata: { credits, reason, balance: result.balance },
+      metadata: { credits, direction, reason, balance: result.balance },
     },
   });
 

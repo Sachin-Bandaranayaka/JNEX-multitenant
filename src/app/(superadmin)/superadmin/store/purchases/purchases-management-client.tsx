@@ -118,11 +118,10 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Platform store"
-        title="Purchase orders"
-        description="Review and manage tenant purchase requests."
+        title="Store orders"
+        description="Orders tenants placed in the platform store. Confirm to add the stock to the tenant."
         backHref="/superadmin/store"
-        backLabel="Back to store"
+        backLabel="Store products"
       />
 
       {/* Filter Tabs */}
@@ -138,7 +137,7 @@ export function PurchasesManagementClient({ initialPurchases }: PurchasesManagem
             }`}
           >
             {status === 'ALL' ? 'All' : status.charAt(0) + status.slice(1).toLowerCase()}
-            {status === 'PENDING' && (
+            {status === 'PENDING' && purchases.some(p => p.status === 'PENDING') && (
               <span className="ml-2 rounded-full bg-[#e10600] px-1.5 py-0.5 text-[11px] font-bold text-white">
                 {purchases.filter(p => p.status === 'PENDING').length}
               </span>

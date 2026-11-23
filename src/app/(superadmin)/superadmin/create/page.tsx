@@ -16,11 +16,10 @@ export default async function CreateTenantPage() {
     return (
         <div className="space-y-8">
             <PageHeader
-                eyebrow="Tenant provisioning"
-                title="Create a new tenant"
-                description="This creates a new tenant account and its initial admin user."
+                title="New tenant"
+                description="Creates the business and its first admin login."
                 backHref="/superadmin/users"
-                backLabel="Back to tenants"
+                backLabel="All tenants"
             />
             <CreateTenantForm tenants={tenants} />
         </div>

@@ -20,8 +20,7 @@ export function SettingsClient({ currentSession, superAdmins }: SettingsClientPr
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Owner security"
-        title="Settings"
+                title="Settings"
         description="Manage super admin accounts and your own credentials."
       />
 

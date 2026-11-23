@@ -29,12 +29,12 @@ export default async function TenantHierarchyPage() {
   });
 
   return <div className="space-y-6">
-    <PageHeader eyebrow="Referral network" title="Hierarchy ledger" description="See every partner branch at a glance, then safely move a member and their downline when responsibilities change." />
+    <PageHeader title="Referral tree" description="Who referred whom. You can move a tenant (and everyone they referred) under a different referrer." />
     <section aria-label="Hierarchy summary" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <Stat label="Total tenants" value={tenants.length} hint="Across the full network" />
-      <Stat label="Root partners" value={roots.length} hint="Top-level portfolios" />
+      <Stat label="Top-level tenants" value={roots.length} hint="Not referred by anyone" />
       <Stat label="Active tenants" value={tenants.filter((tenant) => tenant.isActive).length} hint={`${tenants.filter((tenant) => !tenant.isActive).length} inactive`} tone="good" />
-      <Stat label="Maximum depth" value={maximumDepth} hint={maximumDepth === 1 ? '1 referral level' : `${maximumDepth} referral levels`} />
+      <Stat label="Deepest chain" value={maximumDepth} hint={maximumDepth === 1 ? '1 level of referrals' : `${maximumDepth} levels of referrals`} />
     </section>
     <HierarchyWorkspace tenants={tenantRows} history={history} />
   </div>;

@@ -18,9 +18,9 @@ export type ControlTenant = { id: string; name: string; products: ControlProduct
 type Mode = 'ADD' | 'REMOVE' | 'SET';
 
 const modes: Array<{ value: Mode; label: string; hint: string }> = [
-  { value: 'ADD', label: 'Add stock', hint: 'Increase the on-hand quantity by this many units.' },
-  { value: 'REMOVE', label: 'Remove stock', hint: 'Decrease the on-hand quantity by this many units.' },
-  { value: 'SET', label: 'Set exact stock', hint: 'Overwrite the on-hand quantity with this exact figure.' },
+  { value: 'ADD', label: 'Add', hint: 'Adds this many units.' },
+  { value: 'REMOVE', label: 'Remove', hint: 'Takes away this many units.' },
+  { value: 'SET', label: 'Set exact number', hint: 'Replaces the stock with this exact number.' },
 ];
 
 export function StockControlPanel({ tenants }: { tenants: ControlTenant[] }) {
@@ -38,8 +38,8 @@ export function StockControlPanel({ tenants }: { tenants: ControlTenant[] }) {
 
   return (
     <Card
-      title="Tenant stock control"
-      description="Add, remove, or correct the on-hand quantity of any product in any tenant."
+      title="Change stock"
+      description="Pick a tenant, then click Change next to a product."
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <select
@@ -65,17 +65,17 @@ export function StockControlPanel({ tenants }: { tenants: ControlTenant[] }) {
         <table className={saTable}>
           <thead className={saThead}><tr>
             <th className={saTh}>Product</th>
-            <th className={`${saTh} text-right`}>On hand</th>
-            <th className={`${saTh} text-right`}>Low-stock alert</th>
+            <th className={`${saTh} text-right`}>In stock</th>
+            <th className={`${saTh} text-right`}>Alert when below</th>
             <th className={saTh}>Status</th>
-            <th className={`${saTh} text-right`}>Control</th>
+            <th className={saTh}><span className="sr-only">Actions</span></th>
           </tr></thead>
           <tbody className="divide-y divide-slate-200">
             {products.length === 0 && (
               <tr><td colSpan={5} className="p-0">
                 <EmptyState
                   title={tenant ? 'No matching products' : 'No tenant selected'}
-                  description={tenant ? 'Adjust the search to find a product to control.' : 'Pick a tenant to manage its stock.'}
+                  description={tenant ? 'Try a different search.' : 'Pick a tenant to manage its stock.'}
                 />
               </td></tr>
             )}
@@ -106,7 +106,7 @@ export function StockControlPanel({ tenants }: { tenants: ControlTenant[] }) {
                         onClick={() => setEditing(isEditing ? null : product)}
                         className={saBtnGhost}
                       >
-                        {isEditing ? 'Close' : 'Manage'}
+                        {isEditing ? 'Close' : 'Change'}
                       </button>
                     </td>
                   </tr>
@@ -176,7 +176,7 @@ function ProductControls({ tenantId, product, onDone }: { tenantId: string; prod
             </button>
           ))}
         </div>
-        <p className="text-xs text-slate-500">{activeMode.hint} Current on-hand: <span className="font-semibold tabular-nums text-slate-700">{product.stock}</span>.</p>
+        <p className="text-xs text-slate-500">{activeMode.hint} Now in stock: <span className="font-semibold tabular-nums text-slate-700">{product.stock}</span>.</p>
 
         <div className="grid gap-4 sm:grid-cols-[140px_minmax(0,1fr)]">
           <label className="block"><span className={saLabel}>{mode === 'SET' ? 'New stock level' : 'Quantity'}</span>
@@ -193,13 +193,13 @@ function ProductControls({ tenantId, product, onDone }: { tenantId: string; prod
             />
           </label>
           <label className="block"><span className={saLabel}>Reason</span>
-            <input name="reason" maxLength={300} placeholder="Damaged units written off, recount, transfer…" className={`mt-1.5 ${saInput}`} required />
+            <input name="reason" maxLength={300} placeholder="e.g. damaged, recount, transfer" className={`mt-1.5 ${saInput}`} required />
           </label>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <button type="submit" disabled={pending} className={mode === 'REMOVE' ? saBtnDanger : saBtnPrimary}>
-            {pending ? 'Applying…' : activeMode.label}
+            {pending ? 'Saving…' : mode === 'SET' ? 'Set stock' : `${activeMode.label} stock`}
           </button>
           <button type="button" onClick={onDone} className={saBtnGhost}>Done</button>
         </div>
@@ -221,15 +221,15 @@ function ProductControls({ tenantId, product, onDone }: { tenantId: string; prod
       >
         <input type="hidden" name="tenantId" value={tenantId} />
         <input type="hidden" name="productId" value={product.id} />
-        <label className="block"><span className={saLabel}>Low-stock alert threshold</span>
+        <label className="block"><span className={saLabel}>Warn when stock drops to</span>
           <input name="lowStockAlert" type="number" min={0} max={100000} step={1} defaultValue={product.lowStockAlert} className={`mt-1.5 ${saInput}`} required />
         </label>
-        <p className="text-xs text-slate-500">The tenant is warned once on-hand stock drops to this level.</p>
+        <p className="text-xs text-slate-500">The tenant sees a low-stock warning at this number.</p>
         <button type="submit" disabled={alertPending} className={saBtnGhost}>
-          {alertPending ? 'Saving…' : 'Save threshold'}
+          {alertPending ? 'Saving…' : 'Save'}
         </button>
         {alertError && <p className={saError}>{alertError}</p>}
-        {alertDone && <p className={saSuccess}>Threshold updated.</p>}
+        {alertDone && <p className={saSuccess}>Saved.</p>}
       </form>
     </div>
   );

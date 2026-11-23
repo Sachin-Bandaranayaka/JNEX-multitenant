@@ -111,50 +111,31 @@ export default async function SuperAdminBillingPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Revenue desk"
         title="Billing"
-        description={`Platform fees accrue per delivered order. ${formatPeriod(periodKey)} is still open — it is invoiced automatically on the 1st.`}
+        description={`Tenants pay a fee for every delivered order. ${formatPeriod(periodKey)} is invoiced automatically on the 1st of next month.`}
       />
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Accrued this month" value={money(periodTotal)} />
-        <Stat label="Billable deliveries" value={periodOrders.toLocaleString()} />
-        <Stat label="Awaiting payment" value={money(outstandingTotal)} tone={outstandingTotal > 0 ? 'warn' : 'default'} />
+      <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-4">
+        <Stat label="Charged so far this month" value={money(periodTotal)} hint={`${periodOrders.toLocaleString()} deliveries`} />
+        <Stat label="Unpaid invoices" value={money(outstandingTotal)} tone={outstandingTotal > 0 ? 'warn' : 'default'} />
         <Stat
-          label="Unbilled deliveries"
-          value={unbilledTotal.toLocaleString()}
-          tone={unbilledTotal > 0 ? 'bad' : 'good'}
-          hint={`${unpriced} tenant${unpriced === 1 ? '' : 's'} without a rate`}
+          label="Tenants out of credit"
+          value={emptyWallets.toLocaleString()}
+          tone={emptyWallets > 0 ? 'warn' : 'default'}
+          hint={prepaidTenants.length ? "Can't ship until they top up" : 'No prepaid tenants'}
+        />
+        <Stat
+          label="Tenants without a rate"
+          value={unpriced.toLocaleString()}
+          tone={unpriced > 0 ? 'bad' : 'good'}
+          hint="Their deliveries are not charged"
         />
       </div>
 
-      {prepaidTenants.length > 0 && (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <Stat label="Prepaid tenants" value={prepaidTenants.length.toLocaleString()} />
-          <Stat
-            label="Out of credit"
-            value={emptyWallets.toLocaleString()}
-            tone={emptyWallets > 0 ? 'warn' : 'good'}
-            hint="cannot ship until they top up"
-          />
-          <Stat
-            label="Top-ups to review"
-            value={awaitingTopUps.length.toLocaleString()}
-            tone={awaitingTopUps.length > 0 ? 'warn' : 'default'}
-          />
-          <Stat
-            label="Credit price"
-            value={creditPrice ? money(Number(creditPrice.unitPrice), creditPrice.currency) : 'Not set'}
-            tone={creditPrice ? 'default' : 'bad'}
-            hint="platform default"
-          />
-        </div>
-      )}
-
       {awaitingTopUps.length > 0 && (
         <Card
-          title="Credit purchases awaiting review"
-          description={`${awaitingTopUps.length} submitted bank transfer${awaitingTopUps.length === 1 ? '' : 's'} — no credit reaches a wallet until one of these is confirmed`}
+          title="Credit top-ups to approve"
+          description="Check the money arrived in the bank, then approve. Credits are added to the tenant only after you approve."
           flush
         >
           <div className="divide-y divide-slate-200">
@@ -187,17 +168,47 @@ export default async function SuperAdminBillingPage() {
         </Card>
       )}
 
+      {pendingPayments.length > 0 && (
+        <Card title="Invoice payments to confirm" description="The tenant says they paid. Check the money arrived in the bank, then confirm." flush>
+          <div className="divide-y divide-slate-200">
+            {pendingPayments.map((payment) => (
+              <div key={payment.id} className="px-5 py-4">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0 space-y-1">
+                    <div className="font-bold text-slate-900">
+                      {tenantLabel(payment.tenant)}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      {invoiceReference(payment.invoice)} · invoiced{' '}
+                      {money(payment.invoice.total.toFixed(2), payment.invoice.currency)}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      Paid {money(payment.amount.toFixed(2))} · receipt{' '}
+                      <span className="font-mono text-slate-900">{payment.bankReceiptNumber}</span> ·
+                      transferred {payment.transferTime.toLocaleString('en-LK')}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Submitted by {payment.submittedBy.name || payment.submittedBy.email} · WhatsApp{' '}
+                      {payment.whatsappNumber}
+                    </div>
+                  </div>
+                  <PaymentReviewForm paymentId={payment.id} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {unbilled.length > 0 && (
         <section className="overflow-hidden rounded-md border border-red-300 bg-red-50 shadow-sm">
           <div className="border-b border-red-200 px-5 py-4">
             <h2 className="font-bold text-red-800">
-              {unbilledTotal.toLocaleString()} delivered order{unbilledTotal === 1 ? '' : 's'} produced no charge
+              {unbilledTotal.toLocaleString()} delivered order{unbilledTotal === 1 ? ' was' : 's were'} not charged
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
-              These deliveries had no fee rate in force at the time they were delivered, so nothing was billed.
-              Setting a rate now only affects future deliveries — a rate cannot be applied backwards, and invoicing
-              a tenant for months they were never quoted is not a conversation worth having. Fix the rate, then
-              decide deliberately whether to backfill.
+            <p className="mt-1 max-w-3xl text-sm text-slate-700">
+              These tenants had no fee rate when the orders were delivered. Set a rate so future deliveries are
+              charged — a new rate does not apply to past deliveries.
             </p>
           </div>
           <div className="overflow-x-auto bg-white">
@@ -235,60 +246,17 @@ export default async function SuperAdminBillingPage() {
         </section>
       )}
 
-      {pendingPayments.length > 0 && (
-        <Card title="Transfers awaiting review" description={`${pendingPayments.length} submitted bank transfer${pendingPayments.length === 1 ? '' : 's'}`} flush>
-          <div className="divide-y divide-slate-200">
-            {pendingPayments.map((payment) => (
-              <div key={payment.id} className="px-5 py-4">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="min-w-0 space-y-1">
-                    <div className="font-bold text-slate-900">
-                      {tenantLabel(payment.tenant)}
-                    </div>
-                    <div className="text-sm text-slate-600">
-                      {invoiceReference(payment.invoice)} · invoiced{' '}
-                      {money(payment.invoice.total.toFixed(2), payment.invoice.currency)}
-                    </div>
-                    <div className="text-sm text-slate-600">
-                      Paid {money(payment.amount.toFixed(2))} · receipt{' '}
-                      <span className="font-mono text-slate-900">{payment.bankReceiptNumber}</span> ·
-                      transferred {payment.transferTime.toLocaleString('en-LK')}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      Submitted by {payment.submittedBy.name || payment.submittedBy.email} · WhatsApp{' '}
-                      {payment.whatsappNumber}
-                    </div>
-                  </div>
-                  <PaymentReviewForm paymentId={payment.id} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      <Card
-        title="Credit price"
-        description="What one credit costs, platform-wide. Tenants can be given their own override on their billing page."
-      >
-        <CreditPriceForm
-          currentUnitPrice={creditPrice ? Number(creditPrice.unitPrice) : undefined}
-          currentMinimum={creditPrice ? Number(creditPrice.minimumPurchaseCredits) : undefined}
-          currency={creditPrice?.currency ?? 'LKR'}
-        />
-      </Card>
-
-      <Card title="Tenants" description="Current rate and month-to-date position" flush>
+      <Card title="All tenants" description="Click a tenant to change their rate, credits or invoices." flush>
         <div className="overflow-x-auto">
           <table className={saTable}>
             <thead className={saThead}>
               <tr>
                 <th className={saTh}>Tenant</th>
-                <th className={saTh}>Current rate</th>
-                <th className={`${saTh} text-right`}>Deliveries</th>
-                <th className={`${saTh} text-right`}>Accrued</th>
+                <th className={saTh}>Fee rate</th>
+                <th className={`${saTh} text-right`}>Deliveries this month</th>
+                <th className={`${saTh} text-right`}>Charged this month</th>
                 <th className={`${saTh} text-right`}>Unpaid</th>
-                <th className={`${saTh} text-right`}>Credit</th>
+                <th className={`${saTh} text-right`}>Credits left</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -304,7 +272,7 @@ export default async function SuperAdminBillingPage() {
                       </Link>
                     </td>
                     <td className={saTd}>
-                      {rate ? describeRate(rate) : <span className="font-semibold text-red-700">No rate — not billable</span>}
+                      {rate ? describeRate(rate) : <span className="font-semibold text-red-700">No rate set</span>}
                     </td>
                     <td className={`${saTd} text-right tabular-nums`}>
                       {tenantAccrued?._count ?? 0}
@@ -331,7 +299,7 @@ export default async function SuperAdminBillingPage() {
                           <Badge tone="red">Out of credit</Badge>
                         )
                       ) : (
-                        <span className="text-slate-400">Postpaid</span>
+                        <span className="text-slate-400">Pays by invoice</span>
                       )}
                     </td>
                   </tr>
@@ -341,6 +309,17 @@ export default async function SuperAdminBillingPage() {
           </table>
         </div>
       </Card>
+      <Card
+        title="Credit price for all tenants"
+        description="The default price of one credit. To give one tenant a different price, open their billing page."
+      >
+        <CreditPriceForm
+          currentUnitPrice={creditPrice ? Number(creditPrice.unitPrice) : undefined}
+          currentMinimum={creditPrice ? Number(creditPrice.minimumPurchaseCredits) : undefined}
+          currency={creditPrice?.currency ?? 'LKR'}
+        />
+      </Card>
+
     </div>
   );
 }

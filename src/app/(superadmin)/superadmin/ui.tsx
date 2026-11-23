@@ -140,7 +140,7 @@ export function Stat({
   return (
     <div className={`${saCard} p-5`}>
       <p className="text-xs font-semibold text-slate-500">{label}</p>
-      <p className={`mt-2 text-3xl font-bold tabular-nums ${toneClass}`}>{value}</p>
+      <p className={`mt-2 text-xl font-bold tabular-nums sm:text-3xl ${toneClass}`}>{value}</p>
       {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
     </div>
   );

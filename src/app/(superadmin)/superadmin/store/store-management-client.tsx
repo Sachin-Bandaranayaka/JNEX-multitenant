@@ -195,13 +195,12 @@ export function StoreManagementClient({ initialProducts, pendingCount }: StoreMa
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Platform store"
-        title="Store management"
-        description="Manage the products tenants can purchase from the platform."
+        title="Store products"
+        description="Products tenants can buy from you through the platform store."
       >
         <Link href="/superadmin/store/purchases" className={`relative ${saBtnGhost}`}>
           <ClipboardDocumentListIcon className="h-5 w-5 text-slate-500" />
-          Purchases
+          Store orders
           {pendingCount > 0 && (
             <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#e10600] px-1 text-[11px] font-bold text-white">
               {pendingCount}

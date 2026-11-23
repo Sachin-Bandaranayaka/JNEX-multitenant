@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { StockReceiptForm } from './stock-receipt-form';
 import { StockControlPanel } from './stock-control-panel';
-import { Card, EmptyState, PageHeader, Stat, saTable, saTd, saTh, saThead, saTr, tenantLabel } from '../ui';
+import { pendingCounts } from '../attention';
+import { Card, EmptyState, PageHeader, Stat, saBtnGhost, saTable, saTd, saTh, saThead, saTr, tenantLabel } from '../ui';
 
 export default async function SuperAdminInventoryPage() {
-  const [tenants, recent] = await Promise.all([
+  const [tenants, recent, pending] = await Promise.all([
     prisma.tenant.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
@@ -30,6 +31,7 @@ export default async function SuperAdminInventoryPage() {
         adjustedBy: { select: { name: true, email: true } },
       },
     }),
+    pendingCounts(),
   ]);
 
   const options = tenants.map((tenant) => ({
@@ -45,25 +47,34 @@ export default async function SuperAdminInventoryPage() {
 
   return <div className="space-y-8">
     <PageHeader
-      eyebrow="Stock custody"
-      title="Inventory control"
-      description="Full owner control over every tenant's stock: add, remove, or correct on-hand quantities and low-stock thresholds. Tenant users can view stock but cannot move it manually; store approvals and order lifecycle events remain automatic."
-    />
+      title="Stock levels"
+      description="See and change stock for any tenant. Tenant staff can't change stock themselves — they send a request, and stock also moves automatically with orders and store purchases."
+    >
+      <Link href="/superadmin/inventory/requests" className={saBtnGhost}>
+        Stock requests
+        {pending.stockRequests > 0 && <span className="rounded-full bg-[#e10600] px-1.5 py-0.5 text-[11px] font-bold leading-none text-white">{pending.stockRequests}</span>}
+      </Link>
+    </PageHeader>
 
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <Stat label="Tenants" value={options.length} hint="Active tenants under stock custody" />
-      <Stat label="Units on hand" value={unitsOnHand.toLocaleString('en-LK')} hint="Across all active products" />
-      <Stat label="Low stock" value={lowStock} tone={lowStock > 0 ? 'warn' : 'default'} hint="At or below the alert threshold" />
-      <Stat label="Out of stock" value={outOfStock} tone={outOfStock > 0 ? 'bad' : 'default'} hint="Active products with zero units" />
+    <div className="grid grid-cols-3 gap-3 sm:gap-4">
+      <Stat label="Units in stock" value={unitsOnHand.toLocaleString('en-LK')} hint={`Across ${options.length} active tenants`} />
+      <Stat label="Running low" value={lowStock} tone={lowStock > 0 ? 'warn' : 'default'} hint="At or below the alert level" />
+      <Stat label="Out of stock" value={outOfStock} tone={outOfStock > 0 ? 'bad' : 'default'} />
     </div>
-
-    <Link href="/superadmin/inventory/requests" className="inline-flex rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Review tenant stock requests</Link>
 
     <StockControlPanel tenants={options} />
 
-    <StockReceiptForm tenants={options} />
+    <details className="group rounded-md border border-slate-300 bg-white shadow-sm">
+      <summary className="cursor-pointer list-none px-5 py-4 font-bold text-slate-900 hover:bg-slate-50">
+        <span className="mr-2 inline-block transition-transform group-open:rotate-90" aria-hidden>›</span>
+        Record stock a tenant bought from their own supplier
+      </summary>
+      <div className="border-t border-slate-200 p-1">
+        <StockReceiptForm tenants={options} />
+      </div>
+    </details>
 
-    <Card title="Recent stock movements" description="The latest 50 ledger entries across every tenant" flush>
+    <Card title="Recent stock changes" description="The last 50 changes across all tenants" flush>
       <div className="overflow-x-auto">
         <table className={saTable}>
           <thead className={saThead}><tr>
@@ -71,9 +82,9 @@ export default async function SuperAdminInventoryPage() {
             <th className={saTh}>Tenant</th>
             <th className={saTh}>Product</th>
             <th className={`${saTh} text-right`}>Change</th>
-            <th className={`${saTh} text-right`}>Balance</th>
-            <th className={saTh}>Details</th>
-            <th className={saTh}>Recorded by</th>
+            <th className={`${saTh} text-right`}>Before → after</th>
+            <th className={saTh}>Reason</th>
+            <th className={saTh}>By</th>
           </tr></thead>
           <tbody className="divide-y divide-slate-200">
             {recent.length === 0 && <tr><td colSpan={7} className="p-0"><EmptyState title="No stock movements yet" description="Every owner adjustment, receipt, and order-driven movement will be listed here." /></td></tr>}

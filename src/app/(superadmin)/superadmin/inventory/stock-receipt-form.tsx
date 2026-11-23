@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { recordOwnSupplierStock } from './actions';
-import { saBtnPrimary, saCard, saError, saInput, saLabel, saSuccess } from '../ui';
+import { saBtnPrimary, saError, saInput, saLabel, saSuccess } from '../ui';
 
 type TenantOption = { id: string; name: string; products: Array<{ id: string; code: string; name: string; stock: number; isActive: boolean }> };
 
@@ -27,12 +27,9 @@ export function StockReceiptForm({ tenants }: { tenants: TenantOption[] }) {
           else setError(result.message);
         });
       }}
-      className={`${saCard} space-y-5 p-5`}
+      className="space-y-5 p-4"
     >
-      <div>
-        <h2 className="font-bold text-slate-900">Receive stock from tenant&apos;s own supplier</h2>
-        <p className="mt-1 text-xs text-slate-500">Only the platform owner can perform this movement. It does not create a platform-store payment.</p>
-      </div>
+      <p className="text-sm text-slate-600">Adds the units to the tenant&apos;s stock. No store payment is created.</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block"><span className={saLabel}>Tenant</span>
           <select name="tenantId" value={tenantId} onChange={(event) => setTenantId(event.target.value)} className={`mt-1.5 ${saInput}`} required>

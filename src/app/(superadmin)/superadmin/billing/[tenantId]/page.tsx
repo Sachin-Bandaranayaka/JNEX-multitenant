@@ -111,8 +111,7 @@ export default async function TenantBillingPage({ params }: { params: Promise<{ 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Tenant billing"
-        title={tenantLabel(tenant)}
+                title={tenantLabel(tenant)}
         description={activeRate ? describeRate(activeRate) : 'No rate in force — deliveries are not being billed.'}
         backHref="/superadmin/billing"
         backLabel="All tenants"

@@ -30,8 +30,7 @@ export default async function EditTenantPage({ params }: { params: Promise<{ ten
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Tenant configuration"
-        title={`Edit ${tenant.name}`}
+                title={`Edit ${tenant.name}`}
         description="Update branding and courier credentials for this tenant."
         backHref={`/superadmin/tenants/${tenant.id}`}
         backLabel="Back to tenant"

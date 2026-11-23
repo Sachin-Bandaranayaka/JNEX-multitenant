@@ -1,0 +1,96 @@
+tenant,order_number,order_code,kept_waybill,shipped_at_lk,reason
+J-nex,1370,,BG677047,2026-10-21 13:35:09,Request died before saving its batch
+J-nex,1369,,BG677048,2026-10-21 13:35:12,Request died before saving its batch
+J-nex,1368,,BG677049,2026-10-21 13:35:15,Request died before saving its batch
+J-nex,1367,,BG677050,2026-10-21 13:35:18,Request died before saving its batch
+J-nex,1365,,BG677051,2026-10-21 13:35:20,Request died before saving its batch
+J-nex,1364,,BG677052,2026-10-21 13:35:23,Request died before saving its batch
+J-nex,1363,,BG677053,2026-10-21 13:35:26,Request died before saving its batch
+J-nex,1446,,BG731290,2026-10-26 11:27:52,Ran at the same time as another shipping request
+J-nex,1445,,BG731291,2026-10-26 11:27:55,Ran at the same time as another shipping request
+J-nex,1444,,BG731292,2026-10-26 11:27:58,Ran at the same time as another shipping request
+J-nex,1443,,BG731293,2026-10-26 11:28:01,Ran at the same time as another shipping request
+J-nex,1442,,BG731294,2026-10-26 11:28:03,Ran at the same time as another shipping request
+J-nex,1441,,BG731295,2026-10-26 11:28:06,Ran at the same time as another shipping request
+J-nex,1440,,BG731309,2026-10-26 11:30:00,Ran at the same time as another shipping request
+J-nex,1439,,BG731310,2026-10-26 11:30:03,Ran at the same time as another shipping request
+J-nex,1438,,BG731311,2026-10-26 11:30:06,Ran at the same time as another shipping request
+J-nex,1437,,BG731312,2026-10-26 11:30:09,Ran at the same time as another shipping request
+J-nex,1436,,BG731313,2026-10-26 11:30:11,Ran at the same time as another shipping request
+J-nex,1435,,BG731314,2026-10-26 11:30:14,Ran at the same time as another shipping request
+J-nex,1434,,BG731315,2026-10-26 11:30:16,Ran at the same time as another shipping request
+J-nex,1433,,BG731316,2026-10-26 11:30:27,Ran at the same time as another shipping request
+J-nex,1432,,BG731304,2026-10-26 11:31:02,Ran at the same time as another shipping request
+J-nex,1431,,BG731305,2026-10-26 11:31:04,Ran at the same time as another shipping request
+J-nex,1430,,BG731306,2026-10-26 11:31:07,Ran at the same time as another shipping request
+J-nex,1408,,BG731307,2026-10-26 11:31:10,Ran at the same time as another shipping request
+J-nex,1405,,BG731308,2026-10-26 11:31:12,Ran at the same time as another shipping request
+J-nex ( Mahesh ),1332,,BG627318,2026-10-18 13:00:19,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Mahesh ),1334,,BG627320,2026-10-18 13:00:20,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Mahesh ),1335,,BG627321,2026-10-18 13:00:22,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Mahesh ),1333,,BG627319,2026-10-18 13:00:24,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Manjula ),1348,,BG638548,2026-10-19 13:03:37,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Manjula ),1349,,BG638549,2026-10-19 13:03:39,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Manjula ),1357,,BG638555,2026-10-19 13:03:41,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Manjula ),1356,,BG638554,2026-10-19 13:03:43,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Manjula ),1350,,BG638550,2026-10-19 13:03:45,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Manjula ),1355,,BG638592,2026-10-19 13:06:54,Ran at the same time as another shipping request
+J-nex ( Manjula ),1354,,BG638593,2026-10-19 13:06:57,Ran at the same time as another shipping request
+J-nex ( Manjula ),1353,,BG638594,2026-10-19 13:07:00,Ran at the same time as another shipping request
+J-nex ( Manjula ),1352,,BG638595,2026-10-19 13:07:02,Ran at the same time as another shipping request
+J-nex ( Manjula ),1351,,BG638596,2026-10-19 13:07:05,Ran at the same time as another shipping request
+J-nex ( Manjula ),1347,,BG638597,2026-10-19 13:07:08,Ran at the same time as another shipping request
+J-nex ( Manjula ),1344,,BG638600,2026-10-19 13:07:48,Ran at the same time as another shipping request
+J-nex ( Manjula ),1341,,BG638602,2026-10-19 13:08:54,Ran at the same time as another shipping request
+J-nex ( Manjula ),1337,,BG638666,2026-10-19 13:09:11,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Manjula ),1340,,BG638669,2026-10-19 13:09:13,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Manjula ),1345,,BG638672,2026-10-19 13:09:15,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Manjula ),1338,,BG638667,2026-10-19 13:09:17,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Manjula ),1339,,BG638668,2026-10-19 13:09:19,Orders-page bulk run: others in the same run may be booked but unrecorded
+J-nex ( Manjula ),1346,,BG638762,2026-10-19 13:10:18,Ran at the same time as another shipping request
+J-nex ( Manjula ),1343,,BG638763,2026-10-19 13:10:21,Ran at the same time as another shipping request
+J-nex ( Manjula ),1342,,BG638764,2026-10-19 13:10:23,Ran at the same time as another shipping request
+J-nex ( Manjula ),1336,,BG638765,2026-10-19 13:10:26,Ran at the same time as another shipping request
+J-nex ( Manjula ),1380,,BG683317,2026-10-21 16:03:05,Ran at the same time as another shipping request
+J-nex ( Manjula ),1378,,BG683318,2026-10-21 16:03:08,Ran at the same time as another shipping request
+J-nex ( Manjula ),1379,,BG683319,2026-10-21 16:03:10,Ran at the same time as another shipping request
+J-nex ( Manjula ),1377,,BG683320,2026-10-21 16:03:13,Ran at the same time as another shipping request
+J-nex ( Manjula ),1376,,BG683321,2026-10-21 16:03:16,Ran at the same time as another shipping request
+J-nex ( Manjula ),1375,,BG683322,2026-10-21 16:03:19,Ran at the same time as another shipping request
+J-nex ( Manjula ),1374,,BG683323,2026-10-21 16:03:21,Ran at the same time as another shipping request
+J-nex ( Manjula ),1373,,BG683362,2026-10-21 16:04:56,Ran at the same time as another shipping request
+J-nex ( Manjula ),1372,,BG683363,2026-10-21 16:04:59,Ran at the same time as another shipping request
+J-nex ( Manjula ),1371,,BG683364,2026-10-21 16:05:02,Ran at the same time as another shipping request
+J-nex ( Manjula ),1399,,BG700366,2026-10-23 07:16:47,Ran at the same time as another shipping request
+J-nex ( Manjula ),1398,,BG700367,2026-10-23 07:16:50,Ran at the same time as another shipping request
+J-nex ( Manjula ),1397,,BG700368,2026-10-23 07:16:52,Ran at the same time as another shipping request
+J-nex ( Manjula ),1396,,BG700369,2026-10-23 07:16:55,Ran at the same time as another shipping request
+J-nex ( Manjula ),1395,,BG700370,2026-10-23 07:16:57,Ran at the same time as another shipping request
+J-nex ( Manjula ),1394,,BG700371,2026-10-23 07:17:00,Ran at the same time as another shipping request
+J-nex ( Manjula ),1393,,BG700372,2026-10-23 07:17:02,Ran at the same time as another shipping request
+J-nex ( Manjula ),1392,,BG700373,2026-10-23 07:17:05,Ran at the same time as another shipping request
+J-nex ( Manjula ),1391,,BG700376,2026-10-23 07:18:02,Ran at the same time as another shipping request
+J-nex ( Manjula ),1390,,BG700377,2026-10-23 07:18:05,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1429,,BG731587,2026-10-26 11:43:03,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1428,,BG731588,2026-10-26 11:43:06,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1427,,BG731589,2026-10-26 11:43:08,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1426,,BG731590,2026-10-26 11:43:11,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1425,,BG731591,2026-10-26 11:43:13,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1420,,BG731733,2026-10-26 11:47:16,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1418,,BG731618,2026-10-26 11:47:18,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1419,,BG731734,2026-10-26 11:47:20,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1417,,BG731619,2026-10-26 11:47:21,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1416,,BG731620,2026-10-26 11:47:24,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1424,,BG731759,2026-10-26 11:47:26,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1415,,BG731621,2026-10-26 11:47:28,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1423,,BG731760,2026-10-26 11:47:30,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1414,,BG731622,2026-10-26 11:47:31,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1422,,BG731761,2026-10-26 11:47:32,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1407,,BG731623,2026-10-26 11:47:34,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1421,,BG731762,2026-10-26 11:47:35,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1406,,BG731624,2026-10-26 11:47:36,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1404,,BG731625,2026-10-26 11:47:39,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1403,,BG731626,2026-10-26 11:47:45,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1402,,BG731627,2026-10-26 11:48:02,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1401,,BG731775,2026-10-26 11:48:18,Ran at the same time as another shipping request
+J-nex Holdings (Janith),1400,,BG731629,2026-10-26 11:48:21,Ran at the same time as another shipping request

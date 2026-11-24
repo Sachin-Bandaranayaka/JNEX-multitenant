@@ -14,15 +14,8 @@ import {
     LeadReminderModal,
 } from '@/components/leads/lead-reminder-modal';
 import { toast } from 'sonner';
-import {
-    BellAlertIcon,
-    ExclamationTriangleIcon,
-    ShoppingCartIcon,
-    ArrowUturnLeftIcon,
-    NoSymbolIcon,
-    PencilIcon,
-    TrashIcon,
-} from '@heroicons/react/24/outline';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { FaIcon } from '@/components/leads/fa-icons';
 
 // Define the structure for a potential duplicate lead
 interface PotentialDuplicate {
@@ -276,43 +269,44 @@ export function LeadActions({
         return null;
     }
 
-    // Shared pill styles so the single Actions column reads consistently.
-    const pill = 'px-3 py-1.5 rounded-full text-xs font-medium transition-colors';
-    const styles = {
-        order: `${pill} bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/20 disabled:opacity-50`,
-        view: `${pill} bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:hover:bg-green-500/20`,
-        ship: `${pill} bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20`,
-        warn: `${pill} bg-yellow-50 text-yellow-600 hover:bg-yellow-100 dark:bg-yellow-500/10 dark:text-yellow-400 dark:hover:bg-yellow-500/20`,
-        edit: `${pill} bg-muted text-muted-foreground hover:bg-accent hover:text-foreground`,
-        danger: `${pill} bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20`,
-    };
+    // Reminder icon: the stroked clock from the reference design.
+    const clock = (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ height: '1em', width: '1em' }}>
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7.5V12l3 2" />
+        </svg>
+    );
+    const disabled = (title: string, icon: React.ReactNode, kind: string) => (
+        <span className={`ll-act ${kind} is-disabled`} title={`${title} (no permission)`} aria-disabled="true">{icon}</span>
+    );
 
     return (
         <>
-            <div className="flex items-center justify-end gap-2">
+            <div className="flex items-center gap-1.5">
                 {/* Confirmed lead → jump straight to its order */}
                 {isConfirmedWithOrder && lead.order && (
-                    <Link href={`/orders/${lead.order.id}`} className={styles.view}>
+                    <Link href={`/orders/${lead.order.id}`} className="ll-act-pill">
                         View Order
                     </Link>
                 )}
 
                 {/* Ship Order — whenever an order exists and is still shippable */}
                 {canShipOrder && (
-                    <button onClick={() => setIsShippingModalOpen(true)} className={styles.ship}>
-                        Ship Order
+                    <button type="button" onClick={() => setIsShippingModalOpen(true)} className="ll-act-pill">
+                        <FaIcon name="truckFast" className="mr-1.5" /> Ship Order
                     </button>
                 )}
 
                 {/* --- Open leads (PENDING / NO_ANSWER) --- */}
                 {isOpen && (
                     <>
-                        {/* Confirm */}
+                        {/* Confirm order */}
                         {canCreateOrder ? (
                             <Link
                                 href={`/leads/new?leadId=${lead.id}&returnTo=${encodeURIComponent(returnTo)}`}
                                 title="Confirm Order"
-                                className="text-slate-500 hover:text-green-600 transition-colors"
+                                aria-label={`Confirm order for lead ${lead.number}`}
+                                className="ll-act is-order"
                                 onClick={() => {
                                     try {
                                         window.sessionStorage.setItem('jnex_leads_return_scroll', String(window.scrollY));
@@ -321,13 +315,35 @@ export function LeadActions({
                                     }
                                 }}
                             >
-                                <ShoppingCartIcon className="h-4 w-4" />
+                                <FaIcon name="cartPlus" />
                             </Link>
-                        ) : (
-                            <span className="text-slate-300 pointer-events-none" title="Confirm Order (Disabled)">
-                                <ShoppingCartIcon className="h-4 w-4" />
-                            </span>
-                        )}
+                        ) : disabled('Confirm Order', <FaIcon name="cartPlus" />, 'is-order')}
+
+                        {/* No Answer toggle */}
+                        {canEdit ? (
+                            <button
+                                type="button"
+                                onClick={() => handleStatusChange(lead.status === 'PENDING' ? 'NO_ANSWER' : 'PENDING')}
+                                title={lead.status === 'PENDING' ? 'Mark as No Answer' : 'Mark as Pending'}
+                                aria-label={lead.status === 'PENDING' ? `Mark lead ${lead.number} as no answer` : `Mark lead ${lead.number} as pending`}
+                                className="ll-act is-noans"
+                            >
+                                <FaIcon name="reply" />
+                            </button>
+                        ) : disabled('Toggle No Answer', <FaIcon name="reply" />, 'is-noans')}
+
+                        {/* Reject */}
+                        {canEdit ? (
+                            <button
+                                type="button"
+                                onClick={() => { if (window.confirm('Reject this lead?')) handleStatusChange('REJECTED'); }}
+                                title="Reject Lead"
+                                aria-label={`Reject lead ${lead.number}`}
+                                className="ll-act is-reject"
+                            >
+                                <FaIcon name="ban" />
+                            </button>
+                        ) : disabled('Reject Lead', <FaIcon name="ban" />, 'is-reject')}
 
                         {/* Schedule or edit a follow-up reminder */}
                         {canEdit ? (
@@ -336,79 +352,25 @@ export function LeadActions({
                                 onClick={() => setIsReminderModalOpen(true)}
                                 title={activeReminder ? 'Reschedule Reminder' : 'Set Reminder'}
                                 aria-label={activeReminder ? `Reschedule reminder for lead ${lead.number}` : `Set reminder for lead ${lead.number}`}
-                                className={`transition-colors ${
-                                    activeReminder
-                                        ? 'text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300'
-                                        : 'text-slate-500 hover:text-blue-600'
-                                }`}
+                                className={`ll-act is-remind${activeReminder ? ' is-active' : ''}`}
                             >
-                                <BellAlertIcon className="h-4 w-4" />
+                                {clock}
                             </button>
-                        ) : (
-                            <span className="pointer-events-none text-slate-300" title="Set Reminder (Disabled)">
-                                <BellAlertIcon className="h-4 w-4" />
-                            </span>
-                        )}
-
-                        {/* No Answer Toggle */}
-                        {canEdit ? (
-                            <button
-                                onClick={() => handleStatusChange(lead.status === 'PENDING' ? 'NO_ANSWER' : 'PENDING')}
-                                title={lead.status === 'PENDING' ? "Mark as No Answer" : "Mark as Pending"}
-                                className="text-slate-500 hover:text-yellow-600 transition-colors"
-                            >
-                                <ArrowUturnLeftIcon className="h-4 w-4" />
-                            </button>
-                        ) : (
-                            <span className="text-slate-300 pointer-events-none" title="Toggle No Answer (Disabled)">
-                                <ArrowUturnLeftIcon className="h-4 w-4" />
-                            </span>
-                        )}
-
-                        {/* Reject */}
-                        {canEdit ? (
-                            <button
-                                onClick={() => { if (window.confirm('Reject this lead?')) handleStatusChange('REJECTED'); }}
-                                title="Reject Lead"
-                                className="text-slate-500 hover:text-red-600 transition-colors"
-                            >
-                                <NoSymbolIcon className="h-4 w-4" />
-                            </button>
-                        ) : (
-                            <span className="text-slate-300 pointer-events-none" title="Reject Lead (Disabled)">
-                                <NoSymbolIcon className="h-4 w-4" />
-                            </span>
-                        )}
+                        ) : disabled('Set Reminder', clock, 'is-remind')}
 
                         {/* Edit */}
                         {canEdit ? (
-                            <Link
-                                href={`/leads/${lead.id}?edit=true`}
-                                title="Edit Lead"
-                                className="text-slate-500 hover:text-blue-600 transition-colors"
-                            >
-                                <PencilIcon className="h-4 w-4" />
+                            <Link href={`/leads/${lead.id}?edit=true`} title="Edit Lead" aria-label={`Edit lead ${lead.number}`} className="ll-act is-edit">
+                                <FaIcon name="pen" />
                             </Link>
-                        ) : (
-                            <span className="text-slate-300 pointer-events-none" title="Edit Lead (Disabled)">
-                                <PencilIcon className="h-4 w-4" />
-                            </span>
-                        )}
+                        ) : disabled('Edit Lead', <FaIcon name="pen" />, 'is-edit')}
 
                         {/* Delete */}
                         {canDelete ? (
-                            <button
-                                onClick={() => setIsDeleteModalOpen(true)}
-                                title="Delete Lead"
-                                className="text-slate-500 hover:text-red-600 transition-colors"
-                            >
-                                <TrashIcon className="h-4 w-4" />
+                            <button type="button" onClick={() => setIsDeleteModalOpen(true)} title="Delete Lead" aria-label={`Delete lead ${lead.number}`} className="ll-act is-delete">
+                                <FaIcon name="trash" />
                             </button>
-                        ) : (
-                            <span className="text-slate-300 pointer-events-none" title="Delete Lead (Disabled)">
-                                <TrashIcon className="h-4 w-4" />
-                            </span>
-                        )}
+                        ) : disabled('Delete Lead', <FaIcon name="trash" />, 'is-delete')}
                     </>
                 )}
             </div>

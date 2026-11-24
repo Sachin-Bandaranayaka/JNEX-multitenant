@@ -13,9 +13,13 @@ interface DataExportProps {
   data: Record<string, any>[];
   columns: { key: string; label: string }[];
   filename?: string;
+  /** Overrides the default button styling (the lead list passes its own). */
+  buttonClassName?: string;
+  /** Text-only buttons, as on the lead list. */
+  hideIcons?: boolean;
 }
 
-export function DataExport({ data, columns, filename = 'export' }: DataExportProps) {
+export function DataExport({ data, columns, filename = 'export', buttonClassName, hideIcons = false }: DataExportProps) {
   const [copying, setCopying] = useState(false);
 
   const getExportData = () => {
@@ -92,29 +96,29 @@ export function DataExport({ data, columns, filename = 'export' }: DataExportPro
     }
   };
 
-  const btnClass =
+  const btnClass = buttonClassName ??
     'px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-white dark:bg-card text-foreground hover:bg-muted transition-colors inline-flex items-center gap-1.5';
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
       <button onClick={handleCopy} className={btnClass} title="Copy to clipboard">
-        <ClipboardDocumentIcon className="h-3.5 w-3.5" />
+        {!hideIcons && <ClipboardDocumentIcon className="h-3.5 w-3.5" />}
         {copying ? 'Copied!' : 'Copy'}
       </button>
       <button onClick={handleCSV} className={btnClass} title="Download CSV">
-        <DocumentTextIcon className="h-3.5 w-3.5" />
+        {!hideIcons && <DocumentTextIcon className="h-3.5 w-3.5" />}
         CSV
       </button>
       <button onClick={handleExcel} className={btnClass} title="Download Excel">
-        <TableCellsIcon className="h-3.5 w-3.5" />
+        {!hideIcons && <TableCellsIcon className="h-3.5 w-3.5" />}
         Excel
       </button>
       <button onClick={handlePDF} className={btnClass} title="Download PDF">
-        <DocumentArrowDownIcon className="h-3.5 w-3.5" />
+        {!hideIcons && <DocumentArrowDownIcon className="h-3.5 w-3.5" />}
         PDF
       </button>
       <button onClick={handlePrint} className={btnClass} title="Print">
-        <PrinterIcon className="h-3.5 w-3.5" />
+        {!hideIcons && <PrinterIcon className="h-3.5 w-3.5" />}
         Print
       </button>
     </div>

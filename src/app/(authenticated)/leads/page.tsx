@@ -7,6 +7,10 @@ import { redirect } from 'next/navigation';
 import { LeadsClient } from './leads-client';
 import { Prisma, User as PrismaUser, Lead as PrismaLead, Product, LeadStatus } from '@prisma/client';
 import { User } from 'next-auth';
+import { Open_Sans } from 'next/font/google';
+
+// The lead list uses Open Sans (400/500/600/700) per docs/LEAD_PAGE_DESIGN_SPEC.md.
+const openSans = Open_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'] });
 
 // Define a more specific type for our lead data
 export type LeadWithDetails = PrismaLead & {
@@ -205,13 +209,8 @@ export default async function LeadsPage({
     session.user.role === 'TEAM_MEMBER' ? [] : prisma.user.findMany({where:{tenantId:session.user.tenantId,isActive:true},select:{id:true,name:true},orderBy:{name:'asc'}}),
   ]);
   // 6. PASS DATA TO CLIENT COMPONENT
-  return (<>
-    <form action="/leads" method="get" className="mx-4 mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4 sm:mx-6">
-      {Object.entries(resolvedSearchParams).filter(([key,value])=>!['staff','product','page'].includes(key)&&typeof value==='string').map(([key,value])=><input key={key} type="hidden" name={key} value={value as string} />)}
-      <label className="text-xs text-muted-foreground">Product<select name="product" defaultValue={productFilter} className="mt-1 block rounded-md border-border bg-background text-sm"><option value="">All products</option>{filterProducts.map(product=><option key={product.id} value={product.id}>{product.code} · {product.name}</option>)}</select></label>
-      {session.user.role !== 'TEAM_MEMBER' && <label className="text-xs text-muted-foreground">Assigned staff<select name="staff" defaultValue={staffFilter} className="mt-1 block rounded-md border-border bg-background text-sm"><option value="">All staff</option>{filterStaff.map(person=><option key={person.id} value={person.id}>{person.name || 'Unnamed staff'}</option>)}</select></label>}
-      <button className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground">Apply</button><a href="/leads" className="px-3 py-2 text-sm text-muted-foreground">Clear all filters</a>
-    </form>
+  return (
+    <div className={`${openSans.className} ll-page`}>
     <LeadsClient
       initialLeads={leads as LeadWithDetails[]}
       user={session.user as User}
@@ -219,6 +218,8 @@ export default async function LeadsPage({
       totalCount={totalCount}
       currentPage={page}
       pageSize={pageSize}
+      filterProducts={filterProducts}
+      filterStaff={filterStaff}
       tenantConfig={tenant ? {
         fardaExpressClientId: tenant.fardaExpressClientId || undefined,
         fardaExpressApiKey: tenant.fardaExpressApiKey || undefined,
@@ -227,6 +228,7 @@ export default async function LeadsPage({
         royalExpressApiKey: tenant.royalExpressApiKey || undefined,
         royalExpressOrderPrefix: tenant.royalExpressOrderPrefix || undefined,
       } : undefined}
-    /></>
+    />
+    </div>
   );
 }

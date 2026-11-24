@@ -1,94 +1,43 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { LeadActions } from '@/components/leads/lead-actions';
 import { DataExport } from '@/components/leads/data-export';
 import { AssignLeadsDialog } from '@/components/leads/assign-leads-dialog';
+import { FaIcon } from '@/components/leads/fa-icons';
 import type { LeadWithDetails } from './page';
 import { User } from 'next-auth';
 import { toast } from 'sonner';
-import {
-  ClockIcon,
-  PhoneXMarkIcon,
-  XCircleIcon,
-  CheckCircleIcon,
-  PlusIcon,
-  ArrowUpTrayIcon,
-  TrashIcon,
-  PhoneArrowDownLeftIcon,
-  MagnifyingGlassIcon,
-  ChatBubbleLeftIcon,
-  PhoneIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  XMarkIcon,
-  DocumentTextIcon,
-  BellAlertIcon,
-} from '@heroicons/react/24/outline';
+import { BellAlertIcon } from '@heroicons/react/24/outline';
 
-// Operational status palette. Light mode keeps the high-visibility row colors;
-// dark mode uses restrained tinted slate surfaces with stronger edge/badge cues.
+// Status palette from docs/LEAD_PAGE_DESIGN_SPEC.md. `cls` tints the row and
+// draws its 3px left stripe (see `.ll-page .st-*` in globals.css); `dot` is the
+// legend color, which matches the stripe.
 const STATUS_CONFIG = {
-  PENDING: {
-    label: 'Pending',
-    rowBg: 'bg-[#e5e7eb] dark:bg-slate-800/80 dark:hover:bg-slate-700/90',
-    leftBorder: 'border-l-[#6b7280]',
-    numBadge: 'bg-[#4b5563] text-white',
-    dot: 'bg-[#6b7280]',
-    icon: ClockIcon,
-  },
-  NO_ANSWER: {
-    label: 'No Answer',
-    rowBg: 'bg-[#fde047] dark:bg-amber-950/25 dark:hover:bg-amber-950/40',
-    leftBorder: 'border-l-[#ca8a04]',
-    numBadge: 'bg-[#854d0e] text-white',
-    dot: 'bg-[#eab308]',
-    icon: PhoneXMarkIcon,
-  },
-  CONFIRMED: {
-    label: 'Ok',
-    rowBg: 'bg-[#4ade80] dark:bg-emerald-950/25 dark:hover:bg-emerald-950/40',
-    leftBorder: 'border-l-[#15803d]',
-    numBadge: 'bg-[#166534] text-white',
-    dot: 'bg-[#22c55e]',
-    icon: CheckCircleIcon,
-  },
-  REJECTED: {
-    label: 'Rejected',
-    rowBg: 'bg-[#f87171] dark:bg-red-950/25 dark:hover:bg-red-950/40',
-    leftBorder: 'border-l-[#b91c1c]',
-    numBadge: 'bg-[#991b1b] text-white',
-    dot: 'bg-[#ef4444]',
-    icon: XCircleIcon,
-  },
-  DELETED: {
-    label: 'Deleted',
-    rowBg: 'bg-[#b98b6f] dark:bg-orange-950/20 dark:hover:bg-orange-950/35',
-    leftBorder: 'border-l-[#78350f]',
-    numBadge: 'bg-[#78350f] text-white',
-    dot: 'bg-[#92400e]',
-    icon: TrashIcon,
-  },
+  PENDING: { label: 'Pending', cls: 'st-act', dot: '#adb5bd' },
+  CONFIRMED: { label: 'Ok', cls: 'st-ok', dot: '#2fb344' },
+  NO_ANSWER: { label: 'No Answer', cls: 'st-noans', dot: '#e6b800' },
+  REJECTED: { label: 'Rejected', cls: 'st-reject', dot: '#e03131' },
+  DELETED: { label: 'Deleted', cls: 'st-del', dot: '#f4a574' },
 } as const;
 
 type StatusKey = keyof typeof STATUS_CONFIG;
 
 function ContactIcons({ phone }: { phone: string | undefined }) {
-  if (!phone) return <span className="text-muted-foreground">—</span>;
+  if (!phone) return <span className="ll-index">—</span>;
   const cleaned = phone.replace(/[^0-9+]/g, '');
   const waNumber = cleaned.startsWith('+') ? cleaned.slice(1) : cleaned;
   return (
     <div className="flex min-w-0 items-center gap-1.5">
-      <span className="whitespace-nowrap text-[13px] font-bold tracking-wide text-slate-900 dark:text-white">{phone}</span>
-      <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener noreferrer" title="WhatsApp"
-        className="text-green-600 hover:text-green-700 transition-colors shrink-0">
-        <ChatBubbleLeftIcon className="h-4 w-4" />
+      <span className="ll-phone">{phone}</span>
+      <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noopener noreferrer" title="WhatsApp" aria-label={`WhatsApp ${phone}`} className="ll-round ll-wa">
+        <FaIcon name="whatsapp" />
       </a>
-      <a href={`tel:${cleaned}`} title="Call" className="text-blue-600 hover:text-blue-700 transition-colors shrink-0">
-        <PhoneIcon className="h-4 w-4" />
+      <a href={`tel:${cleaned}`} title="Call" aria-label={`Call ${phone}`} className="ll-round ll-call">
+        <FaIcon name="phone" />
       </a>
     </div>
   );
@@ -97,16 +46,26 @@ function ContactIcons({ phone }: { phone: string | undefined }) {
 function CardField({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="font-semibold text-slate-500">{label}</dt>
-      <dd className="mt-0.5 break-words text-foreground">{value || '—'}</dd>
+      <dt className="ll-label">{label}</dt>
+      <dd className="mt-0.5 break-words">{value || '—'}</dd>
     </div>
   );
 }
 
+function NoteLink({ lead }: { lead: LeadWithDetails }) {
+  return (
+    <Link href={`/leads/${lead.id}`} title={lead.notes || 'No note'} aria-label={lead.notes ? `Note: ${lead.notes}` : `Open lead ${lead.number}`} className={`ll-icon-link${lead.notes ? ' has-note' : ''}`}>
+      <FaIcon name="file" />
+    </Link>
+  );
+}
+
 export function LeadsClient({
-  initialLeads, user, searchParams, tenantConfig, totalCount, currentPage, pageSize,
+  initialLeads, user, searchParams, tenantConfig, totalCount, currentPage, pageSize, filterProducts, filterStaff,
 }: {
   initialLeads: LeadWithDetails[];
+  filterProducts: { id: string; name: string; code: string }[];
+  filterStaff: { id: string; name: string | null }[];
   user: User;
   searchParams: { [key: string]: string | string[] | undefined };
   tenantConfig?: {
@@ -157,6 +116,20 @@ export function LeadsClient({
   const [statusFilter, setStatusFilter] = useState((searchParams.status as string) || 'ANY');
   const [startDate, setStartDate] = useState((searchParams.startDate as string) || '');
   const [endDate, setEndDate] = useState((searchParams.endDate as string) || '');
+  const [productFilter, setProductFilter] = useState(typeof searchParams.product === 'string' ? searchParams.product : '');
+  const [staffFilter, setStaffFilter] = useState(typeof searchParams.staff === 'string' ? searchParams.staff : '');
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const actionMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close the bulk Action menu on any outside click.
+  useEffect(() => {
+    if (!actionMenuOpen) return;
+    const close = (event: MouseEvent) => {
+      if (!actionMenuRef.current?.contains(event.target as Node)) setActionMenuOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [actionMenuOpen]);
 
   // Keep server-provided initialLeads in sync after navigation (filter changes)
   useEffect(() => { setLeads(initialLeads); setSelectedIds([]); }, [initialLeads]);
@@ -167,7 +140,9 @@ export function LeadsClient({
     setStatusFilter((searchParams.status as string) || 'ANY');
     setStartDate((searchParams.startDate as string) || '');
     setEndDate((searchParams.endDate as string) || '');
-  }, [searchParams.tableSearch, searchParams.status, searchParams.startDate, searchParams.endDate]);
+    setProductFilter(typeof searchParams.product === 'string' ? searchParams.product : '');
+    setStaffFilter(typeof searchParams.staff === 'string' ? searchParams.staff : '');
+  }, [searchParams.tableSearch, searchParams.status, searchParams.startDate, searchParams.endDate, searchParams.product, searchParams.staff]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -176,8 +151,8 @@ export function LeadsClient({
   const buildUrl = (overrides: Record<string, string | number | null | undefined> = {}) => {
     const params = new URLSearchParams();
     const base: Record<string, string | number | null | undefined> = {
-      staff: typeof searchParams.staff === 'string' ? searchParams.staff : undefined,
-      product: typeof searchParams.product === 'string' ? searchParams.product : undefined,
+      staff: staffFilter,
+      product: productFilter,
       query: typeof searchParams.query === 'string' ? searchParams.query : undefined,
       status: statusFilter,
       startDate,
@@ -284,6 +259,8 @@ export function LeadsClient({
     setStatusFilter('ANY');
     setStartDate('');
     setEndDate('');
+    setProductFilter('');
+    setStaffFilter('');
     // Wipe persisted filters so the user actually gets a clean slate next time.
     if (typeof window !== 'undefined') {
       try {
@@ -296,7 +273,7 @@ export function LeadsClient({
   };
 
   const hasActiveCustomFilters =
-    statusFilter !== 'ANY' || Boolean(startDate) || Boolean(endDate);
+    statusFilter !== 'ANY' || Boolean(startDate) || Boolean(endDate) || Boolean(productFilter) || Boolean(staffFilter);
 
   // Client-side table search filter
   const displayedLeads = tableSearch
@@ -384,7 +361,7 @@ export function LeadsClient({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 py-2">
       {/* Reminder Alerts */}
       {overdueReminders.length > 0 && (
         <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500 text-white shadow-lg animate-pulse">
@@ -411,273 +388,249 @@ export function LeadsClient({
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Lead List</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Pending and No Answer leads are prioritized across all import dates.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Filter card */}
+      <section className="ll-card">
+        <div className="ll-card-title">
+          <h5 className="ll-title">Lead List</h5>
           {canCreate && (
-            <>
-              <Link href="/leads/import" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-muted border border-border text-sm font-medium text-foreground hover:bg-accent transition-colors shadow-sm">
-                <ArrowUpTrayIcon className="h-4 w-4" /> Import CSV
-              </Link>
-              <Link href="/leads/new" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm">
-                <PlusIcon className="h-4 w-4" /> Add Lead
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Simple filters: status and an optional lead-date range. */}
-      <div className="p-4 bg-white rounded-md border border-[#e3e6ea] shadow-sm">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-slate-500">Status</label>
-            <select value={statusFilter} onChange={(e) => handleStatusChip(e.target.value as StatusKey | 'ANY')}
-              className="h-9 px-3 rounded-md border border-[#d4d9e0] bg-white text-sm text-slate-600 focus:ring-2 focus:ring-[#e89c31]/20 focus:border-[#e89c31] focus:outline-none">
-              <option value="ANY">All statuses</option>
-              {(Object.entries(STATUS_CONFIG) as [StatusKey, typeof STATUS_CONFIG[StatusKey]][]).map(([key, cfg]) => (
-                <option key={key} value={key}>{cfg.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-slate-500">Start Date</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              className="h-9 px-3 rounded-md border border-[#d4d9e0] bg-white text-sm text-slate-600 focus:ring-2 focus:ring-[#e89c31]/20 focus:border-[#e89c31] focus:outline-none" />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-slate-500">End Date</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-              className="h-9 px-3 rounded-md border border-[#d4d9e0] bg-white text-sm text-slate-600 focus:ring-2 focus:ring-[#e89c31]/20 focus:border-[#e89c31] focus:outline-none" />
-          </div>
-
-          <button onClick={handleSearch}
-            className="h-9 px-6 rounded-md bg-[#e89c31] text-white text-sm font-semibold hover:bg-[#d4860f] transition-colors">
-            Search
-          </button>
-
-          {hasActiveCustomFilters && (
-            <button onClick={resetFilters}
-              className="h-9 px-3 inline-flex items-center gap-1.5 rounded-md border border-[#d4d9e0] bg-white text-sm font-medium text-slate-500 hover:bg-gray-50 hover:text-slate-700 transition-colors"
-              title="Reset all filters">
-              <XMarkIcon className="h-4 w-4" /> Reset
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Status color legend (Genzo-style) */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-        {(Object.entries(STATUS_CONFIG) as [StatusKey, typeof STATUS_CONFIG[StatusKey]][]).map(([key, cfg]) => (
-          <div key={key} className="flex items-center gap-2 text-sm text-slate-600">
-            <span className={`h-3.5 w-3.5 rounded-full ${cfg.dot}`} />
-            {cfg.label}
-          </div>
-        ))}
-      </div>
-
-      {/* Search + Export toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm text-muted-foreground">
-          Showing {totalCount === 0 ? 0 : ((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount.toLocaleString()} entries
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input type="text" placeholder="Search..." value={tableSearch} onChange={(e) => setTableSearch(e.target.value)}
-              className="h-8 pl-8 pr-3 w-48 rounded-lg border border-border bg-background text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none" />
-          </div>
-          <DataExport data={exportData} columns={exportColumns} filename="leads" />
-        </div>
-      </div>
-
-      {/* Bulk actions + Select controls */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <select onChange={(e) => handlePageSizeChange(Number(e.target.value))} value={pageSize}
-            className="h-8 px-2 rounded-lg border border-border bg-primary text-primary-foreground text-xs font-medium focus:outline-none">
-            <option value={25}>Select 25</option>
-            <option value={50}>Select 50</option>
-            <option value={100}>Select 100</option>
-          </select>
-
-          {someSelected && (
-            <div className="relative inline-block">
-              <select onChange={(e) => {
-                const val = e.target.value;
-                if (val === 'delete') handleBulkDelete();
-                else if (val === 'reassign') setAssigningIds(selectedIds);
-                else if (val === 'reschedule') toast.info('Reschedule feature coming soon');
-                e.target.value = '';
-              }} defaultValue="" disabled={isBulkLoading}
-                className="h-8 px-3 rounded-lg border border-border bg-background text-sm font-medium text-foreground focus:outline-none disabled:opacity-50">
-                <option value="" disabled>Action ({selectedIds.length})</option>
-                {canAssign && <option value="reassign">Reassign</option>}
-                <option value="delete">Delete</option>
-                <option value="reschedule">Reschedule</option>
-              </select>
+            <div className="flex items-center gap-2">
+              <Link href="/leads/import" className="ll-btn"><FaIcon name="upload" /> Import CSV</Link>
+              <Link href="/leads/new" className="ll-btn ll-btn-solid"><FaIcon name="plus" /> Add Lead</Link>
             </div>
           )}
         </div>
-      </div>
-
-      {/* Table */}
-      <div className="overflow-hidden border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        {/* Full-column table on screens where the columns remain readable. */}
-        <div className="hidden xl:block overflow-hidden">
-          <table className="w-full table-fixed border-collapse text-left text-[11px] leading-[1.25] text-slate-800 dark:text-slate-100 no-genzo-override">
-            <thead>
-              <tr className="bg-[#f2f2f2] dark:bg-slate-800">
-                <th className="w-8 border-b border-r border-slate-200 px-1 py-2 text-center dark:border-slate-700">
-                  <input type="checkbox" className="h-4 w-4 rounded border-border text-primary" checked={allSelected} onChange={toggleSelectAll} />
-                </th>
-                <th className="w-20 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200"># / Lead No</th>
-                <th className="w-20 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Lead Date</th>
-                <th className="w-32 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Customer Name</th>
-                <th className="border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Address</th>
-                <th className="w-32 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Contact No 1</th>
-                <th className="w-32 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Contact No 2</th>
-                <th className="w-20 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Product Code</th>
-                <th className="w-20 border-b border-r border-slate-200 px-2 py-2 font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Staff</th>
-                <th className="w-36 border-b border-slate-200 px-2 py-2 text-right font-bold text-slate-700 dark:border-slate-700 dark:text-slate-200">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayedLeads.length === 0 ? (
-                <tr><td colSpan={10} className="px-4 py-12 text-center text-muted-foreground border-b border-slate-200">No leads found</td></tr>
-              ) : (
-                displayedLeads.map((lead, idx) => {
-                  const config = STATUS_CONFIG[lead.status as StatusKey];
-                  const csvData = lead.csvData as any;
-                  const isSelected = selectedIds.includes(lead.id);
-                  const rowIdx = ((currentPage - 1) * pageSize) + idx + 1;
-
-                  return (
-                    <tr key={lead.id}
-                      className={`relative ${config?.rowBg ?? 'bg-white dark:bg-slate-900 dark:hover:bg-slate-800'} border-l-4 ${config?.leftBorder ?? 'border-l-transparent'} ${isSelected ? 'ring-2 ring-inset ring-primary' : ''} hover:brightness-[0.96] dark:hover:brightness-100 transition-[background-color,filter]`}>
-                      <td className="relative border-b border-r border-slate-200 px-1 py-2 text-center align-top dark:border-slate-700">
-                        {lead.status === 'DELETED' && <span aria-hidden="true" className="pointer-events-none absolute left-0 top-1/2 z-10 h-px w-[calc(100vw-2rem)] -translate-y-1/2 bg-[#3f2417]/80" />}
-                        <input type="checkbox" className="h-4 w-4 rounded border-border text-primary" checked={isSelected} onChange={() => toggleSelect(lead.id)} />
-                      </td>
-                      <td className="border-b border-r border-slate-200 px-2 py-2 align-top dark:border-slate-700">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="text-muted-foreground shrink-0 font-medium">{rowIdx}</span>
-                          <Link href={`/leads/${lead.id}${displayedLeads[idx + 1] ? `?nextLeadId=${displayedLeads[idx + 1].id}` : ''}`} className="min-w-0">
-                            <span className={`inline-flex max-w-full items-center truncate rounded-sm px-1.5 py-0.5 text-[10px] font-bold underline underline-offset-2 ${config?.numBadge ?? 'bg-gray-500 text-white'}`}>
-                              {lead.number}
-                            </span>
-                          </Link>
-                        </div>
-                      </td>
-                      <td className="border-b border-r border-slate-200 px-2 py-2 align-top text-[10px] leading-tight text-slate-700 dark:border-slate-700 dark:text-slate-200">
-                        <div>{format(new Date(lead.createdAt), 'yyyy-MM-dd')}</div>
-                        <div>{format(new Date(lead.createdAt), 'HH:mm')}</div>
-                      </td>
-                      <td className="truncate border-b border-r border-slate-200 px-2 py-2 align-top font-semibold text-slate-800 dark:border-slate-700 dark:text-slate-100" title={csvData.name || 'Unnamed'}>
-                        {csvData.name || 'Unnamed'}
-                      </td>
-                      <td className="truncate border-b border-r border-slate-200 px-2 py-2 align-top text-slate-700 dark:border-slate-700 dark:text-slate-200" title={`${csvData.address || ''}${csvData.city ? `, ${csvData.city}` : ''}`}>
-                        {csvData.address}{csvData.city ? `, ${csvData.city}` : ''}
-                      </td>
-                      <td className="border-b border-r border-slate-200 px-2 py-2 align-top dark:border-slate-700"><ContactIcons phone={csvData.phone} /></td>
-                      <td className="border-b border-r border-slate-200 px-2 py-2 align-top dark:border-slate-700"><ContactIcons phone={csvData.secondPhone} /></td>
-                      <td className="truncate border-b border-r border-slate-200 px-2 py-2 align-top text-slate-700 dark:border-slate-700 dark:text-slate-200" title={lead.product.name}>{lead.product.code}</td>
-                      <td className="truncate border-b border-r border-slate-200 px-2 py-2 align-top text-slate-700 dark:border-slate-700 dark:text-slate-200" title={lead.assignedTo?.name || ''}>{lead.assignedTo?.name || '—'}</td>
-                      <td className="border-b border-slate-200 px-2 py-2 text-right align-top dark:border-slate-700">
-                        <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} returnTo={buildUrl()} />
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* On smaller screens every original column becomes a labeled field,
-            keeping the complete row visible without horizontal scrolling. */}
-        <div className="divide-y divide-slate-200 xl:hidden">
-          {displayedLeads.length === 0 ? (
-            <div className="px-4 py-12 text-center text-muted-foreground">No leads found</div>
-          ) : displayedLeads.map((lead, idx) => {
-            const config = STATUS_CONFIG[lead.status as StatusKey];
-            const csvData = lead.csvData as any;
-            const isSelected = selectedIds.includes(lead.id);
-            const rowIdx = ((currentPage - 1) * pageSize) + idx + 1;
-            return (
-              <article key={lead.id} className={`relative overflow-hidden ${config?.rowBg || 'bg-white dark:bg-slate-900'} border-l-4 ${config?.leftBorder || 'border-l-transparent'} p-3 ${isSelected ? 'ring-2 ring-inset ring-primary' : ''}`}>
-                {lead.status === 'DELETED' && <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-1/2 z-10 h-px -translate-y-1/2 bg-[#3f2417]/80" />}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <input type="checkbox" className="h-4 w-4 shrink-0 rounded border-border text-primary" checked={isSelected} onChange={() => toggleSelect(lead.id)} />
-                    <span className="text-xs text-muted-foreground">#{rowIdx}</span>
-                    <Link href={`/leads/${lead.id}${displayedLeads[idx + 1] ? `?nextLeadId=${displayedLeads[idx + 1].id}` : ''}`}>
-                      <span className={`inline-flex rounded-sm px-2 py-0.5 text-xs font-bold underline underline-offset-2 ${config?.numBadge || 'bg-gray-500 text-white'}`}>Lead {lead.number}</span>
-                    </Link>
-                  </div>
-                  <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} returnTo={buildUrl()} />
-                </div>
-
-                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-3 lg:grid-cols-4">
-                  <CardField label="Lead Date" value={format(new Date(lead.createdAt), 'yyyy-MM-dd HH:mm:ss')} />
-                  <CardField label="Customer Name" value={csvData.name || 'Unnamed'} />
-                  <CardField label="Address" value={`${csvData.address || ''}${csvData.city ? `, ${csvData.city}` : ''}`} />
-                  <div className="border border-slate-300/80 bg-white/45 p-2 dark:border-slate-600 dark:bg-black/10">
-                    <dt className="font-semibold text-slate-600 dark:text-slate-200">Contact No 1</dt>
-                    <dd className="mt-1"><ContactIcons phone={csvData.phone} /></dd>
-                  </div>
-                  <div className="border border-slate-300/80 bg-white/45 p-2 dark:border-slate-600 dark:bg-black/10">
-                    <dt className="font-semibold text-slate-600 dark:text-slate-200">Contact No 2</dt>
-                    <dd className="mt-1"><ContactIcons phone={csvData.secondPhone} /></dd>
-                  </div>
-                  <CardField label="Product Code" value={lead.product.code} />
-                  <CardField label="Staff" value={lead.assignedTo?.name || '—'} />
-                </dl>
-              </article>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            Page {currentPage} of {totalPages}
-          </p>
-          <div className="flex items-center gap-1">
-            <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1}
-              className="p-2 rounded-lg border border-border bg-background text-muted-foreground hover:bg-muted disabled:opacity-30 transition-colors">
-              <ChevronLeftIcon className="h-4 w-4" />
-            </button>
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum: number;
-              if (totalPages <= 5) pageNum = i + 1;
-              else if (currentPage <= 3) pageNum = i + 1;
-              else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
-              else pageNum = currentPage - 2 + i;
-              return (
-                <button key={pageNum} onClick={() => handlePageChange(pageNum)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? 'bg-primary text-primary-foreground' : 'border border-border bg-background text-foreground hover:bg-muted'}`}>
-                  {pageNum}
+        <div className="ll-card-body">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 pb-2">
+            <label className="flex items-center gap-3">
+              <span className="ll-label">Status</span>
+              <select value={statusFilter} onChange={(e) => handleStatusChip(e.target.value as StatusKey | 'ANY')} className="ll-input min-w-[130px]">
+                <option value="ANY">Any</option>
+                {(Object.entries(STATUS_CONFIG) as [StatusKey, typeof STATUS_CONFIG[StatusKey]][]).map(([key, cfg]) => (
+                  <option key={key} value={key}>{cfg.label}</option>
+                ))}
+              </select>
+            </label>
+            {user.role !== 'TEAM_MEMBER' && (
+              <label className="flex items-center gap-3">
+                <span className="ll-label">User</span>
+                <select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)} className="ll-input min-w-[130px]">
+                  <option value="">Any</option>
+                  {filterStaff.map((person) => <option key={person.id} value={person.id}>{person.name || 'Unnamed staff'}</option>)}
+                </select>
+              </label>
+            )}
+            <label className="flex items-center gap-3">
+              <span className="ll-label">Product</span>
+              <select value={productFilter} onChange={(e) => setProductFilter(e.target.value)} className="ll-input min-w-[130px] max-w-[200px]">
+                <option value="">Any</option>
+                {filterProducts.map((product) => <option key={product.id} value={product.id}>{product.code} · {product.name}</option>)}
+              </select>
+            </label>
+            <label className="flex items-center gap-3">
+              <span className="ll-label leading-tight">Start<br />Date</span>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="ll-input" />
+            </label>
+            <label className="flex items-center gap-3">
+              <span className="ll-label">End Date</span>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="ll-input" />
+            </label>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={handleSearch} className="ll-btn-primary">Search</button>
+              {hasActiveCustomFilters && (
+                <button type="button" onClick={resetFilters} className="ll-btn" title="Reset all filters">
+                  <FaIcon name="xmark" /> Reset
                 </button>
-              );
-            })}
-            <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage >= totalPages}
-              className="p-2 rounded-lg border border-border bg-background text-muted-foreground hover:bg-muted disabled:opacity-30 transition-colors">
-              <ChevronRightIcon className="h-4 w-4" />
-            </button>
+              )}
+            </div>
           </div>
         </div>
-      )}
+      </section>
+
+      {/* Table card */}
+      <section className="ll-card">
+        <div className="ll-card-title">
+          <div className="ll-legend">
+            {(Object.entries(STATUS_CONFIG) as [StatusKey, typeof STATUS_CONFIG[StatusKey]][]).map(([key, cfg], index) => (
+              <span key={key} className="inline-flex items-center" style={{ marginLeft: index === 0 ? 0 : 10 }}>
+                <span className="ll-dot" style={{ backgroundColor: cfg.dot }} />
+                {cfg.label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="ll-card-body" style={{ paddingBottom: 16 }}>
+          {/* Search + export */}
+          <div className="flex flex-wrap items-center justify-end gap-3 py-2">
+            <label className="flex items-center gap-2">
+              <span className="ll-toolbar-label">Search:</span>
+              <span className="relative">
+                <FaIcon name="search" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[12px] text-[#8a94a3]" />
+                <input type="text" value={tableSearch} onChange={(e) => setTableSearch(e.target.value)} className="ll-search" aria-label="Search leads on this page" />
+              </span>
+            </label>
+            <DataExport data={exportData} columns={exportColumns} filename="leads" buttonClassName="ll-btn" hideIcons />
+          </div>
+
+          {/* Entries + page size + bulk action */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 pt-1">
+            <div className="ll-toolbar-label">
+              Showing {totalCount === 0 ? 0 : ((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalCount)} of {totalCount.toLocaleString()} entries
+            </div>
+            <div className="flex items-center gap-2">
+              <select onChange={(e) => handlePageSizeChange(Number(e.target.value))} value={pageSize} className="ll-pill-dark" aria-label="Rows per page">
+                <option value={25}>Select 25</option>
+                <option value={50}>Select 50</option>
+                <option value={100}>Select 100</option>
+              </select>
+              <div className="relative" ref={actionMenuRef}>
+                <button type="button" className="ll-pill" aria-haspopup="menu" aria-expanded={actionMenuOpen} disabled={isBulkLoading} onClick={() => setActionMenuOpen((open) => !open)}>
+                  Action{someSelected ? ` (${selectedIds.length})` : ''} <FaIcon name="caretDown" className="text-[10px]" />
+                </button>
+                {actionMenuOpen && (
+                  <div className="ll-menu" role="menu">
+                    {!someSelected && <p className="px-2.5 pb-1.5 pt-1 text-[11.5px] text-[#8a94a3]">Tick leads in the Action column first.</p>}
+                    {canAssign && <button type="button" role="menuitem" disabled={!someSelected} onClick={() => { setActionMenuOpen(false); setAssigningIds(selectedIds); }}>Reassign</button>}
+                    <button type="button" role="menuitem" disabled={!someSelected} onClick={() => { setActionMenuOpen(false); handleBulkDelete(); }}>Delete</button>
+                    <button type="button" role="menuitem" disabled={!someSelected} onClick={() => { setActionMenuOpen(false); toast.info('Reschedule feature coming soon'); }}>Reschedule</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Full table on wide screens */}
+          <div className="hidden overflow-x-auto xl:block">
+            <table className="ll-table no-genzo-override">
+              <thead>
+                <tr>
+                  <th className="w-10">#</th>
+                  <th>Lead No</th>
+                  <th>Lead Date</th>
+                  <th>Customer Name</th>
+                  <th>Address</th>
+                  <th>Contact No</th>
+                  <th>Contact No 2</th>
+                  <th>Other</th>
+                  <th>Product Code</th>
+                  <th>Staff</th>
+                  <th>Add Order</th>
+                  <th>
+                    <label className="flex items-center gap-2">
+                      Action
+                      <input type="checkbox" className="ll-check" checked={allSelected} onChange={toggleSelectAll} aria-label="Select all leads on this page" />
+                    </label>
+                  </th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedLeads.length === 0 ? (
+                  <tr><td colSpan={13} className="py-12 text-center">No leads found</td></tr>
+                ) : (
+                  displayedLeads.map((lead, idx) => {
+                    const config = STATUS_CONFIG[lead.status as StatusKey];
+                    const csvData = lead.csvData as any;
+                    const isSelected = selectedIds.includes(lead.id);
+                    const rowIdx = ((currentPage - 1) * pageSize) + idx + 1;
+                    const address = `${csvData.address || ''}${csvData.city ? `, ${csvData.city}` : ''}`;
+                    return (
+                      <tr key={lead.id} className={config?.cls ?? ''}>
+                        <td className="ll-index text-center">{rowIdx}</td>
+                        <td>
+                          <Link href={`/leads/${lead.id}${displayedLeads[idx + 1] ? `?nextLeadId=${displayedLeads[idx + 1].id}` : ''}`} className="ll-lead-no">
+                            {lead.number}
+                          </Link>
+                        </td>
+                        <td className="ll-date">{format(new Date(lead.createdAt), 'yyyy-MM-dd HH:mm:ss')}</td>
+                        <td className="ll-name min-w-[120px]">{csvData.name || 'Unnamed'}</td>
+                        <td className="min-w-[160px]">{address || '—'}</td>
+                        <td><ContactIcons phone={csvData.phone} /></td>
+                        <td><ContactIcons phone={csvData.secondPhone} /></td>
+                        <td className="min-w-[90px]">{csvData.notes || csvData.source || ''}</td>
+                        <td title={lead.product.name}>{lead.product.code}</td>
+                        <td className="min-w-[90px]">{lead.assignedTo?.name || '—'}</td>
+                        <td>
+                          <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} returnTo={buildUrl()} />
+                        </td>
+                        <td className="text-center">
+                          <input type="checkbox" className="ll-check" checked={isSelected} onChange={() => toggleSelect(lead.id)} aria-label={`Select lead ${lead.number}`} />
+                        </td>
+                        <td className="text-center"><NoteLink lead={lead} /></td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Below xl every column becomes a labeled field, so the whole lead
+              stays visible without horizontal scrolling. */}
+          <div className="space-y-2 xl:hidden">
+            {displayedLeads.length === 0 ? (
+              <div className="py-12 text-center">No leads found</div>
+            ) : displayedLeads.map((lead, idx) => {
+              const config = STATUS_CONFIG[lead.status as StatusKey];
+              const csvData = lead.csvData as any;
+              const isSelected = selectedIds.includes(lead.id);
+              const rowIdx = ((currentPage - 1) * pageSize) + idx + 1;
+              return (
+                <article key={lead.id} className={`overflow-hidden rounded-lg p-3 ${config?.cls ?? ''}`}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <input type="checkbox" className="ll-check" checked={isSelected} onChange={() => toggleSelect(lead.id)} aria-label={`Select lead ${lead.number}`} />
+                      <span className="ll-index">#{rowIdx}</span>
+                      <Link href={`/leads/${lead.id}${displayedLeads[idx + 1] ? `?nextLeadId=${displayedLeads[idx + 1].id}` : ''}`} className="ll-lead-no">
+                        {lead.number}
+                      </Link>
+                      <NoteLink lead={lead} />
+                    </div>
+                    <LeadActions lead={lead} user={user} onAction={refreshLeads} tenantConfig={tenantConfig} returnTo={buildUrl()} />
+                  </div>
+                  <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-3 lg:grid-cols-4">
+                    <CardField label="Lead Date" value={format(new Date(lead.createdAt), 'yyyy-MM-dd HH:mm:ss')} />
+                    <div className="min-w-0"><dt className="ll-label">Customer Name</dt><dd className="ll-name mt-0.5 break-words">{csvData.name || 'Unnamed'}</dd></div>
+                    <CardField label="Address" value={`${csvData.address || ''}${csvData.city ? `, ${csvData.city}` : ''}`} />
+                    <div className="col-span-2 min-w-0 sm:col-span-1"><dt className="ll-label">Contact No</dt><dd className="mt-1"><ContactIcons phone={csvData.phone} /></dd></div>
+                    <div className="col-span-2 min-w-0 sm:col-span-1"><dt className="ll-label">Contact No 2</dt><dd className="mt-1"><ContactIcons phone={csvData.secondPhone} /></dd></div>
+                    <CardField label="Other" value={csvData.notes || csvData.source || ''} />
+                    <CardField label="Product Code" value={lead.product.code} />
+                    <CardField label="Staff" value={lead.assignedTo?.name || '—'} />
+                  </dl>
+                </article>
+              );
+            })}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex flex-wrap items-center justify-between gap-4 pt-4">
+              <p className="ll-toolbar-label">Page {currentPage} of {totalPages}</p>
+              <div className="flex items-center gap-1">
+                <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1} className="ll-page-btn" aria-label="Previous page">
+                  <FaIcon name="chevronLeft" />
+                </button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) pageNum = i + 1;
+                  else if (currentPage <= 3) pageNum = i + 1;
+                  else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                  else pageNum = currentPage - 2 + i;
+                  return (
+                    <button key={pageNum} onClick={() => handlePageChange(pageNum)} className={`ll-page-btn${currentPage === pageNum ? ' is-current' : ''}`}>
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage >= totalPages} className="ll-page-btn" aria-label="Next page">
+                  <FaIcon name="chevronRight" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       {assigningIds && (
         <AssignLeadsDialog

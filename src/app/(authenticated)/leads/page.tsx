@@ -69,14 +69,13 @@ export default async function LeadsPage({
   const rawStatus = resolvedSearchParams.status;
   const statusFilter = typeof rawStatus === 'string' && Object.values(LeadStatus).includes(rawStatus as LeadStatus) ? rawStatus : undefined;
   const staffFilter = typeof resolvedSearchParams.staff === 'string' ? resolvedSearchParams.staff : '';
-  const productFilter = typeof resolvedSearchParams.product === 'string' ? resolvedSearchParams.product : '';
   const searchQuery = resolvedSearchParams.query as string | undefined;
   const rawPage = Number(resolvedSearchParams.page);
   const page = Number.isSafeInteger(rawPage) && rawPage > 0 ? Math.min(rawPage,100000) : 1;
   const pageSize = [10,25,50,100].includes(Number(resolvedSearchParams.pageSize)) ? Number(resolvedSearchParams.pageSize) : 25;
 
   // 4. BUILD SECURE WHERE CLAUSE
-  const where: Prisma.LeadWhereInput = { tenantId: session.user.tenantId, ...(productFilter ? {product:{is:{id:productFilter}}} : {}), ...(staffFilter && session.user.role !== 'TEAM_MEMBER' ? {userId:staffFilter} : {}) };
+  const where: Prisma.LeadWhereInput = { tenantId: session.user.tenantId, ...(staffFilter && session.user.role !== 'TEAM_MEMBER' ? {userId:staffFilter} : {}) };
 
   // Team member restriction
   if (session.user.role === 'TEAM_MEMBER') {
@@ -204,10 +203,7 @@ export default async function LeadsPage({
     offset = 0;
   }
 
-  const [filterProducts, filterStaff] = await Promise.all([
-    prisma.product.findMany({where:{tenantId:session.user.tenantId,isActive:true},select:{id:true,name:true,code:true},orderBy:{name:'asc'}}),
-    session.user.role === 'TEAM_MEMBER' ? [] : prisma.user.findMany({where:{tenantId:session.user.tenantId,isActive:true},select:{id:true,name:true},orderBy:{name:'asc'}}),
-  ]);
+  const filterStaff = session.user.role === 'TEAM_MEMBER' ? [] : await prisma.user.findMany({where:{tenantId:session.user.tenantId,isActive:true},select:{id:true,name:true},orderBy:{name:'asc'}});
   // 6. PASS DATA TO CLIENT COMPONENT
   return (
     <div className={`${openSans.className} ll-page`}>
@@ -218,7 +214,6 @@ export default async function LeadsPage({
       totalCount={totalCount}
       currentPage={page}
       pageSize={pageSize}
-      filterProducts={filterProducts}
       filterStaff={filterStaff}
       tenantConfig={tenant ? {
         fardaExpressClientId: tenant.fardaExpressClientId || undefined,

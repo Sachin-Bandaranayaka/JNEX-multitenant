@@ -61,10 +61,9 @@ function NoteLink({ lead }: { lead: LeadWithDetails }) {
 }
 
 export function LeadsClient({
-  initialLeads, user, searchParams, tenantConfig, totalCount, currentPage, pageSize, filterProducts, filterStaff,
+  initialLeads, user, searchParams, tenantConfig, totalCount, currentPage, pageSize, filterStaff,
 }: {
   initialLeads: LeadWithDetails[];
-  filterProducts: { id: string; name: string; code: string }[];
   filterStaff: { id: string; name: string | null }[];
   user: User;
   searchParams: { [key: string]: string | string[] | undefined };
@@ -116,7 +115,6 @@ export function LeadsClient({
   const [statusFilter, setStatusFilter] = useState((searchParams.status as string) || 'ANY');
   const [startDate, setStartDate] = useState((searchParams.startDate as string) || '');
   const [endDate, setEndDate] = useState((searchParams.endDate as string) || '');
-  const [productFilter, setProductFilter] = useState(typeof searchParams.product === 'string' ? searchParams.product : '');
   const [staffFilter, setStaffFilter] = useState(typeof searchParams.staff === 'string' ? searchParams.staff : '');
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
@@ -140,9 +138,8 @@ export function LeadsClient({
     setStatusFilter((searchParams.status as string) || 'ANY');
     setStartDate((searchParams.startDate as string) || '');
     setEndDate((searchParams.endDate as string) || '');
-    setProductFilter(typeof searchParams.product === 'string' ? searchParams.product : '');
     setStaffFilter(typeof searchParams.staff === 'string' ? searchParams.staff : '');
-  }, [searchParams.tableSearch, searchParams.status, searchParams.startDate, searchParams.endDate, searchParams.product, searchParams.staff]);
+  }, [searchParams.tableSearch, searchParams.status, searchParams.startDate, searchParams.endDate, searchParams.staff]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -152,7 +149,6 @@ export function LeadsClient({
     const params = new URLSearchParams();
     const base: Record<string, string | number | null | undefined> = {
       staff: staffFilter,
-      product: productFilter,
       query: typeof searchParams.query === 'string' ? searchParams.query : undefined,
       status: statusFilter,
       startDate,
@@ -259,7 +255,6 @@ export function LeadsClient({
     setStatusFilter('ANY');
     setStartDate('');
     setEndDate('');
-    setProductFilter('');
     setStaffFilter('');
     // Wipe persisted filters so the user actually gets a clean slate next time.
     if (typeof window !== 'undefined') {
@@ -273,7 +268,7 @@ export function LeadsClient({
   };
 
   const hasActiveCustomFilters =
-    statusFilter !== 'ANY' || Boolean(startDate) || Boolean(endDate) || Boolean(productFilter) || Boolean(staffFilter);
+    statusFilter !== 'ANY' || Boolean(startDate) || Boolean(endDate) || Boolean(staffFilter);
 
   // Client-side table search filter
   const displayedLeads = tableSearch
@@ -400,10 +395,10 @@ export function LeadsClient({
           )}
         </div>
         <div className="ll-card-body">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 pb-2">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pb-2">
             <label className="flex items-center gap-3">
               <span className="ll-label">Status</span>
-              <select value={statusFilter} onChange={(e) => handleStatusChip(e.target.value as StatusKey | 'ANY')} className="ll-input min-w-[130px]">
+              <select value={statusFilter} onChange={(e) => handleStatusChip(e.target.value as StatusKey | 'ANY')} className="ll-input min-w-[150px]">
                 <option value="ANY">Any</option>
                 {(Object.entries(STATUS_CONFIG) as [StatusKey, typeof STATUS_CONFIG[StatusKey]][]).map(([key, cfg]) => (
                   <option key={key} value={key}>{cfg.label}</option>
@@ -413,19 +408,12 @@ export function LeadsClient({
             {user.role !== 'TEAM_MEMBER' && (
               <label className="flex items-center gap-3">
                 <span className="ll-label">User</span>
-                <select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)} className="ll-input min-w-[130px]">
+                <select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)} className="ll-input min-w-[150px]">
                   <option value="">Any</option>
                   {filterStaff.map((person) => <option key={person.id} value={person.id}>{person.name || 'Unnamed staff'}</option>)}
                 </select>
               </label>
             )}
-            <label className="flex items-center gap-3">
-              <span className="ll-label">Product</span>
-              <select value={productFilter} onChange={(e) => setProductFilter(e.target.value)} className="ll-input min-w-[130px] max-w-[200px]">
-                <option value="">Any</option>
-                {filterProducts.map((product) => <option key={product.id} value={product.id}>{product.code} · {product.name}</option>)}
-              </select>
-            </label>
             <label className="flex items-center gap-3">
               <span className="ll-label leading-tight">Start<br />Date</span>
               <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="ll-input" />
